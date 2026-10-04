@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The launcher label; the full name "Boson Identity" would be cut off under the icon. -->
+    <string name="app_label">Boson ID</string>
+    <string name="app_nav_identity">Identity</string>
+</resources>

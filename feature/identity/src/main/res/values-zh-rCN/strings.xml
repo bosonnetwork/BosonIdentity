@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="id_title">身份</string>
+    <string name="id_refresh">刷新</string>
+    <string name="id_unnamed">你的身份</string>
+    <string name="id_show_id">显示我的 ID</string>
+    <string name="id_admin_badge">节点管理员</string>
+    <string name="id_done">完成</string>
+
+    <string name="id_show_id_title">你的 ID</string>
+    <string name="id_show_id_qr">你的 ID 二维码</string>
+    <string name="id_show_id_body">你的 ID 是公开的：分享它，别人就能找到你。它不是你的密钥。</string>
+
+    <string name="id_protection_title">保护状态</string>
+    <string name="id_backup_ok">密钥已备份</string>
+    <string name="id_backup_ok_detail">你有一份已检查过的密钥副本。</string>
+    <string name="id_backup_needed">备份你的密钥</string>
+    <string name="id_backup_needed_detail">没有副本，手机丢失就会失去你的身份。在备份之前，它无法批准任何操作。</string>
+    <string name="id_lock_ok">已受屏幕锁保护</string>
+    <string name="id_lock_ok_detail">密钥在这部手机上加密保存；使用它需要验证指纹或屏幕锁。</string>
+    <string name="id_node_none">尚无主节点</string>
+    <string name="id_node_none_detail">加入一个节点，才能在 Boson 网络中使用你的身份。</string>
+    <string name="id_node_checking">正在检查你的主节点</string>
+    <string name="id_locked">已锁定</string>
+    <string name="id_locked_detail">点按以用屏幕锁解锁。</string>
+    <string name="id_node_failed">无法连接主节点</string>
+    <string name="id_node_ok">主节点连接正常</string>
+    <string name="id_node_ok_plan">套餐：%1$s</string>
+    <string name="id_passphrase_ok">已设置账户口令</string>
+    <string name="id_passphrase_ok_detail">即使密钥泄露，更改账户也需要它。</string>
+    <string name="id_passphrase_none">未设置账户口令</string>
+    <string name="id_passphrase_none_detail">即使密钥泄露，口令也能保护你在节点上的账户。目前请在节点的网页门户中设置。</string>
+    <string name="id_recovery_ok">口令可以找回</string>
+    <string name="id_recovery_codes_left">剩余恢复码：%1$d 个</string>
+    <string name="id_recovery_none">口令无法找回</string>
+    <string name="id_recovery_none_detail">忘记口令后将无法重置。请在节点的网页门户中生成恢复码。</string>
+    <string name="id_footer">设备、安全和节点管理功能即将加入本应用。</string>
+
+    <string name="id_unlock_prompt_title">解锁 Boson Identity</string>
+    <string name="id_unlock_prompt_subtitle">请确认是你本人</string>
+</resources>

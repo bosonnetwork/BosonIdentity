@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onb_back">Back</string>
+    <string name="onb_cancel">Cancel</string>
+
+    <!-- Welcome -->
+    <string name="onb_welcome_title">Boson Identity</string>
+    <string name="onb_welcome_body">Your Boson identity is a key that is you on the Boson network. This app keeps it on this phone, under your control, and uses it to approve your devices and protect your account.</string>
+    <string name="onb_welcome_create">Create a new identity</string>
+    <string name="onb_welcome_restore">I already have one</string>
+
+    <!-- A new identity -->
+    <string name="onb_created_title">This is your new identity</string>
+    <string name="onb_created_body">The picture and the id belong to your new key, made on this phone. Nobody else has it. Next, save a copy of it.</string>
+    <string name="onb_created_continue">Back up my key</string>
+
+    <!-- Backup -->
+    <string name="onb_backup_title">Back up your key</string>
+    <string name="onb_backup_body">If you lose this phone and have no copy of this key, no one, not even us, can get your identity back. Save it in at least one way, somewhere only you can reach.</string>
+    <string name="onb_backup_save_file">Save the key file</string>
+    <string name="onb_backup_file_saved">Key file saved.</string>
+    <string name="onb_backup_show_qr">Show as a QR code</string>
+    <string name="onb_backup_qr_description">Your private key as a QR code</string>
+    <string name="onb_backup_show_text">Show as text</string>
+    <string name="onb_backup_copy">Copy</string>
+    <string name="onb_backup_copied">Copied. The clipboard is cleared in %1$d seconds.</string>
+    <string name="onb_backup_warning">Anyone with this key can act as you. Never send it to anyone, and never type it into a website.</string>
+    <string name="onb_backup_continue">I saved it</string>
+    <string name="onb_backup_unlock_body">To show your key, confirm with your screen lock.</string>
+    <string name="onb_backup_unlock">Show my key</string>
+    <string name="onb_backup_prompt_title">Show your key</string>
+    <string name="onb_backup_prompt_subtitle">Your private key will be shown so you can back it up</string>
+
+    <!-- Verify -->
+    <string name="onb_verify_title">Check your backup</string>
+    <string name="onb_verify_body">From the copy you saved, type the characters at these two places. This proves the copy is complete.</string>
+    <string name="onb_verify_group">Characters %1$d to %2$d</string>
+    <string name="onb_verify_failed">That doesn\'t match. Check your copy, or look at the key again.</string>
+    <string name="onb_verify_check">Check</string>
+    <string name="onb_verify_show_again">Show the key again</string>
+    <string name="onb_verify_skip">Remind me later</string>
+
+    <!-- Restore -->
+    <string name="onb_restore_title">Bring in your identity</string>
+    <string name="onb_restore_body">Use the key you saved: its file, its QR code, or its text.</string>
+    <string name="onb_restore_paste_label">Private key</string>
+    <string name="onb_restore_use_key">Use this key</string>
+    <string name="onb_restore_open_file">Open the key file</string>
+    <string name="onb_restore_scan">Scan the key\'s QR code</string>
+    <string name="onb_restore_invalid">That is not a usable Boson key. Check that the whole key was copied.</string>
+
+    <!-- Protect -->
+    <string name="onb_protect_title">Protect your identity</string>
+    <string name="onb_protect_body">Your key is kept encrypted on this phone. Every time it is used to act for you, the phone asks for your fingerprint or screen lock first.</string>
+    <string name="onb_protect_unverified">Your backup is not checked yet. Until it is, this identity can\'t approve anything.</string>
+    <string name="onb_protect_no_lock">This phone has no screen lock. Set one first: without it, your key can\'t be protected.</string>
+    <string name="onb_protect_open_settings">Set a screen lock</string>
+    <string name="onb_protect_action">Protect with my screen lock</string>
+    <string name="onb_protect_prompt_title">Protect your identity</string>
+    <string name="onb_protect_prompt_subtitle">Your key will be stored encrypted on this phone</string>
+
+    <!-- Join a node -->
+    <string name="onb_join_title">Choose your home node</string>
+    <string name="onb_join_body">Your identity is yours wherever you go. Your home node is where your account and devices are kept. Scan the node\'s QR code, or type its address.</string>
+    <string name="onb_join_scan">Scan the node\'s QR code</string>
+    <string name="onb_join_scan_title">Scan the node\'s QR code</string>
+    <string name="onb_join_address_label">Node address</string>
+    <string name="onb_join_advanced">Advanced options</string>
+    <string name="onb_join_node_id_label">Node id</string>
+    <string name="onb_join_node_id_hint">Needed when the node uses a self-signed certificate.</string>
+    <string name="onb_join_check">Continue</string>
+    <string name="onb_join_skip">Not now</string>
+    <string name="onb_join_invalid_qr">That QR code is not a Boson node\'s.</string>
+    <string name="onb_join_invalid_address">Enter the node\'s address.</string>
+    <string name="onb_join_invalid_node_id">That is not a valid node id.</string>
+    <string name="onb_join_confirm_title">Join this node?</string>
+    <string name="onb_join_confirm_body">If this node already knows your identity, this phone is added to it. If not, an account is made for you; the node first runs a short security check on this phone.</string>
+    <string name="onb_join_confirm_body_members_only">This node adds new accounts only through a linked account, which this app can\'t do yet. If it already knows your identity, this phone is added to it.</string>
+    <string name="onb_join_name_label">Your name (optional)</string>
+    <string name="onb_join_name_hint">Shown to people you talk to through this node.</string>
+    <string name="onb_join_action">Join</string>
+    <string name="onb_join_other_node">Choose another node</string>
+    <string name="onb_join_no_new_accounts">This node doesn\'t know your identity, and doesn\'t take new accounts this way.</string>
+    <string name="onb_join_working_title">Joining</string>
+    <string name="onb_join_working_body">This can take a minute while the node\'s security check runs.</string>
+    <string name="onb_join_passphrase_title">Enter your account passphrase</string>
+    <string name="onb_join_passphrase_body">Your account on this node has a passphrase. Adding this phone needs it.</string>
+    <string name="onb_join_passphrase_label">Passphrase</string>
+    <string name="onb_join_prompt_title">Join the node</string>
+    <string name="onb_join_prompt_subtitle">Your identity will be used at %1$s</string>
+</resources>

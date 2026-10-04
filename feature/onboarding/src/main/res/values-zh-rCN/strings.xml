@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onb_back">返回</string>
+    <string name="onb_cancel">取消</string>
+
+    <string name="onb_welcome_title">Boson Identity</string>
+    <string name="onb_welcome_body">你的 Boson 身份是一把密钥，在 Boson 网络中代表你本人。本应用将它保存在这部手机上，由你自己掌控，并用它来批准你的设备、保护你的账户。</string>
+    <string name="onb_welcome_create">创建新身份</string>
+    <string name="onb_welcome_restore">我已有身份</string>
+
+    <string name="onb_created_title">这是你的新身份</string>
+    <string name="onb_created_body">这个图案和 ID 属于你在这部手机上生成的新密钥，其他人都没有。接下来，请保存一份副本。</string>
+    <string name="onb_created_continue">备份我的密钥</string>
+
+    <string name="onb_backup_title">备份你的密钥</string>
+    <string name="onb_backup_body">如果手机丢失而你又没有这把密钥的副本，任何人（包括我们）都无法找回你的身份。请至少用一种方式保存它，并放在只有你能访问的地方。</string>
+    <string name="onb_backup_save_file">保存密钥文件</string>
+    <string name="onb_backup_file_saved">密钥文件已保存。</string>
+    <string name="onb_backup_show_qr">显示为二维码</string>
+    <string name="onb_backup_qr_description">你的私钥二维码</string>
+    <string name="onb_backup_show_text">显示为文本</string>
+    <string name="onb_backup_copy">复制</string>
+    <string name="onb_backup_copied">已复制。剪贴板将在 %1$d 秒后清空。</string>
+    <string name="onb_backup_warning">任何拥有这把密钥的人都能以你的身份行事。切勿发送给任何人，也切勿输入到任何网站。</string>
+    <string name="onb_backup_continue">我已保存</string>
+    <string name="onb_backup_unlock_body">要显示你的密钥，请用屏幕锁确认。</string>
+    <string name="onb_backup_unlock">显示我的密钥</string>
+    <string name="onb_backup_prompt_title">显示你的密钥</string>
+    <string name="onb_backup_prompt_subtitle">将显示你的私钥，以便你进行备份</string>
+
+    <string name="onb_verify_title">检查你的备份</string>
+    <string name="onb_verify_body">请根据你保存的副本，输入以下两处位置的字符。这能证明副本是完整的。</string>
+    <string name="onb_verify_group">第 %1$d 至 %2$d 个字符</string>
+    <string name="onb_verify_failed">不匹配。请检查你的副本，或再看一次密钥。</string>
+    <string name="onb_verify_check">检查</string>
+    <string name="onb_verify_show_again">再次显示密钥</string>
+    <string name="onb_verify_skip">稍后提醒我</string>
+
+    <string name="onb_restore_title">导入你的身份</string>
+    <string name="onb_restore_body">使用你保存的密钥：密钥文件、二维码或文本。</string>
+    <string name="onb_restore_paste_label">私钥</string>
+    <string name="onb_restore_use_key">使用此密钥</string>
+    <string name="onb_restore_open_file">打开密钥文件</string>
+    <string name="onb_restore_scan">扫描密钥二维码</string>
+    <string name="onb_restore_invalid">这不是可用的 Boson 密钥。请检查是否完整复制了整把密钥。</string>
+
+    <string name="onb_protect_title">保护你的身份</string>
+    <string name="onb_protect_body">你的密钥会加密保存在这部手机上。每次用它代表你行事之前，手机都会先要求你验证指纹或屏幕锁。</string>
+    <string name="onb_protect_unverified">你的备份尚未检查。在检查之前，此身份无法批准任何操作。</string>
+    <string name="onb_protect_no_lock">这部手机没有设置屏幕锁。请先设置：没有屏幕锁，你的密钥就无法受到保护。</string>
+    <string name="onb_protect_open_settings">设置屏幕锁</string>
+    <string name="onb_protect_action">用屏幕锁保护</string>
+    <string name="onb_protect_prompt_title">保护你的身份</string>
+    <string name="onb_protect_prompt_subtitle">你的密钥将加密保存在这部手机上</string>
+
+    <string name="onb_join_title">选择你的主节点</string>
+    <string name="onb_join_body">无论身在何处，你的身份都属于你。主节点是保存你的账户和设备的地方。请扫描节点的二维码，或输入它的地址。</string>
+    <string name="onb_join_scan">扫描节点二维码</string>
+    <string name="onb_join_scan_title">扫描节点二维码</string>
+    <string name="onb_join_address_label">节点地址</string>
+    <string name="onb_join_advanced">高级选项</string>
+    <string name="onb_join_node_id_label">节点 ID</string>
+    <string name="onb_join_node_id_hint">节点使用自签名证书时需要填写。</string>
+    <string name="onb_join_check">继续</string>
+    <string name="onb_join_skip">暂不</string>
+    <string name="onb_join_invalid_qr">这不是 Boson 节点的二维码。</string>
+    <string name="onb_join_invalid_address">请输入节点地址。</string>
+    <string name="onb_join_invalid_node_id">这不是有效的节点 ID。</string>
+    <string name="onb_join_confirm_title">加入此节点？</string>
+    <string name="onb_join_confirm_body">如果此节点已认识你的身份，这部手机将被添加进去；否则会为你创建一个账户，节点会先在这部手机上运行一个简短的安全检查。</string>
+    <string name="onb_join_confirm_body_members_only">此节点仅通过关联账户创建新账户，本应用暂不支持。如果它已认识你的身份，这部手机将被添加进去。</string>
+    <string name="onb_join_name_label">你的名字（可选）</string>
+    <string name="onb_join_name_hint">通过此节点与你交流的人会看到它。</string>
+    <string name="onb_join_action">加入</string>
+    <string name="onb_join_other_node">选择其他节点</string>
+    <string name="onb_join_no_new_accounts">此节点不认识你的身份，也不接受以这种方式创建新账户。</string>
+    <string name="onb_join_working_title">正在加入</string>
+    <string name="onb_join_working_body">节点的安全检查运行期间，可能需要一分钟左右。</string>
+    <string name="onb_join_passphrase_title">输入你的账户口令</string>
+    <string name="onb_join_passphrase_body">你在此节点上的账户设置了口令，添加这部手机需要它。</string>
+    <string name="onb_join_passphrase_label">口令</string>
+    <string name="onb_join_prompt_title">加入节点</string>
+    <string name="onb_join_prompt_subtitle">将在 %1$s 使用你的身份</string>
+</resources>

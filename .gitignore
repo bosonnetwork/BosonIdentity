@@ -1,0 +1,41 @@
+# Gradle directories and caches
+.gradle/
+build/
+/build
+/*/build
+**/build/
+app/release/
+
+# Kotlin incremental compilation cache
+.kotlin/
+
+# Local configuration files (contains your local Android SDK path)
+local.properties
+
+# Android Studio / IntelliJ generated folders
+captures/
+.externalNativeBuild/
+.cxx/
+.navigation/
+
+# Output build artifacts
+*.apk
+*.aab
+output-metadata.json
+
+
+# IntelliJ IDEA project files (Safe to ignore entirely for team harmony)
+.idea/
+*.iml
+
+# Secrets & Signing keys (NEVER commit these)
+*.jks
+*.keystore
+!debug.keystore
+secrets.properties
+
+# Log files and system caches
+*.log
+.DS_Store
+Thumbs.db
+docs

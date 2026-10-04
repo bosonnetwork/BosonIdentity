@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="id_title">Identity</string>
+    <string name="id_refresh">Refresh</string>
+    <string name="id_unnamed">Your identity</string>
+    <string name="id_show_id">Show my ID</string>
+    <string name="id_admin_badge">Node administrator</string>
+    <string name="id_done">Done</string>
+
+    <string name="id_show_id_title">Your ID</string>
+    <string name="id_show_id_qr">Your ID as a QR code</string>
+    <string name="id_show_id_body">Your ID is public: share it so people can find you. It is not your key.</string>
+
+    <string name="id_protection_title">Protection</string>
+    <string name="id_backup_ok">Key backed up</string>
+    <string name="id_backup_ok_detail">You have a checked copy of your key.</string>
+    <string name="id_backup_needed">Back up your key</string>
+    <string name="id_backup_needed_detail">Without a copy, losing this phone loses your identity. Until then, it can\'t approve anything.</string>
+    <string name="id_lock_ok">Protected by your screen lock</string>
+    <string name="id_lock_ok_detail">The key is encrypted on this phone; using it needs your fingerprint or screen lock.</string>
+    <string name="id_node_none">No home node yet</string>
+    <string name="id_node_none_detail">Join a node to use your identity on the Boson network.</string>
+    <string name="id_node_checking">Checking your home node</string>
+    <string name="id_locked">Locked</string>
+    <string name="id_locked_detail">Tap to unlock with your screen lock.</string>
+    <string name="id_node_failed">Home node not reachable</string>
+    <string name="id_node_ok">Home node reachable</string>
+    <string name="id_node_ok_plan">Plan: %1$s</string>
+    <string name="id_passphrase_ok">Account passphrase set</string>
+    <string name="id_passphrase_ok_detail">Account changes need it, even if your key leaks.</string>
+    <string name="id_passphrase_none">No account passphrase</string>
+    <string name="id_passphrase_none_detail">A passphrase protects your account on the node even if your key leaks. For now, set it in your node\'s web portal.</string>
+    <string name="id_recovery_ok">Passphrase can be recovered</string>
+    <string name="id_recovery_codes_left">Recovery codes left: %1$d</string>
+    <string name="id_recovery_none">No way to recover the passphrase</string>
+    <string name="id_recovery_none_detail">If you forget it, it can\'t be reset. Make recovery codes in your node\'s web portal.</string>
+    <string name="id_footer">Devices, security and node administration come to this app next.</string>
+
+    <string name="id_unlock_prompt_title">Unlock Boson Identity</string>
+    <string name="id_unlock_prompt_subtitle">Confirm it\'s you</string>
+</resources>
