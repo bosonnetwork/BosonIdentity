@@ -73,6 +73,7 @@ dependencies {
     implementation(project(":core:boson"))
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:identity"))
+    implementation(project(":feature:account"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

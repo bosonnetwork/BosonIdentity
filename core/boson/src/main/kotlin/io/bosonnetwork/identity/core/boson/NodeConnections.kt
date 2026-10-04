@@ -121,6 +121,14 @@ class NodeConnections(private val vault: IdentityVault) {
         closing.forEach { it.close() }
     }
 
+    /** Closes the device clients of [userId], when the identity leaves this phone. */
+    suspend fun forget(userId: String) {
+        val closing = mutex.withLock {
+            deviceClients.keys.filter { it.first == userId }.mapNotNull { deviceClients.remove(it) }
+        }
+        closing.forEach { it.close() }
+    }
+
     private fun builder(node: NodeAddress): DirectorClient.Builder =
         DirectorClient.builder().vertx(vertx).directorUrl(node.url).apply { node.nodeId?.let { nodeId(Id.of(it)) } }
 

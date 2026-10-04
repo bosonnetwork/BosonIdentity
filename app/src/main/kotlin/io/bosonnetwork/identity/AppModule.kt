@@ -23,11 +23,14 @@
 package io.bosonnetwork.identity
 
 import android.content.Context
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.preferencesDataStoreFile
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.vault.ActivityAuthenticator
 import io.bosonnetwork.identity.core.vault.IdentityVault
@@ -59,4 +62,10 @@ object AppModule {
     @Provides
     @Singleton
     fun nodes(vault: IdentityVault): NodeConnections = NodeConnections(vault)
+
+    /** Which identity the app shows; only the choice is stored, never anything about the keys. */
+    @Provides
+    @Singleton
+    fun activeIdentity(@ApplicationContext context: Context, vault: IdentityVault): ActiveIdentity =
+        ActiveIdentity(vault, PreferenceDataStoreFactory.create { context.preferencesDataStoreFile("active_identity") })
 }

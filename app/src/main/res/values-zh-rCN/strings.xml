@@ -2,4 +2,12 @@
 <resources>
     <string name="app_label">Boson ID</string>
     <string name="app_nav_identity">身份</string>
+    <string name="app_nav_account">账户</string>
+
+    <string name="app_switch_identity">切换身份</string>
+    <string name="app_identities_title">此手机上的身份</string>
+    <string name="app_identity_unnamed">你的身份</string>
+    <string name="app_identity_active">正在使用</string>
+    <string name="app_identity_no_node">尚无主节点</string>
+    <string name="app_identity_add">添加身份</string>
 </resources>

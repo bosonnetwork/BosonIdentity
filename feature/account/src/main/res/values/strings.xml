@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="acc_title">Account</string>
+    <string name="acc_refresh">Refresh</string>
+    <string name="acc_unnamed">Your identity</string>
+    <string name="acc_done">Done</string>
+    <string name="acc_cancel">Cancel</string>
+
+    <string name="acc_profile_title">Profile</string>
+    <string name="acc_profile_name">Name</string>
+    <string name="acc_profile_bio">Bio</string>
+    <string name="acc_profile_email">Email</string>
+    <string name="acc_profile_not_set">Not set</string>
+    <string name="acc_profile_edit">Edit profile</string>
+    <string name="acc_profile_no_node">Your profile is kept by your home node. Join a node to have one.</string>
+    <string name="acc_profile_failed">Couldn\'t load your profile</string>
+    <string name="acc_locked">Locked</string>
+    <string name="acc_locked_detail">Tap to unlock with your screen lock.</string>
+
+    <string name="acc_edit_title">Edit profile</string>
+    <string name="acc_edit_save">Save</string>
+    <string name="acc_edit_passphrase">Account passphrase</string>
+    <string name="acc_edit_passphrase_hint">Your account has a passphrase. Changing your profile needs it.</string>
+    <string name="acc_edit_invalid_email">Enter a valid email address, or leave it empty.</string>
+    <string name="acc_wrong_passphrase">Wrong passphrase. Try again.</string>
+    <string name="acc_edit_prompt_title">Change your profile</string>
+    <string name="acc_edit_prompt_subtitle">On %1$s</string>
+
+    <string name="acc_node_title">Home node</string>
+    <string name="acc_node_none">This identity hasn\'t joined a node yet.</string>
+    <string name="acc_node_join">Join a node</string>
+    <string name="acc_node_id">Node ID</string>
+    <string name="acc_node_show_qr">Show node QR</string>
+    <string name="acc_node_qr_title">Your home node</string>
+    <string name="acc_node_qr_desc">The node\'s QR code</string>
+    <string name="acc_node_qr_body">Scan this with Boson Identity on another phone to join the same node.</string>
+
+    <string name="acc_plan_title">Plan</string>
+    <string name="acc_plan_manage">Manage your plan on your node\'s web portal.</string>
+
+    <string name="acc_phone_title">This phone</string>
+    <string name="acc_remove">Remove this identity from this phone</string>
+    <string name="acc_remove_detail">Its keys are deleted, and this phone is signed out of the node. Your account on the node stays.</string>
+    <string name="acc_remove_title">Remove this identity?</string>
+    <string name="acc_remove_verified">Its key will be deleted from this phone. Only your backup of the key can bring this identity back. Your account on the node is not deleted.</string>
+    <string name="acc_remove_unverified">You haven\'t backed up this identity\'s key. If you remove it, the identity is lost forever: no one, not even the node, can bring it back.</string>
+    <string name="acc_remove_type">To confirm, type the first 4 characters of its ID: %1$s</string>
+    <string name="acc_remove_type_label">First 4 characters</string>
+    <string name="acc_remove_action">Remove</string>
+    <string name="acc_remove_prompt_title">Remove this identity from this phone</string>
+    <string name="acc_remove_prompt_subtitle">Its keys will be deleted from this phone</string>
+    <string name="acc_remove_passphrase">Signing this phone out of the node needs your account passphrase.</string>
+    <string name="acc_remove_unreachable">This phone couldn\'t be signed out of the node: %1$s Remove the identity from this phone anyway? The node keeps listing this phone until you remove it from another device.</string>
+    <string name="acc_remove_anyway">Remove anyway</string>
+
+    <string name="acc_about_title">About</string>
+    <string name="acc_about_name">Boson Identity</string>
+    <string name="acc_about_version">Version %1$s</string>
+    <string name="acc_about_body">Boson Identity keeps your Boson identity on this phone, under your control, and uses it to look after your account, devices and nodes.</string>
+
+    <string name="acc_unlock_prompt_title">Unlock Boson Identity</string>
+    <string name="acc_unlock_prompt_subtitle">Confirm it\'s you</string>
+</resources>

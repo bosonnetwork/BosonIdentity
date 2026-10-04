@@ -28,6 +28,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.designsystem.theme.BosonIdentityTheme
 import io.bosonnetwork.identity.core.vault.ActivityAuthenticator
@@ -45,6 +46,7 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var authenticator: ActivityAuthenticator
     @Inject lateinit var vault: IdentityVault
     @Inject lateinit var nodes: NodeConnections
+    @Inject lateinit var activeIdentity: ActiveIdentity
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,7 +54,7 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         setContent {
             BosonIdentityTheme {
-                AppNavigation(vault)
+                AppNavigation(vault, activeIdentity)
             }
         }
     }

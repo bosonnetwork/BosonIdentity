@@ -27,6 +27,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.boson.call
 import io.bosonnetwork.identity.core.designsystem.component.userMessage
@@ -40,8 +41,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
@@ -80,6 +79,7 @@ data class IdentityUiState(
 @HiltViewModel
 class IdentityViewModel @Inject constructor(
     private val vault: IdentityVault,
+    private val activeIdentity: ActiveIdentity,
     private val nodes: NodeConnections,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
@@ -91,12 +91,12 @@ class IdentityViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            vault.load()
-            // The first identity is the one shown; choosing among several comes with the switcher.
-            vault.identities.map { it.firstOrNull() }.distinctUntilChanged().collect { identity ->
-                val nodeChanged = identity?.homeNode != _state.value.identity?.homeNode
+            // The identity picked in the switcher. A change of its name alone doesn't ask the node again.
+            activeIdentity.active.collect { identity ->
+                val previous = _state.value.identity
+                val changed = identity?.userId != previous?.userId || identity?.homeNode != previous?.homeNode
                 _state.update { it.copy(identity = identity) }
-                if (nodeChanged || _state.value.node is NodeState.None) refresh()
+                if (changed || _state.value.node is NodeState.None) refresh()
             }
         }
     }
@@ -104,11 +104,12 @@ class IdentityViewModel @Inject constructor(
     /** Asks the home node again; after a dismissed prompt, this is the "Unlock" button. */
     fun refresh() {
         val identity = _state.value.identity ?: return
+        // An answer still on its way may be for the identity shown before.
+        loading?.cancel()
         if (identity.homeNode == null) {
             _state.update { it.copy(node = NodeState.None) }
             return
         }
-        loading?.cancel()
         _state.update { it.copy(node = NodeState.Loading) }
         loading = viewModelScope.launch {
             _state.update { it.copy(node = load(identity)) }
@@ -123,6 +124,9 @@ class IdentityViewModel @Inject constructor(
             )
             val client = nodes.deviceClient(identity, prompt)
             val profile = call { client.profile.await() }
+            val name = profile.name.orElse(null)?.takeIf { it.isNotBlank() }
+            // The switcher shows the identity by the name it has at its node.
+            if (name != identity.name) vault.update(identity.userId) { it.copy(name = name) }
             // Older nodes don't report recovery methods; the screen then just doesn't show them.
             val recovery = try {
                 call { client.recoveryMethods.await() }
@@ -131,7 +135,7 @@ class IdentityViewModel @Inject constructor(
             }
             NodeState.Ready(
                 NodeView(
-                    name = profile.name.orElse(null)?.takeIf { it.isNotBlank() },
+                    name = name,
                     admin = profile.isAdmin,
                     passphraseProtected = profile.isPassphraseProtected,
                     plan = profile.planName,

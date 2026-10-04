@@ -37,10 +37,13 @@ dependencies {
 
     implementation(libs.kotlinx.coroutines.jdk8)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.androidx.datastore.preferences)
+    // The identity in use is remembered in a Preferences DataStore, which ActiveIdentity takes.
+    api(libs.androidx.datastore.preferences)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Android's org.json is a stub on the JVM; the real one lets a real vault be used in tests.
+    testImplementation(libs.json)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="acc_title">账户</string>
+    <string name="acc_refresh">刷新</string>
+    <string name="acc_unnamed">你的身份</string>
+    <string name="acc_done">完成</string>
+    <string name="acc_cancel">取消</string>
+
+    <string name="acc_profile_title">个人资料</string>
+    <string name="acc_profile_name">名称</string>
+    <string name="acc_profile_bio">简介</string>
+    <string name="acc_profile_email">电子邮件</string>
+    <string name="acc_profile_not_set">未设置</string>
+    <string name="acc_profile_edit">编辑资料</string>
+    <string name="acc_profile_no_node">你的个人资料保存在主节点上。加入一个节点后才会有。</string>
+    <string name="acc_profile_failed">无法加载个人资料</string>
+    <string name="acc_locked">已锁定</string>
+    <string name="acc_locked_detail">点按以用屏幕锁解锁。</string>
+
+    <string name="acc_edit_title">编辑资料</string>
+    <string name="acc_edit_save">保存</string>
+    <string name="acc_edit_passphrase">账户口令</string>
+    <string name="acc_edit_passphrase_hint">你的账户设置了口令，更改个人资料需要它。</string>
+    <string name="acc_edit_invalid_email">请输入有效的电子邮件地址，或留空。</string>
+    <string name="acc_wrong_passphrase">口令错误，请重试。</string>
+    <string name="acc_edit_prompt_title">更改个人资料</string>
+    <string name="acc_edit_prompt_subtitle">在 %1$s 上</string>
+
+    <string name="acc_node_title">主节点</string>
+    <string name="acc_node_none">此身份尚未加入任何节点。</string>
+    <string name="acc_node_join">加入节点</string>
+    <string name="acc_node_id">节点 ID</string>
+    <string name="acc_node_show_qr">显示节点二维码</string>
+    <string name="acc_node_qr_title">你的主节点</string>
+    <string name="acc_node_qr_desc">节点的二维码</string>
+    <string name="acc_node_qr_body">在另一部手机上用 Boson Identity 扫描它，即可加入同一节点。</string>
+
+    <string name="acc_plan_title">套餐</string>
+    <string name="acc_plan_manage">请在节点的网页门户中管理你的套餐。</string>
+
+    <string name="acc_phone_title">此手机</string>
+    <string name="acc_remove">从此手机移除此身份</string>
+    <string name="acc_remove_detail">它的密钥将被删除，这部手机也会从节点注销。你在节点上的账户仍会保留。</string>
+    <string name="acc_remove_title">移除此身份？</string>
+    <string name="acc_remove_verified">它的密钥将从此手机删除。只有你备份的密钥才能找回此身份。你在节点上的账户不会被删除。</string>
+    <string name="acc_remove_unverified">你还没有备份此身份的密钥。一旦移除，此身份将永久丢失：任何人，包括节点，都无法找回。</string>
+    <string name="acc_remove_type">请输入其 ID 的前 4 个字符以确认：%1$s</string>
+    <string name="acc_remove_type_label">前 4 个字符</string>
+    <string name="acc_remove_action">移除</string>
+    <string name="acc_remove_prompt_title">从这部手机移除此身份</string>
+    <string name="acc_remove_prompt_subtitle">它的密钥将从这部手机上删除</string>
+    <string name="acc_remove_passphrase">将这部手机从节点注销需要你的账户口令。</string>
+    <string name="acc_remove_unreachable">无法将这部手机从节点注销：%1$s 仍要从这部手机移除此身份吗？在你从其他设备移除之前，节点会继续列出这部手机。</string>
+    <string name="acc_remove_anyway">仍然移除</string>
+
+    <string name="acc_about_title">关于</string>
+    <string name="acc_about_name">Boson Identity</string>
+    <string name="acc_about_version">版本 %1$s</string>
+    <string name="acc_about_body">Boson Identity 把你的 Boson 身份保存在这部手机上、由你掌控，并用它管理你的账户、设备和节点。</string>
+
+    <string name="acc_unlock_prompt_title">解锁 Boson Identity</string>
+    <string name="acc_unlock_prompt_subtitle">请确认是你本人</string>
+</resources>

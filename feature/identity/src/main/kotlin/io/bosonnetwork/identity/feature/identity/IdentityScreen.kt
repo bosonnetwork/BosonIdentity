@@ -72,12 +72,16 @@ import io.bosonnetwork.identity.core.designsystem.theme.brand
 import io.bosonnetwork.identity.core.model.IdentityInfo
 import io.bosonnetwork.identity.core.qr.rememberQrBitmap
 
-/** The home screen: the identity, and a checklist of how well it is protected. */
+/**
+ * The home screen: the identity, and a checklist of how well it is protected. [navigationIcon] goes
+ * at the start of the top bar; the app puts its identity switcher there.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IdentityScreen(
     onBackup: (userId: String) -> Unit,
     onJoinNode: (userId: String) -> Unit,
+    navigationIcon: @Composable () -> Unit = {},
     viewModel: IdentityViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -89,6 +93,7 @@ fun IdentityScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.id_title)) },
+                navigationIcon = navigationIcon,
                 actions = {
                     IconButton(onClick = viewModel::refresh) {
                         Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.id_refresh))

@@ -3,4 +3,13 @@
     <!-- The launcher label; the full name "Boson Identity" would be cut off under the icon. -->
     <string name="app_label">Boson ID</string>
     <string name="app_nav_identity">Identity</string>
+    <string name="app_nav_account">Account</string>
+
+    <!-- The identity switcher -->
+    <string name="app_switch_identity">Switch identity</string>
+    <string name="app_identities_title">Identities on this phone</string>
+    <string name="app_identity_unnamed">Your identity</string>
+    <string name="app_identity_active">In use</string>
+    <string name="app_identity_no_node">No home node yet</string>
+    <string name="app_identity_add">Add an identity</string>
 </resources>
