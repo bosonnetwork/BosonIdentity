@@ -5,20 +5,21 @@ account's security, and, for node operators, the node's administration.
 
 The design is in `plans/2026-10-03-boson-identity-android-app.md` (BosonNetwork plans folder).
 
-## What works so far (phases 0 and 1)
+## What it does
 
-- **Create or restore an identity.** A new key is made on the phone. A restored one comes from the
-  key file the user portal writes, the key's text (Base58 or hex), or its QR code.
-- **Back up the key** as a file, a QR code or text, then check the backup by two 4-character groups
-  of the key. Key screens are kept out of screenshots and the recent-apps preview.
-- **Protect it.** The user key is a 32-byte seed sealed by an Android Keystore AES-256-GCM key that
-  needs the fingerprint or screen lock for every use. The app's own device key is sealed by a key
-  that stays usable for 5 minutes after the phone or app was unlocked.
-- **Join a home node:** by its QR code or address. A new identity registers with the node's proof of
-  work, with this phone as its first device. A restored identity the node already knows adds this
-  phone as a device, authorized by the user key.
-- **Identity screen:** the identity, its home node, and a protection checklist (backup, screen lock,
-  node, passphrase, recovery).
+- **Identity:** create or restore an identity (key file, QR code, text, or moved from an old phone),
+  back up the key and check the backup, keep several identities and switch between them.
+- **Protection:** the user key is a 32-byte seed sealed by an Android Keystore AES-256-GCM key that
+  needs the fingerprint or screen lock for every use; the app's own device key stays usable for 5
+  minutes after unlocking. An opt-in passkey backup keeps a copy in Block Store that a synced passkey
+  opens on a new phone.
+- **Home node:** join by QR code or address, through the node's proof of work or as an existing member.
+- **Devices:** list, rename and remove devices; approve new ones by their pairing code, handing over the
+  identity key only to devices that ask for it; approve web sign-ins ("Sign in with Boson Identity").
+- **Security:** the account passphrase and its recovery codes, resetting a forgotten one, linked
+  accounts, the security log, renewing this phone's device key.
+- **Administration:** for a node's administrators, admin mode (a 10-minute token issued with the user
+  key) and the node's users, plans, federation and blacklist.
 
 ## Modules
 
@@ -30,8 +31,13 @@ The design is in `plans/2026-10-03-boson-identity-android-app.md` (BosonNetwork 
 | `core:boson` | Connections to Directors: guest, device and user clients |
 | `core:designsystem` | The Boson brand theme, identicons, ids, shared components |
 | `core:qr` | QR codes and scanning |
-| `feature:onboarding` | Create, restore, back up, protect, join a node |
+| `core:backup` | The opt-in passkey backup: Credential Manager PRF and Block Store |
+| `feature:onboarding` | Create, restore, move from an old phone, back up, protect, join a node |
 | `feature:identity` | The identity screen |
+| `feature:devices` | Devices, device approval, web sign-in approval |
+| `feature:security` | Passphrase, recovery, linked accounts, security log, this phone's key, passkey backup |
+| `feature:account` | Profile, home node, plan, removing an identity, node administration entry |
+| `feature:admin` | Admin mode and the node's administration |
 
 ## Building
 
