@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Shield
@@ -50,8 +51,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
+import io.bosonnetwork.identity.core.boson.AdminAccess
 import io.bosonnetwork.identity.core.vault.IdentityVault
 import io.bosonnetwork.identity.feature.account.AccountScreen
+import io.bosonnetwork.identity.feature.admin.AdminScreen
 import io.bosonnetwork.identity.feature.devices.ApproveDeviceScreen
 import io.bosonnetwork.identity.feature.devices.ApproveSignInScreen
 import io.bosonnetwork.identity.feature.devices.ApproveSignInViewModel
@@ -82,6 +85,9 @@ private object Routes {
 
     /** Set on the tabs' entry when a device was approved, so the device list is asked for again. */
     const val DEVICES_CHANGED = "devices_changed"
+
+    /** The Admin tab's route. */
+    const val ADMIN_TAB = "admin"
 }
 
 /**
@@ -91,7 +97,7 @@ private object Routes {
  * returns to them.
  */
 @Composable
-fun AppNavigation(vault: IdentityVault, activeIdentity: ActiveIdentity) {
+fun AppNavigation(vault: IdentityVault, activeIdentity: ActiveIdentity, adminAccess: AdminAccess) {
     var start by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
         vault.load()
@@ -184,13 +190,18 @@ fun AppNavigation(vault: IdentityVault, activeIdentity: ActiveIdentity) {
                 val identities by vault.identities.collectAsStateWithLifecycle()
                 val active by activeIdentity.active.collectAsStateWithLifecycle(initialValue = null)
                 var switching by rememberSaveable { mutableStateOf(false) }
+                var requestedTab by remember { mutableStateOf<String?>(null) }
 
-                // Phase 5: true when the identity in use is an admin at a node, which shows the Admin tab.
-                val showAdmin = false
+                // The Admin tab: for an identity that opened admin mode at its home node, or whose
+                // account there is marked as an administrator (the node's root user may not be).
+                val profileAdmins by adminAccess.profileAdmins.collectAsStateWithLifecycle()
+                val showAdmin = AdminAccess.shows(active, profileAdmins)
                 HomeTabs(
-                    tabs = remember(nav) { homeTabs(nav) },
+                    tabs = remember(nav) { homeTabs(nav, onAdminOpened = { requestedTab = Routes.ADMIN_TAB }) },
                     showAdmin = showAdmin,
                     identityButton = { IdentityButton(active, onClick = { switching = true }) },
+                    requested = requestedTab,
+                    onRequestDone = { requestedTab = null },
                 )
                 if (switching) {
                     IdentitySwitcherSheet(
@@ -207,9 +218,10 @@ fun AppNavigation(vault: IdentityVault, activeIdentity: ActiveIdentity) {
 }
 
 /**
- * The tabs, in their order. Each is one entry; Admin will be one line with `adminOnly = true`.
+ * The tabs, in their order. Admin, last, shows only to an identity that administers its home node;
+ * [onAdminOpened] asks to show it once admin mode was opened from Account.
  */
-private fun homeTabs(nav: NavController): List<HomeTab> = listOf(
+private fun homeTabs(nav: NavController, onAdminOpened: () -> Unit): List<HomeTab> = listOf(
     HomeTab("identity", R.string.app_nav_identity, Icons.Filled.Fingerprint) { identityButton ->
         IdentityScreen(
             onBackup = { nav.navigate(Routes.backup(it)) },
@@ -241,7 +253,11 @@ private fun homeTabs(nav: NavController): List<HomeTab> = listOf(
         AccountScreen(
             onJoinNode = { nav.navigate(Routes.join(it, first = false)) },
             onNoIdentityLeft = { nav.navigate(Routes.WELCOME) { popUpTo(0) { inclusive = true } } },
+            onAdminOpened = onAdminOpened,
             navigationIcon = identityButton,
         )
+    },
+    HomeTab(Routes.ADMIN_TAB, R.string.app_nav_admin, Icons.Filled.AdminPanelSettings, adminOnly = true) { identityButton ->
+        AdminScreen(navigationIcon = identityButton)
     },
 )

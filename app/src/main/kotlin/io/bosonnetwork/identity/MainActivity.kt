@@ -30,6 +30,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
+import io.bosonnetwork.identity.core.boson.AdminAccess
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.boson.OAuthReturns
 import io.bosonnetwork.identity.core.designsystem.theme.BosonIdentityTheme
@@ -50,6 +51,7 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var nodes: NodeConnections
     @Inject lateinit var activeIdentity: ActiveIdentity
     @Inject lateinit var oauthReturns: OAuthReturns
+    @Inject lateinit var adminAccess: AdminAccess
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,7 +59,7 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         setContent {
             BosonIdentityTheme {
-                AppNavigation(vault, activeIdentity)
+                AppNavigation(vault, activeIdentity, adminAccess)
             }
         }
         // Started by a return from an account provider (the app was not running).

@@ -32,6 +32,9 @@ import io.bosonnetwork.director.client.Profile
 import io.bosonnetwork.director.client.ProfileUpdate
 import io.bosonnetwork.director.client.exceptions.DirectorException
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
+import io.bosonnetwork.identity.core.boson.AdminAccess
+import io.bosonnetwork.identity.core.boson.AdminSession
+import io.bosonnetwork.identity.core.boson.AdminState
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.model.AppError
 import io.bosonnetwork.identity.core.model.NodeAddress
@@ -96,8 +99,11 @@ class AccountViewModelTest {
     )
     private val client = mockk<DirectorClient>()
     private val nodes = mockk<NodeConnections>()
+    private val adminSession = mockk<AdminSession>()
+    private val adminAccess = AdminAccess()
     private val context = mockk<Context>(relaxed = true) {
         every { getString(R.string.acc_wrong_passphrase) } returns "wrong passphrase"
+        every { getString(R.string.acc_admin_not_admin, any()) } answers { "not admin of ${(args[1] as Array<*>)[0]}" }
         every { getString(io.bosonnetwork.identity.core.designsystem.R.string.ds_error_passphrase_required) } returns "passphrase needed"
     }
     private val viewModels = mutableListOf<AccountViewModel>()
@@ -123,14 +129,20 @@ class AccountViewModelTest {
         dir.deleteRecursively()
     }
 
-    private fun viewModel() = AccountViewModel(vault, active, nodes, context).also { viewModels += it }
+    private fun viewModel() = AccountViewModel(vault, active, nodes, adminSession, adminAccess, context).also { viewModels += it }
 
     // The profile as the client would decode it; its constructor is the one Jackson uses.
-    private fun profile(name: String? = null, bio: String? = null, email: String? = null, passphrase: Boolean = false): Profile =
+    private fun profile(
+        name: String? = null,
+        bio: String? = null,
+        email: String? = null,
+        passphrase: Boolean = false,
+        admin: Boolean = false,
+    ): Profile =
         Profile::class.java.getDeclaredConstructor(
             Id::class.java, Boolean::class.java, String::class.java, String::class.java, String::class.java, String::class.java,
             Long::class.java, Long::class.java, String::class.java, Boolean::class.java,
-        ).apply { isAccessible = true }.newInstance(Id.random(), false, name, null, email, bio, 0L, 0L, "Free", passphrase)
+        ).apply { isAccessible = true }.newInstance(Id.random(), admin, name, null, email, bio, 0L, 0L, "Free", passphrase)
 
     private suspend fun addIdentity(homeNode: NodeAddress? = node, backupVerified: Boolean = true): String {
         val userId = vault.add(Signature.KeyPair.random(), null, backupVerified, keepUserKey = true, prompt = AuthPrompt("Confirm")).userId
@@ -381,5 +393,54 @@ class AccountViewModelTest {
         assertEquals(node.nodeId, json.getString("id"))
         assertFalse(JSONObject(nodeQrPayload(NodeAddress("https://ca.example"))).has("id"))
         assertEquals("node.example", node.host())
+    }
+
+    @Test
+    fun `an account marked as an administrator is reported, for the Admin tab`() = runTest {
+        val userId = addIdentity()
+        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Root", admin = true))
+        viewModel().ready()
+        assertEquals(setOf(userId), adminAccess.profileAdmins.value)
+    }
+
+    @Test
+    fun `opening admin mode remembers that the identity administers its node`() = runTest {
+        val userId = addIdentity()
+        coEvery { adminSession.start(any(), node, any()) } answers { AdminState(userId, node, 600_000) }
+        val vm = viewModel()
+        vm.ready()
+
+        vm.startAdmin()
+        vm.state.first { it.adminOpened }
+        assertTrue(vault.identities.value.single().administers)
+        coVerify(exactly = 1) { adminSession.start(match { it.userId == userId }, node, any()) }
+
+        vm.adminOpenedSeen()
+        assertFalse(vm.state.value.adminOpened)
+    }
+
+    @Test
+    fun `an identity the node refuses is told it doesn't administer it`() = runTest {
+        addIdentity()
+        coEvery { adminSession.start(any(), any(), any()) } throws AppError.Forbidden("not an admin")
+        val vm = viewModel()
+        vm.ready()
+
+        vm.startAdmin()
+        val admin = vm.state.first { it.admin.error != null }.admin
+        assertEquals("not admin of node.example", admin.error)
+        assertFalse(admin.busy)
+        assertFalse(vm.state.value.adminOpened)
+        assertFalse(vault.identities.value.single().administers)
+    }
+
+    @Test
+    fun `admin mode needs a checked backup first`() = runTest {
+        addIdentity(backupVerified = false)
+        val vm = viewModel()
+        vm.ready()
+        vm.startAdmin()
+        coVerify(exactly = 0) { adminSession.start(any(), any(), any()) }
+        assertTrue(vm.state.value.admin.error != null)
     }
 }

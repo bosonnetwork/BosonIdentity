@@ -60,4 +60,12 @@
 
     <string name="acc_unlock_prompt_title">解锁 Boson Identity</string>
     <string name="acc_unlock_prompt_subtitle">请确认是你本人</string>
+
+    <string name="acc_admin_title">管理</string>
+    <string name="acc_admin_open">节点管理</string>
+    <string name="acc_admin_detail">供 %1$s 的运营者使用：用户、套餐、联邦和黑名单。将开启 10 分钟的管理模式。</string>
+    <string name="acc_admin_not_admin">此身份不是 %1$s 的管理员。</string>
+    <string name="acc_admin_backup_first">请先备份你的密钥：在此之前，此身份无法行使其权限。</string>
+    <string name="acc_admin_prompt_title">开启管理模式</string>
+    <string name="acc_admin_prompt_subtitle">管理 %1$s，为时 10 分钟</string>
 </resources>

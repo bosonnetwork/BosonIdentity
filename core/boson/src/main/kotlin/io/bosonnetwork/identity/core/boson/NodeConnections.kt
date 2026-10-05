@@ -24,6 +24,7 @@ package io.bosonnetwork.identity.core.boson
 
 import io.bosonnetwork.Id
 import io.bosonnetwork.crypto.Signature
+import io.bosonnetwork.director.client.DirectorAdmin
 import io.bosonnetwork.director.client.DirectorClient
 import io.bosonnetwork.director.client.DirectorGuest
 import io.bosonnetwork.director.client.DirectorOAuth
@@ -47,6 +48,7 @@ import kotlinx.coroutines.sync.withLock
  * - [asUser]: acts as the identity itself, with the user key, for one act of authority; the client
  *   is closed and the key destroyed when the block returns.
  * - [oauth]: one sign-in at an account provider, to link that account to the identity.
+ * - [admin]: administers a node with a short-lived token the user key issued; see [AdminSession].
  *
  * Every client is bound to the node's id ([NodeAddress.nodeId]): tokens it issues are valid only
  * there, and a self-signed Director certificate is accepted only if it is pinned to that id.
@@ -124,6 +126,15 @@ class NodeConnections(private val vault: IdentityVault) {
     fun oauth(node: NodeAddress, sessionToken: String): DirectorOAuth =
         DirectorOAuth.builder().vertx(vertx).directorUrl(node.url).apply { node.nodeId?.let { nodeId(Id.of(it)) } }
             .sessionToken(sessionToken).build()
+
+    /**
+     * An admin client for [node] acting as the administrator [userId] with [token], an admin access
+     * token the user key issued for that node. It holds no key, and stops working when the token
+     * expires. The caller closes it when done.
+     */
+    fun admin(node: NodeAddress, userId: String, token: String): DirectorAdmin =
+        DirectorAdmin.builder().vertx(vertx).directorUrl(node.url).apply { node.nodeId?.let { nodeId(Id.of(it)) } }
+            .accessToken(Id.of(userId), token).build()
 
     /** Closes the device clients, so the device keys they hold are dropped; the next call unlocks again. */
     suspend fun lock() {

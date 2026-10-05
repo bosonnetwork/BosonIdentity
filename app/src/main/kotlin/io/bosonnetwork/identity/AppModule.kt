@@ -31,6 +31,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
+import io.bosonnetwork.identity.core.boson.AdminAccess
+import io.bosonnetwork.identity.core.boson.AdminSession
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.boson.OAuthReturns
 import io.bosonnetwork.identity.core.vault.ActivityAuthenticator
@@ -39,6 +41,9 @@ import io.bosonnetwork.identity.core.vault.KeystoreProtector
 import io.bosonnetwork.identity.core.vault.VaultStore
 import java.io.File
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -69,6 +74,20 @@ object AppModule {
     @Singleton
     fun activeIdentity(@ApplicationContext context: Context, vault: IdentityVault): ActiveIdentity =
         ActiveIdentity(vault, PreferenceDataStoreFactory.create { context.preferencesDataStoreFile("active_identity") })
+
+    /**
+     * Admin mode: an admin token for a few minutes, never the key. The session outlives the screens,
+     * so its timer runs in the application's own scope.
+     */
+    @Provides
+    @Singleton
+    fun adminSession(vault: IdentityVault, nodes: NodeConnections): AdminSession =
+        AdminSession(vault, nodes, CoroutineScope(SupervisorJob() + Dispatchers.Default))
+
+    /** Which identities see the Admin tab. */
+    @Provides
+    @Singleton
+    fun adminAccess(): AdminAccess = AdminAccess()
 
     /** Returns from account providers, handed from the activity to the flow waiting for them. */
     @Provides

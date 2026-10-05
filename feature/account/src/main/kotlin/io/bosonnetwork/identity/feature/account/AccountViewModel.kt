@@ -30,6 +30,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.bosonnetwork.Id
 import io.bosonnetwork.director.client.ProfileUpdate
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
+import io.bosonnetwork.identity.core.boson.AdminAccess
+import io.bosonnetwork.identity.core.boson.AdminSession
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.boson.call
 import io.bosonnetwork.identity.core.designsystem.component.userMessage
@@ -82,6 +84,13 @@ data class ProfileEdit(
     val error: String? = null,
 )
 
+/** Opening admin mode for the home node, from the "Node administration" row. */
+data class AdminStart(
+    val busy: Boolean = false,
+    /** Why it didn't open: most often, the identity doesn't administer the node. */
+    val error: String? = null,
+)
+
 /** Removing the identity from this phone, once the user confirmed it by its first characters. */
 data class Removal(
     /** Signing this phone out of the node needs the account passphrase. */
@@ -103,18 +112,24 @@ data class AccountUiState(
     val removal: Removal? = null,
     /** Set when the last identity was removed from this phone: onboarding starts again. */
     val noIdentityLeft: Boolean = false,
+    val admin: AdminStart = AdminStart(),
+    /** Set once admin mode opened, so the app shows the Admin tab; cleared when that happened. */
+    val adminOpened: Boolean = false,
 )
 
 /**
  * The account of the identity in use at its home node: its profile, the node, and the plan; and
  * removing the identity from this phone. Reading goes through this app's device key; changing the
- * profile is an act of authority, confirmed with the user key.
+ * profile is an act of authority, confirmed with the user key. The node's operators open admin mode
+ * from here too.
  */
 @HiltViewModel
 class AccountViewModel @Inject constructor(
     private val vault: IdentityVault,
     private val activeIdentity: ActiveIdentity,
     private val nodes: NodeConnections,
+    private val adminSession: AdminSession,
+    private val adminAccess: AdminAccess,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -132,7 +147,12 @@ class AccountViewModel @Inject constructor(
                 val switched = identity?.userId != previous?.userId
                 if (switched) saving?.cancel()
                 _state.update {
-                    it.copy(identity = identity, edit = if (switched) null else it.edit, removeError = if (switched) null else it.removeError)
+                    it.copy(
+                        identity = identity,
+                        edit = if (switched) null else it.edit,
+                        removeError = if (switched) null else it.removeError,
+                        admin = if (switched) AdminStart() else it.admin,
+                    )
                 }
                 if (switched || identity?.homeNode != previous?.homeNode) refresh()
             }
@@ -170,6 +190,8 @@ class AccountViewModel @Inject constructor(
                 passphraseProtected = profile.isPassphraseProtected,
             )
             rememberName(identity, view.name)
+            // An account marked as an administrator gets the Admin tab without opening admin mode first.
+            adminAccess.reportProfile(identity.userId, profile.isAdmin)
             ProfileState.Ready(view)
         } catch (e: CancellationException) {
             throw e
@@ -316,6 +338,49 @@ class AccountViewModel @Inject constructor(
 
     /** The user gave up removing the identity. */
     fun cancelRemoval() = _state.update { it.copy(removal = null) }
+
+    /**
+     * Opens admin mode for the home node, after the user confirms with their screen lock. Opening it
+     * proves the identity administers the node, which is then remembered, so the Admin tab shows:
+     * a node's root user is an administrator through its key even when its account doesn't say so.
+     * Only the home node for now; other nodes an identity administers can be added later.
+     */
+    fun startAdmin() {
+        val identity = _state.value.identity ?: return
+        val node = identity.homeNode ?: return
+        if (_state.value.admin.busy) return
+        if (!identity.backupVerified) {
+            _state.update { it.copy(admin = AdminStart(error = context.getString(R.string.acc_admin_backup_first))) }
+            return
+        }
+        _state.update { it.copy(admin = AdminStart(busy = true)) }
+        viewModelScope.launch {
+            try {
+                val prompt = AuthPrompt(
+                    context.getString(R.string.acc_admin_prompt_title),
+                    context.getString(R.string.acc_admin_prompt_subtitle, node.host()),
+                )
+                adminSession.start(identity, node, prompt)
+                if (!identity.administers) vault.update(identity.userId) { it.copy(administers = true) }
+                _state.update { it.copy(admin = AdminStart(), adminOpened = true) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: AppError.AuthenticationCancelled) {
+                _state.update { it.copy(admin = AdminStart()) }
+            } catch (e: AppError) {
+                val refused = e is AppError.Unauthorized || e is AppError.Forbidden
+                // No longer an administrator there: the Admin tab goes, unless the account says otherwise.
+                if (refused && identity.administers) vault.update(identity.userId) { it.copy(administers = false) }
+                val message = if (refused) context.getString(R.string.acc_admin_not_admin, node.host()) else e.userMessage(context)
+                _state.update { it.copy(admin = AdminStart(error = message)) }
+            } catch (e: Exception) {
+                _state.update { it.copy(admin = AdminStart(error = e.userMessage(context))) }
+            }
+        }
+    }
+
+    /** The app has shown the Admin tab. */
+    fun adminOpenedSeen() = _state.update { it.copy(adminOpened = false) }
 
     private fun updateEdit(transform: (ProfileEdit) -> ProfileEdit) =
         _state.update { s -> s.edit?.let { s.copy(edit = transform(it)) } ?: s }

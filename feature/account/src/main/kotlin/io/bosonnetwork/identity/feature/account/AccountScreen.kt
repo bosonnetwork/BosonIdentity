@@ -39,6 +39,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -88,14 +89,16 @@ import io.bosonnetwork.identity.core.qr.rememberQrBitmap
 /**
  * The account of the identity in use: its profile at the home node, the node, the plan, removing
  * the identity from this phone, and about the app. [onJoinNode] opens joining a node;
- * [onNoIdentityLeft] runs when the last identity was removed. [navigationIcon] goes at the start of
- * the top bar; the app puts its identity switcher there.
+ * [onNoIdentityLeft] runs when the last identity was removed; [onAdminOpened] runs when admin mode
+ * opened for the home node, to show the Admin tab. [navigationIcon] goes at the start of the top bar;
+ * the app puts its identity switcher there.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountScreen(
     onJoinNode: (userId: String) -> Unit,
     onNoIdentityLeft: () -> Unit,
+    onAdminOpened: () -> Unit = {},
     navigationIcon: @Composable () -> Unit = {},
     viewModel: AccountViewModel = hiltViewModel(),
 ) {
@@ -104,6 +107,12 @@ fun AccountScreen(
     var confirmRemove by rememberSaveable { mutableStateOf(false) }
     val identity = state.identity
     LaunchedEffect(state.noIdentityLeft) { if (state.noIdentityLeft) onNoIdentityLeft() }
+    LaunchedEffect(state.adminOpened) {
+        if (state.adminOpened) {
+            viewModel.adminOpenedSeen()
+            onAdminOpened()
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -132,6 +141,7 @@ fun AccountScreen(
                 ProfileSection(identity, state.profile, onEdit = viewModel::startEdit, onRetry = viewModel::refresh)
                 NodeSection(identity.homeNode, onShowQr = { showNodeQr = true }, onJoin = { onJoinNode(identity.userId) })
                 (state.profile as? ProfileState.Ready)?.let { PlanSection(it.view.plan) }
+                identity.homeNode?.let { AdminSection(it, state.admin, onStart = viewModel::startAdmin) }
                 PhoneSection(state.removeError, onRemove = { confirmRemove = true })
                 AboutSection()
             }
@@ -269,6 +279,29 @@ private fun PlanSection(plan: String) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+/**
+ * Opening admin mode for the home node, in the violet that marks everything administrative. Shown to
+ * every member: whether the identity administers the node is known only once the node is asked.
+ */
+@Composable
+private fun AdminSection(node: NodeAddress, admin: AdminStart, onStart: () -> Unit) {
+    SectionTitle(stringResource(R.string.acc_admin_title))
+    SectionCard {
+        ListItem(
+            colors = ListItemDefaults.colors(containerColor = MaterialTheme.brand.card),
+            leadingContent = { Icon(Icons.Filled.AdminPanelSettings, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary) },
+            headlineContent = { Text(stringResource(R.string.acc_admin_open), color = MaterialTheme.colorScheme.tertiary) },
+            supportingContent = { Text(admin.error ?: stringResource(R.string.acc_admin_detail, node.host())) },
+            trailingContent = if (admin.busy) {
+                { CircularProgressIndicator(Modifier.size(24.dp), color = MaterialTheme.colorScheme.tertiary) }
+            } else {
+                null
+            },
+            modifier = Modifier.clickable(role = Role.Button, enabled = !admin.busy, onClick = onStart),
+        )
     }
 }
 

@@ -28,6 +28,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
+import io.bosonnetwork.identity.core.boson.AdminAccess
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.boson.call
 import io.bosonnetwork.identity.core.designsystem.component.userMessage
@@ -81,6 +82,7 @@ class IdentityViewModel @Inject constructor(
     private val vault: IdentityVault,
     private val activeIdentity: ActiveIdentity,
     private val nodes: NodeConnections,
+    private val adminAccess: AdminAccess,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -127,6 +129,8 @@ class IdentityViewModel @Inject constructor(
             val name = profile.name.orElse(null)?.takeIf { it.isNotBlank() }
             // The switcher shows the identity by the name it has at its node.
             if (name != identity.name) vault.update(identity.userId) { it.copy(name = name) }
+            // An account marked as an administrator gets the Admin tab, with no prompt of its own.
+            adminAccess.reportProfile(identity.userId, profile.isAdmin)
             // Older nodes don't report recovery methods; the screen then just doesn't show them.
             val recovery = try {
                 call { client.recoveryMethods.await() }

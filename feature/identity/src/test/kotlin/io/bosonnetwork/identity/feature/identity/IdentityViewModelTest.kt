@@ -31,6 +31,7 @@ import io.bosonnetwork.director.client.DirectorClient
 import io.bosonnetwork.director.client.Profile
 import io.bosonnetwork.director.client.exceptions.DirectorException
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
+import io.bosonnetwork.identity.core.boson.AdminAccess
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.model.IdentityInfo
 import io.bosonnetwork.identity.core.model.NodeAddress
@@ -102,7 +103,7 @@ class IdentityViewModelTest {
         dir.deleteRecursively()
     }
 
-    private fun viewModel() = IdentityViewModel(vault, active, nodes, context).also { viewModels += it }
+    private fun viewModel() = IdentityViewModel(vault, active, nodes, AdminAccess(), context).also { viewModels += it }
 
     private fun clientFor(name: String): DirectorClient {
         val profile = Profile::class.java.getDeclaredConstructor(

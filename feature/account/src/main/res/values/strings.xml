@@ -60,4 +60,12 @@
 
     <string name="acc_unlock_prompt_title">Unlock Boson Identity</string>
     <string name="acc_unlock_prompt_subtitle">Confirm it\'s you</string>
+
+    <string name="acc_admin_title">Administration</string>
+    <string name="acc_admin_open">Node administration</string>
+    <string name="acc_admin_detail">For the operators of %1$s: users, plans, federation and the blacklist. Opens admin mode for 10 minutes.</string>
+    <string name="acc_admin_not_admin">This identity doesn\'t administer %1$s.</string>
+    <string name="acc_admin_backup_first">Back up your key first: until you do, this identity can\'t act with its authority.</string>
+    <string name="acc_admin_prompt_title">Open admin mode</string>
+    <string name="acc_admin_prompt_subtitle">Administer %1$s for 10 minutes</string>
 </resources>

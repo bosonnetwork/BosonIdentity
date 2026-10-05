@@ -92,6 +92,7 @@ class VaultStore(private val dir: File) {
             .put("backupVerified", info.backupVerified)
             .putOpt("homeNode", info.homeNode?.let { JSONObject().put("url", it.url).putOpt("nodeId", it.nodeId) })
             .putOpt("deviceId", info.deviceId)
+            .put("administers", info.administers)
             .putOpt("userKey", entry.userKey?.let(::encodeSealed))
             .put("deviceKey", encodeSealed(entry.deviceKey))
     }
@@ -104,6 +105,8 @@ class VaultStore(private val dir: File) {
             backupVerified = json.optBoolean("backupVerified"),
             homeNode = home?.let { NodeAddress(it.getString("url"), it.optStringOrNull("nodeId")) },
             deviceId = json.optStringOrNull("deviceId"),
+            // Absent from vaults written before admin mode existed.
+            administers = json.optBoolean("administers", false),
         )
         return VaultEntry(
             info,

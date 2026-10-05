@@ -39,11 +39,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -70,13 +73,27 @@ class HomeTab(
 /**
  * The tabs: a bottom navigation bar on phones, a navigation rail from 600 dp wide (tablets,
  * unfolded foldables, landscape). Each tab keeps its scroll position and inputs while another is
- * shown. Back from any other tab returns to the first before it leaves the app.
+ * shown. Back from any other tab returns to the first before it leaves the app. [requested] asks to
+ * show a tab (an admin tab as soon as it is visible); [onRequestDone] runs once it is shown. Admin
+ * tabs are marked in the brand's violet.
  */
 @Composable
-fun HomeTabs(tabs: List<HomeTab>, showAdmin: Boolean, identityButton: @Composable () -> Unit) {
+fun HomeTabs(
+    tabs: List<HomeTab>,
+    showAdmin: Boolean,
+    identityButton: @Composable () -> Unit,
+    requested: String? = null,
+    onRequestDone: () -> Unit = {},
+) {
     val visible = tabs.filter { showAdmin || !it.adminOnly }
     var selected by rememberSaveable { mutableStateOf(visible.first().route) }
     val current = visible.firstOrNull { it.route == selected } ?: visible.first()
+    LaunchedEffect(requested, showAdmin) {
+        if (requested != null && visible.any { it.route == requested }) {
+            selected = requested
+            onRequestDone()
+        }
+    }
     val saved = rememberSaveableStateHolder()
     BackHandler(enabled = current != visible.first()) { selected = visible.first().route }
 
@@ -95,6 +112,17 @@ fun HomeTabs(tabs: List<HomeTab>, showAdmin: Boolean, identityButton: @Composabl
                                 onClick = { selected = tab.route },
                                 icon = { Icon(tab.icon, contentDescription = null) },
                                 label = { Text(stringResource(tab.label)) },
+                                colors = if (tab.adminOnly) {
+                                    NavigationBarItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        selectedTextColor = MaterialTheme.colorScheme.tertiary,
+                                        indicatorColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                        unselectedIconColor = MaterialTheme.colorScheme.tertiary,
+                                        unselectedTextColor = MaterialTheme.colorScheme.tertiary,
+                                    )
+                                } else {
+                                    NavigationBarItemDefaults.colors()
+                                },
                             )
                         }
                     }
@@ -110,6 +138,17 @@ fun HomeTabs(tabs: List<HomeTab>, showAdmin: Boolean, identityButton: @Composabl
                                 onClick = { selected = tab.route },
                                 icon = { Icon(tab.icon, contentDescription = null) },
                                 label = { Text(stringResource(tab.label)) },
+                                colors = if (tab.adminOnly) {
+                                    NavigationRailItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        selectedTextColor = MaterialTheme.colorScheme.tertiary,
+                                        indicatorColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                        unselectedIconColor = MaterialTheme.colorScheme.tertiary,
+                                        unselectedTextColor = MaterialTheme.colorScheme.tertiary,
+                                    )
+                                } else {
+                                    NavigationRailItemDefaults.colors()
+                                },
                             )
                         }
                     }
