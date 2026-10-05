@@ -70,6 +70,7 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:vault"))
+    implementation(project(":core:backup"))
     implementation(project(":core:boson"))
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:identity"))

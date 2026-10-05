@@ -68,6 +68,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -108,7 +111,9 @@ fun SecurityScreen(
     passphraseViewModel: PassphraseViewModel = hiltViewModel(),
     forgotViewModel: ForgotPassphraseViewModel = hiltViewModel(),
     linkViewModel: LinkAccountViewModel = hiltViewModel(),
+    backupViewModel: PasskeyBackupViewModel = hiltViewModel(),
 ) {
+    val passkeyBackup by backupViewModel.state.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val passphrase by passphraseViewModel.state.collectAsStateWithLifecycle()
     val forgot by forgotViewModel.state.collectAsStateWithLifecycle()
@@ -218,6 +223,7 @@ fun SecurityScreen(
                         onRenew = viewModel::startRenew,
                         onMove = { moving = true },
                     )
+                    PasskeyBackupSection(passkeyBackup, onEnable = backupViewModel::startEnable, onDisable = backupViewModel::disable)
                     AppLockSection()
                 }
             }
@@ -225,6 +231,17 @@ fun SecurityScreen(
     }
 
     // ---- Dialogs -------------------------------------------------------------------------------
+
+    if (passkeyBackup.confirming) {
+        AlertDialog(
+            onDismissRequest = backupViewModel::cancel,
+            containerColor = MaterialTheme.brand.card,
+            title = { Text(stringResource(R.string.sec_pkb_confirm_title)) },
+            text = { Text(stringResource(R.string.sec_pkb_confirm_body)) },
+            confirmButton = { TextButton(onClick = backupViewModel::enable) { Text(stringResource(R.string.sec_pkb_confirm_action)) } },
+            dismissButton = { TextButton(onClick = backupViewModel::cancel) { Text(stringResource(R.string.sec_cancel)) } },
+        )
+    }
 
     passphrase.form?.let { form ->
         PassphraseDialog(
@@ -509,6 +526,33 @@ private fun PhoneSection(identity: IdentityInfo, onBackup: () -> Unit, onRenew: 
             ActionRow(Icons.Filled.Autorenew, stringResource(R.string.sec_renew), stringResource(R.string.sec_renew_detail), onRenew)
         }
         ActionRow(Icons.Filled.PhonelinkSetup, stringResource(R.string.sec_move), stringResource(R.string.sec_move_detail), onMove)
+    }
+}
+
+/** The opt-in passkey backup: a copy of the key a synced passkey can open on a new phone. */
+@Composable
+private fun PasskeyBackupSection(state: PasskeyBackupUiState, onEnable: () -> Unit, onDisable: () -> Unit) {
+    SectionTitle(stringResource(R.string.sec_pkb_title))
+    SectionCard {
+        val detail = when (state.status) {
+            BackupStatus.CHECKING -> stringResource(R.string.sec_pkb_checking)
+            BackupStatus.ON -> stringResource(R.string.sec_pkb_on)
+            BackupStatus.OFF -> stringResource(R.string.sec_pkb_off)
+            BackupStatus.UNAVAILABLE -> stringResource(R.string.sec_pkb_unavailable)
+        }
+        ListItem(
+            colors = ListItemDefaults.colors(containerColor = MaterialTheme.brand.card),
+            leadingContent = { Icon(Icons.Filled.Key, contentDescription = null) },
+            headlineContent = { Text(stringResource(R.string.sec_pkb_title)) },
+            supportingContent = { Text(state.error ?: detail, color = if (state.error != null) MaterialTheme.colorScheme.error else Color.Unspecified) },
+        )
+        if (state.busy) {
+            LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+        } else if (state.status == BackupStatus.ON) {
+            TextButton(onClick = onDisable, modifier = Modifier.padding(start = 8.dp)) { Text(stringResource(R.string.sec_pkb_disable)) }
+        } else if (state.status == BackupStatus.OFF) {
+            TextButton(onClick = onEnable, modifier = Modifier.padding(start = 8.dp)) { Text(stringResource(R.string.sec_pkb_enable)) }
+        }
     }
 }
 

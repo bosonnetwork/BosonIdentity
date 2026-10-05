@@ -30,6 +30,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.bosonnetwork.Id
 import io.bosonnetwork.crypto.Signature
 import io.bosonnetwork.identity.core.designsystem.component.userMessage
+import io.bosonnetwork.identity.core.backup.PasskeyBackup
+import io.bosonnetwork.identity.core.model.AppError
 import io.bosonnetwork.identity.core.vault.AuthPrompt
 import io.bosonnetwork.identity.core.vault.IdentityVault
 import io.bosonnetwork.identity.core.vault.KeyBackup
@@ -76,6 +78,8 @@ data class OnboardingUiState(
     val canProtect: Boolean = true,
     val busy: Boolean = false,
     val error: String? = null,
+    /** Passkey backups Block Store offered this phone (a new phone set up from a Google account). */
+    val passkeyBackups: List<String> = emptyList(),
     /** Set when the identity is safely in the vault: onboarding is over. */
     val finishedUserId: String? = null,
 )
@@ -87,8 +91,12 @@ data class OnboardingUiState(
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val vault: IdentityVault,
+    private val passkeyBackup: PasskeyBackup,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
+
+    // The passkey backups found in Block Store, by the identity they hold.
+    private var found: List<PasskeyBackup.Found> = emptyList()
 
     private val _state = MutableStateFlow(OnboardingUiState(canProtect = vault.canProtectKeys()))
     val state: StateFlow<OnboardingUiState> = _state.asStateFlow()
@@ -101,7 +109,41 @@ class OnboardingViewModel @Inject constructor(
         _state.update { it.copy(step = OnboardingStep.CREATED, userId = userIdOf(pending!!), backupVerified = false, error = null) }
     }
 
-    fun startRestore() = _state.update { it.copy(step = OnboardingStep.RESTORE, error = null) }
+    fun startRestore() {
+        _state.update { it.copy(step = OnboardingStep.RESTORE, error = null) }
+        // A phone set up from a Google account may have passkey backups waiting; they are offered first.
+        viewModelScope.launch {
+            found = try {
+                passkeyBackup.found()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                emptyList()
+            }
+            _state.update { it.copy(passkeyBackups = found.map { f -> f.userId }) }
+        }
+    }
+
+    /** Restores [userId] from its passkey backup: the user picks the passkey and confirms. */
+    fun restoreFromPasskey(userId: String) {
+        val backup = found.firstOrNull { it.userId == userId } ?: return
+        _state.update { it.copy(busy = true, error = null) }
+        viewModelScope.launch {
+            try {
+                replacePending(passkeyBackup.open(backup))
+                // Turning the backup on took a checked backup of the key's own: that copy still stands.
+                _state.update {
+                    it.copy(step = OnboardingStep.PROTECT, userId = userId, backupVerified = true, busy = false, error = null)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: AppError.AuthenticationCancelled) {
+                _state.update { it.copy(busy = false) }
+            } catch (e: Exception) {
+                _state.update { it.copy(busy = false, error = context.getString(R.string.onb_restore_passkey_failed)) }
+            }
+        }
+    }
 
     /** Restores from a key file's text, a pasted key, or a scanned key QR. */
     fun restore(text: String) {

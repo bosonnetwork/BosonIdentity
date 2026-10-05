@@ -192,4 +192,20 @@
     <string name="sec_app_lock_title">应用锁</string>
     <string name="sec_app_lock">已通过屏幕锁保护</string>
     <string name="sec_app_lock_detail">你的身份密钥在这部手机上加密保存。每次使用时，手机都会要求你验证指纹或屏幕锁。</string>
+
+    <!-- The passkey backup -->
+    <string name="sec_pkb_title">通行密钥备份</string>
+    <string name="sec_pkb_checking">正在检查…</string>
+    <string name="sec_pkb_on">已开启。装有同步通行密钥的新手机可以恢复此身份。</string>
+    <string name="sec_pkb_off">未开启。这是你的密钥的额外副本，可由密码管理器中的通行密钥在新手机上打开。</string>
+    <string name="sec_pkb_unavailable">此手机不可用：需要 Google Play 服务和可用于备份的 Google 账户。</string>
+    <string name="sec_pkb_enable">开启</string>
+    <string name="sec_pkb_disable">关闭</string>
+    <string name="sec_pkb_backup_first">请先检查你自己的密钥备份。通行密钥备份只是额外副本，绝不是唯一的一份。</string>
+    <string name="sec_pkb_confirm_title">开启通行密钥备份？</string>
+    <string name="sec_pkb_confirm_body">你的身份密钥副本将保存在你的 Google 账户中，并由一个新的通行密钥锁定。任何能控制你的 Google 账户、并能在另一部手机上用你的屏幕锁解锁它的人，都可以恢复此身份。请同时保留你自己的备份。</string>
+    <string name="sec_pkb_confirm_action">创建通行密钥</string>
+    <string name="sec_pkb_no_prf">此通行密钥提供方无法保护备份。请试试 Google 密码管理工具。</string>
+    <string name="sec_pkb_prompt_title">用通行密钥备份</string>
+    <string name="sec_pkb_prompt_subtitle">你的密钥副本将由新的通行密钥锁定</string>
 </resources>

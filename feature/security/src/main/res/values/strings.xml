@@ -193,4 +193,20 @@
     <string name="sec_app_lock_title">App lock</string>
     <string name="sec_app_lock">Protected by your screen lock</string>
     <string name="sec_app_lock_detail">Your identity\'s key is encrypted on this phone. Every time it is used, the phone asks for your fingerprint or screen lock.</string>
+
+    <!-- The passkey backup -->
+    <string name="sec_pkb_title">Passkey backup</string>
+    <string name="sec_pkb_checking">Checking…</string>
+    <string name="sec_pkb_on">On. A new phone with your synced passkey can restore this identity.</string>
+    <string name="sec_pkb_off">Off. An extra copy of your key that a passkey in your password manager can open on a new phone.</string>
+    <string name="sec_pkb_unavailable">Not available on this phone: it needs Google Play services and a Google account to back up to.</string>
+    <string name="sec_pkb_enable">Turn on</string>
+    <string name="sec_pkb_disable">Turn off</string>
+    <string name="sec_pkb_backup_first">Check your own backup of the key first. The passkey backup is an extra copy, never the only one.</string>
+    <string name="sec_pkb_confirm_title">Turn on the passkey backup?</string>
+    <string name="sec_pkb_confirm_body">A copy of your identity\'s key is stored with your Google account, locked by a new passkey. Anyone who controls your Google account and can unlock it with your screen lock on another phone could restore this identity. Keep your own backup too.</string>
+    <string name="sec_pkb_confirm_action">Create the passkey</string>
+    <string name="sec_pkb_no_prf">This passkey provider can\'t protect a backup. Try Google Password Manager.</string>
+    <string name="sec_pkb_prompt_title">Back up with a passkey</string>
+    <string name="sec_pkb_prompt_subtitle">A copy of your key will be locked by the new passkey</string>
 </resources>

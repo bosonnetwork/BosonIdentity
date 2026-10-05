@@ -23,6 +23,9 @@ datastore = "1.1.1"
 camerax = "1.4.1"
 mlkitBarcode = "17.3.0"
 zxing = "3.5.3"
+# Passkey backup: Credential Manager (with Google Password Manager) and Block Store
+credentials = "1.3.0"
+blockstore = "16.4.0"
 # Boson stack. Vert.x matches the boson-dependencies BOM.
 boson = "3.2.0-SNAPSHOT"
 vertx = "5.0.11"
@@ -70,6 +73,10 @@ androidx-camera-view = { group = "androidx.camera", name = "camera-view", versio
 mlkit-barcode = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcode" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugarJdkLibs" }
+androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
+androidx-credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
+play-services-blockstore = { group = "com.google.android.gms", name = "play-services-auth-blockstore", version.ref = "blockstore" }
+kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
 boson-api = { group = "io.bosonnetwork", name = "boson-api", version.ref = "boson" }
 boson-director-client = { group = "io.bosonnetwork", name = "boson-director-client", version.ref = "boson" }
 slf4j-simple = { group = "org.slf4j", name = "slf4j-simple", version.ref = "slf4j" }

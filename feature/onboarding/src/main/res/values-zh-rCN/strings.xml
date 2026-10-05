@@ -37,6 +37,9 @@
     <string name="onb_verify_skip">稍后提醒我</string>
 
     <string name="onb_restore_title">导入你的身份</string>
+    <string name="onb_restore_passkey_body">在这部手机上找到了你的通行密钥备份。请用密码管理器中的通行密钥打开它。</string>
+    <string name="onb_restore_passkey">用我的通行密钥恢复 %1$s</string>
+    <string name="onb_restore_passkey_failed">该通行密钥无法打开备份。请选择为此备份创建的通行密钥，或用其他方式恢复。</string>
     <string name="onb_restore_body">使用你保存的密钥：密钥文件、二维码或文本。</string>
     <string name="onb_restore_paste_label">私钥</string>
     <string name="onb_restore_use_key">使用此密钥</string>

@@ -30,6 +30,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.bosonnetwork.identity.core.backup.BlockStoreBackupStore
+import io.bosonnetwork.identity.core.backup.CredentialManagerPrf
+import io.bosonnetwork.identity.core.backup.PasskeyBackup
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.AdminAccess
 import io.bosonnetwork.identity.core.boson.AdminSession
@@ -93,4 +96,15 @@ object AppModule {
     @Provides
     @Singleton
     fun oauthReturns(): OAuthReturns = OAuthReturns()
+
+    /** The phone's passkey provider, shown over the activity in front (attached by MainActivity). */
+    @Provides
+    @Singleton
+    fun passkeyPrf(): CredentialManagerPrf = CredentialManagerPrf()
+
+    /** The opt-in passkey backup: a sealed copy of the user key in Block Store, opened by a passkey. */
+    @Provides
+    @Singleton
+    fun passkeyBackup(@ApplicationContext context: Context, vault: IdentityVault, prf: CredentialManagerPrf): PasskeyBackup =
+        PasskeyBackup(vault, prf, BlockStoreBackupStore(context))
 }

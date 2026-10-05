@@ -33,6 +33,7 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:vault"))
+    implementation(project(":core:backup"))
     implementation(project(":core:boson"))
     // Account providers and the web portal open in a browser tab (Custom Tabs).
     implementation(libs.androidx.browser)

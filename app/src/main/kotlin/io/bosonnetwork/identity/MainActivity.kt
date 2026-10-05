@@ -29,6 +29,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import io.bosonnetwork.identity.core.backup.CredentialManagerPrf
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.AdminAccess
 import io.bosonnetwork.identity.core.boson.NodeConnections
@@ -51,11 +52,13 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var nodes: NodeConnections
     @Inject lateinit var activeIdentity: ActiveIdentity
     @Inject lateinit var oauthReturns: OAuthReturns
+    @Inject lateinit var passkeyPrf: CredentialManagerPrf
     @Inject lateinit var adminAccess: AdminAccess
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         authenticator.attach(this)
+        passkeyPrf.attach(this)
         enableEdgeToEdge()
         setContent {
             BosonIdentityTheme {

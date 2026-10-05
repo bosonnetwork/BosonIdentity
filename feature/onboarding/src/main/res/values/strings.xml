@@ -42,6 +42,9 @@
 
     <!-- Restore -->
     <string name="onb_restore_title">Bring in your identity</string>
+    <string name="onb_restore_passkey_body">Your passkey backup was found on this phone. Open it with the passkey in your password manager.</string>
+    <string name="onb_restore_passkey">Restore %1$s with my passkey</string>
+    <string name="onb_restore_passkey_failed">That passkey didn\'t open the backup. Pick the passkey you made for it, or restore another way.</string>
     <string name="onb_restore_body">Use the key you saved: its file, its QR code, or its text.</string>
     <string name="onb_restore_paste_label">Private key</string>
     <string name="onb_restore_use_key">Use this key</string>

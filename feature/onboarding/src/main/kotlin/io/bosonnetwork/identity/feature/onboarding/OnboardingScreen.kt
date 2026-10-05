@@ -63,6 +63,7 @@ import io.bosonnetwork.identity.core.designsystem.component.BrandTile
 import io.bosonnetwork.identity.core.designsystem.component.IdText
 import io.bosonnetwork.identity.core.designsystem.component.Identicon
 import io.bosonnetwork.identity.core.designsystem.component.SecureScreen
+import io.bosonnetwork.identity.core.designsystem.component.shortId
 import io.bosonnetwork.identity.core.qr.QrScanner
 
 /**
@@ -106,6 +107,9 @@ fun OnboardingScreen(
         }
         OnboardingStep.RESTORE -> Restore(
             error = state.error,
+            passkeyBackups = state.passkeyBackups,
+            busy = state.busy,
+            onRestorePasskey = viewModel::restoreFromPasskey,
             onRestore = viewModel::restore,
             onMoveFromOldPhone = onMoveFromOldPhone,
             onBack = viewModel::restart,
@@ -147,7 +151,15 @@ private fun Created(userId: String, onContinue: () -> Unit) {
 }
 
 @Composable
-private fun Restore(error: String?, onRestore: (String) -> Unit, onMoveFromOldPhone: () -> Unit, onBack: () -> Unit) {
+private fun Restore(
+    error: String?,
+    passkeyBackups: List<String>,
+    busy: Boolean,
+    onRestorePasskey: (String) -> Unit,
+    onRestore: (String) -> Unit,
+    onMoveFromOldPhone: () -> Unit,
+    onBack: () -> Unit,
+) {
     SecureScreen()
     val context = LocalContext.current
     var text by rememberSaveable { mutableStateOf("") }
@@ -162,6 +174,17 @@ private fun Restore(error: String?, onRestore: (String) -> Unit, onMoveFromOldPh
 
     StepColumn {
         StepTitle(stringResource(R.string.onb_restore_title))
+        if (!scanning && passkeyBackups.isNotEmpty()) {
+            // Block Store brought backups to this new phone: the synced passkey opens them.
+            StepText(stringResource(R.string.onb_restore_passkey_body))
+            passkeyBackups.forEach { userId ->
+                Button(onClick = { onRestorePasskey(userId) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.onb_restore_passkey, shortId(userId)))
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+            Spacer(Modifier.height(16.dp))
+        }
         if (!scanning) {
             // The old phone hands the key over itself: nothing to type, and the node can't read it.
             StepText(stringResource(R.string.onb_restore_move_body))
