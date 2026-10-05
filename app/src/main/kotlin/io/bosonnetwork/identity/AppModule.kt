@@ -32,6 +32,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.NodeConnections
+import io.bosonnetwork.identity.core.boson.OAuthReturns
 import io.bosonnetwork.identity.core.vault.ActivityAuthenticator
 import io.bosonnetwork.identity.core.vault.IdentityVault
 import io.bosonnetwork.identity.core.vault.KeystoreProtector
@@ -68,4 +69,9 @@ object AppModule {
     @Singleton
     fun activeIdentity(@ApplicationContext context: Context, vault: IdentityVault): ActiveIdentity =
         ActiveIdentity(vault, PreferenceDataStoreFactory.create { context.preferencesDataStoreFile("active_identity") })
+
+    /** Returns from account providers, handed from the activity to the flow waiting for them. */
+    @Provides
+    @Singleton
+    fun oauthReturns(): OAuthReturns = OAuthReturns()
 }

@@ -22,6 +22,7 @@
 
 package io.bosonnetwork.identity
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -30,6 +31,7 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.NodeConnections
+import io.bosonnetwork.identity.core.boson.OAuthReturns
 import io.bosonnetwork.identity.core.designsystem.theme.BosonIdentityTheme
 import io.bosonnetwork.identity.core.vault.ActivityAuthenticator
 import io.bosonnetwork.identity.core.vault.IdentityVault
@@ -47,6 +49,7 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var vault: IdentityVault
     @Inject lateinit var nodes: NodeConnections
     @Inject lateinit var activeIdentity: ActiveIdentity
+    @Inject lateinit var oauthReturns: OAuthReturns
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,6 +60,20 @@ class MainActivity : FragmentActivity() {
                 AppNavigation(vault, activeIdentity)
             }
         }
+        // Started by a return from an account provider (the app was not running).
+        if (savedInstanceState == null) deliverReturn(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        deliverReturn(intent)
+    }
+
+    // A return from an account provider: the App Link the node sent the browser to.
+    private fun deliverReturn(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (intent.action == Intent.ACTION_VIEW && data.toString().startsWith(OAuthReturns.REDIRECT_URI))
+            oauthReturns.deliver(data.fragment)
     }
 
     // Leaving the app drops the device keys from memory. Coming back within the Keystore's session
