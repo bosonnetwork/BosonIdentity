@@ -53,6 +53,8 @@ import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.vault.IdentityVault
 import io.bosonnetwork.identity.feature.account.AccountScreen
 import io.bosonnetwork.identity.feature.devices.ApproveDeviceScreen
+import io.bosonnetwork.identity.feature.devices.ApproveSignInScreen
+import io.bosonnetwork.identity.feature.devices.ApproveSignInViewModel
 import io.bosonnetwork.identity.feature.devices.ApproveDeviceViewModel
 import io.bosonnetwork.identity.feature.devices.DevicesScreen
 import io.bosonnetwork.identity.feature.identity.IdentityScreen
@@ -71,10 +73,12 @@ private object Routes {
     const val JOIN = "join/{${JoinNodeViewModel.ARG_USER_ID}}?first={first}"
     const val BACKUP = "backup/{${JoinNodeViewModel.ARG_USER_ID}}"
     const val APPROVE = "approve/{${ApproveDeviceViewModel.ARG_USER_ID}}"
+    const val SIGN_IN = "signin/{${ApproveDeviceViewModel.ARG_USER_ID}}/{${ApproveSignInViewModel.ARG_REQUEST_ID}}"
 
     fun join(userId: String, first: Boolean) = "join/$userId?first=$first"
     fun backup(userId: String) = "backup/$userId"
     fun approve(userId: String) = "approve/$userId"
+    fun signIn(userId: String, requestId: String) = "signin/$userId/$requestId"
 
     /** Set on the tabs' entry when a device was approved, so the device list is asked for again. */
     const val DEVICES_CHANGED = "devices_changed"
@@ -155,6 +159,23 @@ fun AppNavigation(vault: IdentityVault, activeIdentity: ActiveIdentity) {
                         nav.previousBackStackEntry?.savedStateHandle?.set(Routes.DEVICES_CHANGED, true)
                         nav.popBackStack()
                     },
+                    onClose = { nav.popBackStack() },
+                    onBackup = { nav.navigate(Routes.backup(it)) },
+                    // A web page's sign-in code, scanned here: its own screen replaces this one.
+                    onSignIn = { requestId ->
+                        val userId = it.arguments?.getString(ApproveDeviceViewModel.ARG_USER_ID).orEmpty()
+                        nav.navigate(Routes.signIn(userId, requestId)) { popUpTo(Routes.APPROVE) { inclusive = true } }
+                    },
+                )
+            }
+            composable(
+                Routes.SIGN_IN,
+                arguments = listOf(
+                    navArgument(ApproveDeviceViewModel.ARG_USER_ID) { type = NavType.StringType },
+                    navArgument(ApproveSignInViewModel.ARG_REQUEST_ID) { type = NavType.StringType },
+                ),
+            ) {
+                ApproveSignInScreen(
                     onClose = { nav.popBackStack() },
                     onBackup = { nav.navigate(Routes.backup(it)) },
                 )
