@@ -101,4 +101,28 @@
     <string name="dev_approve_prompt_title">Approve a new device</string>
     <string name="dev_approve_prompt_subtitle">%1$s will join your identity at %2$s</string>
     <string name="dev_approve_admin_refused">The node didn\'t allow this. Only an administrator can let a device administer the node.</string>
+
+    <!-- Signing a web page in with the identity ("Sign in with Boson Identity") -->
+    <string name="dev_signin_title">Sign in on the web</string>
+    <string name="dev_signin_review_title">A web page wants to sign in as you</string>
+    <string name="dev_signin_portal">Your node\'s web portal</string>
+    <string name="dev_signin_admin">Your node\'s admin dashboard</string>
+    <string name="dev_signin_requested_from">Requested from %1$s</string>
+    <string name="dev_signin_warning">Only approve a sign-in you started yourself, just now, on this node. If someone sent you this code, refuse it.</string>
+    <string name="dev_signin_pick">Pick the number the page shows</string>
+    <string name="dev_signin_approve">Sign in</string>
+    <string name="dev_signin_refuse">Refuse</string>
+    <string name="dev_signin_backup_first">Back up your key before you sign in anywhere with it.</string>
+    <string name="dev_signin_expired_now">This sign-in expired. Start again on the page.</string>
+    <string name="dev_signin_done_title">Signed in</string>
+    <string name="dev_signin_done_body">The page is signed in as you. It can\'t add devices: those join through this app.</string>
+    <string name="dev_signin_refused_title">Sign-in refused</string>
+    <string name="dev_signin_refused_body">The page was not signed in.</string>
+    <string name="dev_signin_wrong_number">That wasn\'t the page\'s number, so the sign-in was refused. If you started it, start again on the page.</string>
+    <string name="dev_signin_expired_title">This sign-in is gone</string>
+    <string name="dev_signin_expired_body">It expired, or was already answered. Start again on the page.</string>
+    <string name="dev_signin_error_title">Couldn\'t read the sign-in</string>
+    <string name="dev_signin_admin_refused">Only an administrator of this node can sign in to its admin dashboard.</string>
+    <string name="dev_signin_prompt_title">Sign in on the web</string>
+    <string name="dev_signin_prompt_subtitle">%1$s at %2$s will be signed in as you</string>
 </resources>

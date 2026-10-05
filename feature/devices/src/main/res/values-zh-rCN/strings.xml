@@ -101,4 +101,28 @@
     <string name="dev_approve_prompt_title">批准新设备</string>
     <string name="dev_approve_prompt_subtitle">%1$s 将加入你在 %2$s 的身份</string>
     <string name="dev_approve_admin_refused">节点不允许此操作。只有管理员才能让设备管理节点。</string>
+
+    <!-- Signing a web page in with the identity -->
+    <string name="dev_signin_title">网页登录</string>
+    <string name="dev_signin_review_title">有网页想以你的身份登录</string>
+    <string name="dev_signin_portal">节点的网页门户</string>
+    <string name="dev_signin_admin">节点的管理后台</string>
+    <string name="dev_signin_requested_from">请求来自 %1$s</string>
+    <string name="dev_signin_warning">只批准你自己刚刚在此节点上发起的登录。如果是别人发给你的代码，请拒绝。</string>
+    <string name="dev_signin_pick">选择网页上显示的数字</string>
+    <string name="dev_signin_approve">登录</string>
+    <string name="dev_signin_refuse">拒绝</string>
+    <string name="dev_signin_backup_first">用你的密钥在任何地方登录之前，请先备份它。</string>
+    <string name="dev_signin_expired_now">此登录已过期。请在网页上重新开始。</string>
+    <string name="dev_signin_done_title">已登录</string>
+    <string name="dev_signin_done_body">网页已以你的身份登录。它不能添加设备：设备需通过本应用加入。</string>
+    <string name="dev_signin_refused_title">已拒绝登录</string>
+    <string name="dev_signin_refused_body">网页未登录。</string>
+    <string name="dev_signin_wrong_number">这不是网页上的数字，因此登录已被拒绝。如果是你发起的，请在网页上重新开始。</string>
+    <string name="dev_signin_expired_title">此登录已失效</string>
+    <string name="dev_signin_expired_body">它已过期，或已被处理。请在网页上重新开始。</string>
+    <string name="dev_signin_error_title">无法读取此登录</string>
+    <string name="dev_signin_admin_refused">只有此节点的管理员才能登录管理后台。</string>
+    <string name="dev_signin_prompt_title">网页登录</string>
+    <string name="dev_signin_prompt_subtitle">%2$s 上的%1$s将以你的身份登录</string>
 </resources>

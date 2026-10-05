@@ -67,6 +67,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -106,9 +107,16 @@ fun ApproveDeviceScreen(
     onDone: () -> Unit,
     onClose: () -> Unit,
     onBackup: (userId: String) -> Unit,
+    onSignIn: (requestId: String) -> Unit = {},
     viewModel: ApproveDeviceViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(state.signInRequestId) {
+        state.signInRequestId?.let {
+            viewModel.signInHandled()
+            onSignIn(it)
+        }
+    }
     ObscuredTouchGuard()
     BackHandler(enabled = state.step == ApproveStep.PASSPHRASE) { viewModel.backToReview() }
 
@@ -340,7 +348,7 @@ private fun ReviewStep(state: ApproveUiState, viewModel: ApproveDeviceViewModel,
 }
 
 @Composable
-private fun WhoWhere(identity: IdentityInfo, host: String) {
+internal fun WhoWhere(identity: IdentityInfo, host: String) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Identicon(identity.userId, size = 40.dp)
         Column(Modifier.padding(start = 12.dp).weight(1f)) {
@@ -406,7 +414,7 @@ private fun PassphraseStep(state: ApproveUiState, viewModel: ApproveDeviceViewMo
 }
 
 @Composable
-private fun Outcome(title: String, body: String, success: Boolean = false, actions: @Composable ColumnScope.() -> Unit) {
+internal fun Outcome(title: String, body: String, success: Boolean = false, actions: @Composable ColumnScope.() -> Unit) {
     Spacer(Modifier.height(32.dp))
     if (success) {
         Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = MaterialTheme.brand.success, modifier = Modifier.size(56.dp))
@@ -419,7 +427,7 @@ private fun Outcome(title: String, body: String, success: Boolean = false, actio
 }
 
 @Composable
-private fun StepText(text: String) {
+internal fun StepText(text: String) {
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium,

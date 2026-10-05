@@ -31,6 +31,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.bosonnetwork.director.client.Device
 import io.bosonnetwork.director.client.PairingCode
 import io.bosonnetwork.director.client.PendingDevice
+import io.bosonnetwork.director.client.SignInRequest
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.boson.call
 import io.bosonnetwork.identity.core.designsystem.component.userMessage
@@ -115,6 +116,8 @@ data class ApproveUiState(
     val needsPassphrase: Boolean = false,
     val passphrase: String = "",
     val error: String? = null,
+    /** The scanned code was a web page's sign-in, not a device's: the screen hands it over. */
+    val signInRequestId: String? = null,
 ) {
     /** Approving is allowed: the backup is checked, the request is alive, and a key handover is understood. */
     val canApprove: Boolean
@@ -194,7 +197,18 @@ class ApproveDeviceViewModel @Inject constructor(
         code?.let { load(it) }
     }
 
+    /** The sign-in code was handed over; scanning goes on from here when the user comes back. */
+    fun signInHandled() {
+        lastScanned = null
+        _state.update { it.copy(signInRequestId = null) }
+    }
+
     private fun open(text: String) {
+        // The same scanner reads a web page's "Sign in with Boson Identity" code.
+        SignInRequest.parseCode(text).orElse(null)?.let { requestId ->
+            _state.update { it.copy(signInRequestId = requestId, error = null) }
+            return
+        }
         val parsed = try {
             PairingCode.parse(text.trim())
         } catch (e: IllegalArgumentException) {
