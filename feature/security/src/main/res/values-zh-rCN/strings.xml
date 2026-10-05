@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sec_title">安全</string>
+    <string name="sec_refresh">刷新</string>
+    <string name="sec_done">完成</string>
+    <string name="sec_cancel">取消</string>
+    <string name="sec_back">返回</string>
+    <string name="sec_continue">继续</string>
+    <string name="sec_try_again">重试</string>
+    <string name="sec_working">请稍候…</string>
+    <string name="sec_unnamed">未命名</string>
+
+    <string name="sec_no_node">你账户的口令、恢复方式和登录方式由主节点保存。加入一个节点后才能设置。</string>
+    <string name="sec_join">加入节点</string>
+    <string name="sec_failed">无法加载你账户的安全信息</string>
+    <string name="sec_locked">已锁定</string>
+    <string name="sec_locked_detail">点按以用屏幕锁解锁。</string>
+    <string name="sec_unlock_prompt_title">解锁 Boson Identity</string>
+    <string name="sec_unlock_prompt_subtitle">请确认是你本人</string>
+
+    <string name="sec_backup_title">请先备份你的密钥</string>
+    <string name="sec_backup_body">你的身份密钥还没有备份。在你保存并检查副本之前，它不能更改口令、关联账户或更新这部手机的密钥。</string>
+    <string name="sec_backup_action">备份你的密钥</string>
+
+    <!-- 口令 -->
+    <string name="sec_passphrase_title">口令</string>
+    <string name="sec_passphrase_on">已通过口令保护</string>
+    <string name="sec_passphrase_on_detail">即使使用你的密钥，在节点上更改账户也需要口令。屏幕锁保护这部手机；口令保护你的账户。</string>
+    <string name="sec_passphrase_off">未设置口令</string>
+    <string name="sec_passphrase_off_detail">即使你的密钥泄露，口令也能保护你在节点上的账户。</string>
+    <string name="sec_passphrase_set">设置口令</string>
+    <string name="sec_passphrase_change">修改</string>
+    <string name="sec_passphrase_remove">移除</string>
+    <string name="sec_passphrase">账户口令</string>
+    <string name="sec_current_passphrase">当前口令</string>
+    <string name="sec_new_passphrase">新口令</string>
+    <string name="sec_new_passphrase_rule">至少 8 个字符，其中至少 5 个不同</string>
+    <string name="sec_confirm_passphrase">确认新口令</string>
+    <string name="sec_passphrase_mismatch">两次输入的口令不一致</string>
+    <string name="sec_wrong_passphrase">口令错误，请重试。</string>
+    <string name="sec_passphrase_already_set">此账户已设置口令。请输入当前口令以修改它。</string>
+
+    <string name="sec_set_title">设置口令</string>
+    <string name="sec_set_body">请选择一个你能记住的口令。即使使用你的密钥更改账户，节点也会要求输入它。</string>
+    <string name="sec_set_codes_next">接下来你将获得恢复码：忘记口令时，每个恢复码可重置一次口令。</string>
+    <string name="sec_set_action">设置</string>
+    <string name="sec_set_prompt_title">设置口令</string>
+    <string name="sec_set_prompt_subtitle">用于你在 %1$s 的账户</string>
+    <string name="sec_passphrase_set_done">口令已设置</string>
+    <string name="sec_codes_after_set_failed">口令已设置，但无法生成恢复码：%1$s 请在“恢复”中生成。</string>
+
+    <string name="sec_change_title">修改口令</string>
+    <string name="sec_change_body">请输入当前口令，然后输入新口令。</string>
+    <string name="sec_change_action">修改</string>
+    <string name="sec_change_prompt_title">修改口令</string>
+    <string name="sec_change_prompt_subtitle">用于你在 %1$s 的账户</string>
+    <string name="sec_passphrase_changed_done">口令已修改</string>
+
+    <string name="sec_remove_title">移除口令？</string>
+    <string name="sec_remove_body">移除后，更改账户只需要你的密钥。请输入口令以将其移除。</string>
+    <string name="sec_remove_action">移除</string>
+    <string name="sec_remove_prompt_title">移除口令</string>
+    <string name="sec_remove_prompt_subtitle">用于你在 %1$s 的账户</string>
+    <string name="sec_passphrase_removed_done">口令已移除</string>
+
+    <!-- 恢复 -->
+    <string name="sec_recovery_title">恢复</string>
+    <plurals name="sec_recovery_codes_left">
+        <item quantity="other">剩余 %d 个恢复码</item>
+    </plurals>
+    <string name="sec_recovery_codes_detail">每个恢复码可重置一次遗忘的口令。</string>
+    <string name="sec_recovery_others">关联账户（%1$d 个）和通行密钥（%2$d 个）也可以重置口令。</string>
+    <string name="sec_recovery_no_codes">恢复码已用完</string>
+    <string name="sec_recovery_none">没有重置遗忘口令的方式</string>
+    <string name="sec_recovery_none_detail">如果忘记口令，将无法重置。请立即生成恢复码。</string>
+    <string name="sec_recovery_unknown">恢复码可重置遗忘的口令，每个只能使用一次。</string>
+    <string name="sec_recovery_new_codes">生成新恢复码</string>
+    <string name="sec_codes_title">生成新恢复码</string>
+    <string name="sec_codes_body">新恢复码将替换之前的恢复码，旧恢复码随即失效。请输入口令以生成。</string>
+    <string name="sec_codes_action">生成</string>
+    <string name="sec_codes_prompt_title">生成新恢复码</string>
+    <string name="sec_codes_prompt_subtitle">用于你在 %1$s 的账户</string>
+    <string name="sec_codes_no_passphrase">此账户没有口令，因此没有恢复码。</string>
+
+    <!-- 忘记口令 -->
+    <string name="sec_forgot_action">忘记口令？</string>
+    <string name="sec_forgot_title">忘记口令了？</string>
+    <string name="sec_forgot_choose_body">无需旧口令即可重置。仅凭你的身份密钥无法重置：请选择你设置过的一种方式。</string>
+    <string name="sec_forgot_no_method">此账户没有设置恢复码、关联账户或通行密钥，因此无法重置口令。</string>
+    <string name="sec_forgot_use_code">使用恢复码</string>
+    <string name="sec_forgot_use_account">使用你的 %1$s 账户</string>
+    <string name="sec_forgot_no_providers">节点目前没有列出任何账户提供方。</string>
+    <string name="sec_forgot_use_passkey">在网页上使用通行密钥</string>
+    <string name="sec_forgot_passkey_hint">通行密钥只能在你节点的网站上使用。此操作将打开你节点的门户：请在那里选择“忘记口令？”。</string>
+    <string name="sec_forgot_code_body">请输入你的一个恢复码。每个只能使用一次。</string>
+    <string name="sec_forgot_code_label">恢复码</string>
+    <string name="sec_forgot_code_invalid">该恢复码错误或已被使用。</string>
+    <string name="sec_forgot_new_body">请选择新口令。请现在完成：重置只在几分钟内有效，关闭此窗口将使其失效。</string>
+    <string name="sec_forgot_reset_action">重置口令</string>
+    <string name="sec_forgot_grant_expired">重置耗时过长，请重新开始。</string>
+    <string name="sec_forgot_account_refused">该账户无法重置口令，它可能没有关联到此身份。</string>
+    <string name="sec_forgot_done_title">口令已重置</string>
+    <string name="sec_forgot_done_body">新口令已设置，从现在起请使用它。</string>
+    <string name="sec_browser_waiting">请在浏览器中完成。完成后会回到这里。</string>
+    <string name="sec_provider_error">账户提供方或节点拒绝了请求（%1$s）。</string>
+
+    <!-- 登录方式 -->
+    <string name="sec_signin_title">登录方式</string>
+    <string name="sec_linked_title">关联账户</string>
+    <string name="sec_linked_none">没有关联账户。关联账户可以你的身份登录节点的网页门户，并可重置遗忘的口令。</string>
+    <string name="sec_linked_unknown">此节点不列出关联账户。</string>
+    <string name="sec_linked_unknown_provider">账户</string>
+    <string name="sec_unlink">取消关联</string>
+    <string name="sec_unlink_title">取消关联你的 %1$s 账户？</string>
+    <string name="sec_unlink_body">它将无法再以你的身份登录，也无法重置你的口令。</string>
+    <string name="sec_unlink_passphrase">你的账户设置了口令，取消关联需要它。</string>
+    <string name="sec_unlink_prompt_title">取消关联账户</string>
+    <string name="sec_unlink_prompt_subtitle">你的 %1$s 账户将无法再以你的身份登录 %2$s</string>
+    <string name="sec_link_action">关联账户</string>
+    <string name="sec_link_title">关联账户</string>
+    <string name="sec_link_body">选择你的账户所在的服务。你将在浏览器中登录，然后回到这里。</string>
+    <string name="sec_link_no_providers">此节点不支持任何账户提供方登录。</string>
+    <string name="sec_link_confirm">将你的 %1$s 账户关联到你在 %2$s 的身份？</string>
+    <string name="sec_link_passphrase">你的账户设置了口令，关联需要它。</string>
+    <string name="sec_link_confirm_action">关联</string>
+    <string name="sec_link_prompt_title">关联账户</string>
+    <string name="sec_link_prompt_subtitle">你的 %1$s 账户将以你的身份登录 %2$s</string>
+    <string name="sec_link_done_title">账户已关联</string>
+    <string name="sec_link_done_body">你的 %1$s 账户现在可以你的身份登录节点的网页门户，并可重置遗忘的口令。</string>
+    <string name="sec_link_conflict">此账户已关联到另一个身份。请先在那里取消关联。</string>
+    <string name="sec_link_session_gone">登录已过期。请再次选择账户重新登录。</string>
+    <string name="sec_passkeys_title">通行密钥</string>
+    <string name="sec_passkeys_none">没有通行密钥。</string>
+    <string name="sec_passkeys_hint">通行密钥在你节点的网页门户中添加，并在这里通过“设备”中的“批准新设备”批准。请在“设备”中移除它们。</string>
+    <string name="sec_badge_recovery">恢复</string>
+
+    <!-- 安全日志 -->
+    <string name="sec_log_title">安全日志</string>
+    <string name="sec_log_empty">暂无记录。</string>
+    <string name="sec_log_all">显示全部</string>
+    <string name="sec_log_fewer">收起</string>
+    <string name="sec_log_set">已设置口令</string>
+    <string name="sec_log_changed">已修改口令</string>
+    <string name="sec_log_removed">已移除口令</string>
+    <string name="sec_log_reset">已重置口令</string>
+    <string name="sec_log_reset_code">已用恢复码重置口令</string>
+    <string name="sec_log_reset_account">已用你的 %1$s 账户重置口令</string>
+    <string name="sec_log_reset_linked">已用关联账户重置口令</string>
+    <string name="sec_log_reset_passkey">已用通行密钥重置口令</string>
+    <string name="sec_log_codes">已生成新恢复码</string>
+    <string name="sec_log_device_added">已添加设备：%1$s</string>
+    <string name="sec_log_device_removed">已移除设备：%1$s</string>
+    <string name="sec_log_passkey_added">已添加通行密钥：%1$s</string>
+    <string name="sec_log_passkey_removed">已移除通行密钥：%1$s</string>
+    <string name="sec_log_linked">已关联 %1$s 账户</string>
+    <string name="sec_log_unlinked">已取消关联 %1$s 账户</string>
+    <string name="sec_log_signed_in_portal">已用 Boson Identity 登录网页门户</string>
+    <string name="sec_log_signed_in_admin">已用 Boson Identity 登录管理后台</string>
+    <string name="sec_log_signed_in">已用 Boson Identity 登录网页</string>
+    <string name="sec_log_when_from">%1$s，来自 %2$s</string>
+    <string name="sec_log_unknown_time">时间未知</string>
+
+    <!-- 你的密钥和这部手机 -->
+    <string name="sec_phone_title">你的密钥和这部手机</string>
+    <string name="sec_backup_key">显示并备份我的密钥</string>
+    <string name="sec_backup_key_detail">将你的身份密钥保存为文件、二维码或文本。</string>
+    <string name="sec_renew">更新这部手机的设备密钥</string>
+    <string name="sec_renew_detail">为这部手机生成新的设备密钥，并从节点移除旧密钥。</string>
+    <string name="sec_renew_title">更新这部手机的设备密钥？</string>
+    <string name="sec_renew_body">这部手机将获得新的设备密钥，旧密钥会从节点移除。你的身份及其密钥不变。如果你认为这部手机的密钥可能已泄露，请执行此操作。</string>
+    <string name="sec_renew_passphrase">你的账户设置了口令，更新这部手机的密钥需要它。</string>
+    <string name="sec_renew_action">更新</string>
+    <string name="sec_renew_prompt_title">更新这部手机的密钥</string>
+    <string name="sec_renew_prompt_subtitle">这部手机将在 %1$s 使用新密钥</string>
+    <string name="sec_renew_store_prompt_title">保存新密钥</string>
+    <string name="sec_renew_store_prompt_subtitle">这部手机的新密钥将加密保存</string>
+    <string name="sec_renew_save_failed">节点已接受新密钥，但这部手机无法保存它。</string>
+    <string name="sec_renew_save_failed_cancel">如果取消，这部手机需要重新加入节点。</string>
+    <string name="sec_renew_done_title">这部手机已使用新密钥</string>
+    <string name="sec_renew_done_body">旧密钥已无法在节点上使用。</string>
+    <string name="sec_renew_old_kept">无法从节点移除旧密钥。请在“设备”中移除它：它是以这部手机命名的另一个“Boson Identity”。</string>
+    <string name="sec_move">迁移到新手机</string>
+    <string name="sec_move_detail">如何把你的身份带到另一部手机。</string>
+    <string name="sec_move_title">迁移到新手机</string>
+    <string name="sec_move_step1">1. 在新手机上安装 Boson Identity。</string>
+    <string name="sec_move_step2">2. 在新手机上选择“我已有身份”，再选择“从旧手机迁移”，然后选择你的主节点。</string>
+    <string name="sec_move_step2_node">2. 在新手机上选择“我已有身份”，再选择“从旧手机迁移”，然后选择你的主节点 %1$s。</string>
+    <string name="sec_move_step3">3. 新手机会显示一个配对码，并请求你的身份密钥。在这部手机的“设备”中点按“批准新设备”，扫描配对码并批准。</string>
+    <string name="sec_move_note">你的密钥以加密方式送达新手机，节点无法读取。在新手机可用之前，请保留这部手机。如果做不到，请改用你的密钥备份在新手机上恢复。</string>
+
+    <!-- 应用锁 -->
+    <string name="sec_app_lock_title">应用锁</string>
+    <string name="sec_app_lock">已通过屏幕锁保护</string>
+    <string name="sec_app_lock_detail">你的身份密钥在这部手机上加密保存。每次使用时，手机都会要求你验证指纹或屏幕锁。</string>
+</resources>

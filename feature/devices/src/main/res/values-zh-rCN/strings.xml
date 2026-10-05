@@ -34,7 +34,7 @@
     <string name="dev_detail_last_address">最近地址</string>
     <string name="dev_detail_id">设备 ID</string>
     <string name="dev_detail_unknown">未知</string>
-    <string name="dev_detail_this_phone">这是这部手机上的 Boson Identity，拥有自己的密钥。它不能从此列表中移除；更新它的密钥将在以后的版本中于“安全”里提供。</string>
+    <string name="dev_detail_this_phone">这是这部手机上的 Boson Identity，拥有自己的密钥。它不能从此列表中移除；如需更新它的密钥，请使用“安全”。</string>
     <string name="dev_detail_admin">此设备可以管理节点。</string>
     <string name="dev_detail_recovery">此设备可以重置忘记的口令。</string>
 

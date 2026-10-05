@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sec_title">Security</string>
+    <string name="sec_refresh">Refresh</string>
+    <string name="sec_done">Done</string>
+    <string name="sec_cancel">Cancel</string>
+    <string name="sec_back">Back</string>
+    <string name="sec_continue">Continue</string>
+    <string name="sec_try_again">Try again</string>
+    <string name="sec_working">One moment...</string>
+    <string name="sec_unnamed">Unnamed</string>
+
+    <string name="sec_no_node">Your account\'s passphrase, recovery and sign-ins are kept by your home node. Join a node to set them up.</string>
+    <string name="sec_join">Join a node</string>
+    <string name="sec_failed">Couldn\'t load your account\'s security</string>
+    <string name="sec_locked">Locked</string>
+    <string name="sec_locked_detail">Tap to unlock with your screen lock.</string>
+    <string name="sec_unlock_prompt_title">Unlock Boson Identity</string>
+    <string name="sec_unlock_prompt_subtitle">Confirm it\'s you</string>
+
+    <string name="sec_backup_title">Back up your key first</string>
+    <string name="sec_backup_body">Your identity\'s key isn\'t backed up yet. Until you\'ve saved it and checked the copy, it can\'t change your passphrase, link accounts or renew this phone\'s key.</string>
+    <string name="sec_backup_action">Back up your key</string>
+
+    <!-- Passphrase -->
+    <string name="sec_passphrase_title">Passphrase</string>
+    <string name="sec_passphrase_on">Protected by a passphrase</string>
+    <string name="sec_passphrase_on_detail">Changes to your account at the node need it, even with your key. The screen lock protects this phone; the passphrase protects your account.</string>
+    <string name="sec_passphrase_off">No passphrase</string>
+    <string name="sec_passphrase_off_detail">A passphrase protects your account at the node even if your key leaks.</string>
+    <string name="sec_passphrase_set">Set a passphrase</string>
+    <string name="sec_passphrase_change">Change</string>
+    <string name="sec_passphrase_remove">Remove</string>
+    <string name="sec_passphrase">Account passphrase</string>
+    <string name="sec_current_passphrase">Current passphrase</string>
+    <string name="sec_new_passphrase">New passphrase</string>
+    <string name="sec_new_passphrase_rule">At least 8 characters, at least 5 of them different</string>
+    <string name="sec_confirm_passphrase">Confirm the new passphrase</string>
+    <string name="sec_passphrase_mismatch">The passphrases don\'t match</string>
+    <string name="sec_wrong_passphrase">Wrong passphrase. Try again.</string>
+    <string name="sec_passphrase_already_set">This account already has a passphrase. Enter it to change it.</string>
+
+    <string name="sec_set_title">Set a passphrase</string>
+    <string name="sec_set_body">Choose a passphrase you will remember. The node asks for it for changes to your account, even when they are made with your key.</string>
+    <string name="sec_set_codes_next">Next you get recovery codes: each resets the passphrase once if you forget it.</string>
+    <string name="sec_set_action">Set</string>
+    <string name="sec_set_prompt_title">Set a passphrase</string>
+    <string name="sec_set_prompt_subtitle">For your account at %1$s</string>
+    <string name="sec_passphrase_set_done">Passphrase set</string>
+    <string name="sec_codes_after_set_failed">Passphrase set, but recovery codes couldn\'t be made: %1$s Make them under Recovery.</string>
+
+    <string name="sec_change_title">Change your passphrase</string>
+    <string name="sec_change_body">Enter your current passphrase, then the new one.</string>
+    <string name="sec_change_action">Change</string>
+    <string name="sec_change_prompt_title">Change your passphrase</string>
+    <string name="sec_change_prompt_subtitle">For your account at %1$s</string>
+    <string name="sec_passphrase_changed_done">Passphrase changed</string>
+
+    <string name="sec_remove_title">Remove your passphrase?</string>
+    <string name="sec_remove_body">Changes to your account will then need only your key. Enter your passphrase to remove it.</string>
+    <string name="sec_remove_action">Remove</string>
+    <string name="sec_remove_prompt_title">Remove your passphrase</string>
+    <string name="sec_remove_prompt_subtitle">For your account at %1$s</string>
+    <string name="sec_passphrase_removed_done">Passphrase removed</string>
+
+    <!-- Recovery -->
+    <string name="sec_recovery_title">Recovery</string>
+    <plurals name="sec_recovery_codes_left">
+        <item quantity="one">%d recovery code left</item>
+        <item quantity="other">%d recovery codes left</item>
+    </plurals>
+    <string name="sec_recovery_codes_detail">Each resets a forgotten passphrase once.</string>
+    <string name="sec_recovery_others">Linked accounts (%1$d) and passkeys (%2$d) can reset it too.</string>
+    <string name="sec_recovery_no_codes">No recovery codes left</string>
+    <string name="sec_recovery_none">No way to reset a forgotten passphrase</string>
+    <string name="sec_recovery_none_detail">If you forget your passphrase, it can\'t be reset. Make recovery codes now.</string>
+    <string name="sec_recovery_unknown">Recovery codes reset a forgotten passphrase, once each.</string>
+    <string name="sec_recovery_new_codes">New recovery codes</string>
+    <string name="sec_codes_title">New recovery codes</string>
+    <string name="sec_codes_body">New codes replace the earlier ones, which stop working. Enter your passphrase to make them.</string>
+    <string name="sec_codes_action">Make new codes</string>
+    <string name="sec_codes_prompt_title">Make new recovery codes</string>
+    <string name="sec_codes_prompt_subtitle">For your account at %1$s</string>
+    <string name="sec_codes_no_passphrase">This account has no passphrase, so it has no recovery codes.</string>
+
+    <!-- Forgot passphrase -->
+    <string name="sec_forgot_action">Forgot passphrase?</string>
+    <string name="sec_forgot_title">Forgot your passphrase?</string>
+    <string name="sec_forgot_choose_body">Reset it without the old one. Your identity\'s key alone can\'t do it: choose one of the ways you set up.</string>
+    <string name="sec_forgot_no_method">No recovery code, linked account or passkey is set up for this account, so the passphrase can\'t be reset.</string>
+    <string name="sec_forgot_use_code">Use a recovery code</string>
+    <string name="sec_forgot_use_account">Use your %1$s account</string>
+    <string name="sec_forgot_no_providers">The node lists no account providers right now.</string>
+    <string name="sec_forgot_use_passkey">Use a passkey, on the web</string>
+    <string name="sec_forgot_passkey_hint">A passkey works only on your node\'s website. This opens your node\'s portal: choose \"Forgot passphrase?\" there.</string>
+    <string name="sec_forgot_code_body">Enter one of your recovery codes. It works only once.</string>
+    <string name="sec_forgot_code_label">Recovery code</string>
+    <string name="sec_forgot_code_invalid">That code is wrong or has been used.</string>
+    <string name="sec_forgot_new_body">Choose a new passphrase. Finish now: the reset is good only for a few minutes, and closing this loses it.</string>
+    <string name="sec_forgot_reset_action">Reset passphrase</string>
+    <string name="sec_forgot_grant_expired">The reset took too long. Start again.</string>
+    <string name="sec_forgot_account_refused">That account couldn\'t reset the passphrase. It may not be linked to this identity.</string>
+    <string name="sec_forgot_done_title">Passphrase reset</string>
+    <string name="sec_forgot_done_body">Your new passphrase is set. Use it from now on.</string>
+    <string name="sec_browser_waiting">Finish in the browser. When it\'s done, you come back here.</string>
+    <string name="sec_provider_error">The account provider or the node refused (%1$s).</string>
+
+    <!-- Sign-in methods -->
+    <string name="sec_signin_title">Sign-in methods</string>
+    <string name="sec_linked_title">Linked accounts</string>
+    <string name="sec_linked_none">No linked accounts. A linked account signs in to your node\'s web portal as you, and can reset a forgotten passphrase.</string>
+    <string name="sec_linked_unknown">This node doesn\'t list linked accounts.</string>
+    <string name="sec_linked_unknown_provider">Account</string>
+    <string name="sec_unlink">Unlink</string>
+    <string name="sec_unlink_title">Unlink your %1$s account?</string>
+    <string name="sec_unlink_body">It will no longer sign in as you, or reset your passphrase.</string>
+    <string name="sec_unlink_passphrase">Your account has a passphrase. Unlinking needs it.</string>
+    <string name="sec_unlink_prompt_title">Unlink an account</string>
+    <string name="sec_unlink_prompt_subtitle">Your %1$s account will no longer sign in as you at %2$s</string>
+    <string name="sec_link_action">Link an account</string>
+    <string name="sec_link_title">Link an account</string>
+    <string name="sec_link_body">Choose where your account is. You sign in there, in the browser, and come back here.</string>
+    <string name="sec_link_no_providers">This node doesn\'t sign in with any account provider.</string>
+    <string name="sec_link_confirm">Link your %1$s account to your identity at %2$s?</string>
+    <string name="sec_link_passphrase">Your account has a passphrase. Linking needs it.</string>
+    <string name="sec_link_confirm_action">Link</string>
+    <string name="sec_link_prompt_title">Link an account</string>
+    <string name="sec_link_prompt_subtitle">Your %1$s account will sign in as you at %2$s</string>
+    <string name="sec_link_done_title">Account linked</string>
+    <string name="sec_link_done_body">Your %1$s account now signs in to your node\'s web portal as you, and can reset a forgotten passphrase.</string>
+    <string name="sec_link_conflict">This account is already linked to another identity. Unlink it there first.</string>
+    <string name="sec_link_session_gone">The sign-in expired. Choose the account again to sign in once more.</string>
+    <string name="sec_passkeys_title">Passkeys</string>
+    <string name="sec_passkeys_none">No passkeys.</string>
+    <string name="sec_passkeys_hint">Passkeys are added in your node\'s web portal and approved here, with \"Approve a new device\" in Devices. Remove them in Devices.</string>
+    <string name="sec_badge_recovery">Recovery</string>
+
+    <!-- Security log -->
+    <string name="sec_log_title">Security log</string>
+    <string name="sec_log_empty">Nothing yet.</string>
+    <string name="sec_log_all">Show all</string>
+    <string name="sec_log_fewer">Show fewer</string>
+    <string name="sec_log_set">Passphrase set</string>
+    <string name="sec_log_changed">Passphrase changed</string>
+    <string name="sec_log_removed">Passphrase removed</string>
+    <string name="sec_log_reset">Passphrase reset</string>
+    <string name="sec_log_reset_code">Passphrase reset with a recovery code</string>
+    <string name="sec_log_reset_account">Passphrase reset with your %1$s account</string>
+    <string name="sec_log_reset_linked">Passphrase reset with a linked account</string>
+    <string name="sec_log_reset_passkey">Passphrase reset with a passkey</string>
+    <string name="sec_log_codes">New recovery codes made</string>
+    <string name="sec_log_device_added">Device added: %1$s</string>
+    <string name="sec_log_device_removed">Device removed: %1$s</string>
+    <string name="sec_log_passkey_added">Passkey added: %1$s</string>
+    <string name="sec_log_passkey_removed">Passkey removed: %1$s</string>
+    <string name="sec_log_linked">%1$s account linked</string>
+    <string name="sec_log_unlinked">%1$s account unlinked</string>
+    <string name="sec_log_signed_in_portal">Web portal signed in with Boson Identity</string>
+    <string name="sec_log_signed_in_admin">Admin dashboard signed in with Boson Identity</string>
+    <string name="sec_log_signed_in">Web page signed in with Boson Identity</string>
+    <string name="sec_log_when_from">%1$s, from %2$s</string>
+    <string name="sec_log_unknown_time">Time unknown</string>
+
+    <!-- Your key and this phone -->
+    <string name="sec_phone_title">Your key and this phone</string>
+    <string name="sec_backup_key">Show and back up my key</string>
+    <string name="sec_backup_key_detail">Save your identity\'s key as a file, a QR code or text.</string>
+    <string name="sec_renew">Renew this phone\'s device key</string>
+    <string name="sec_renew_detail">Give this phone a new key of its own, and remove the old one from the node.</string>
+    <string name="sec_renew_title">Renew this phone\'s device key?</string>
+    <string name="sec_renew_body">This phone gets a new key of its own, and the old one is removed from the node. Your identity and its key don\'t change. Do this if you think this phone\'s key may have been exposed.</string>
+    <string name="sec_renew_passphrase">Your account has a passphrase. Renewing this phone\'s key needs it.</string>
+    <string name="sec_renew_action">Renew</string>
+    <string name="sec_renew_prompt_title">Renew this phone\'s key</string>
+    <string name="sec_renew_prompt_subtitle">This phone will use a new key at %1$s</string>
+    <string name="sec_renew_store_prompt_title">Store the new key</string>
+    <string name="sec_renew_store_prompt_subtitle">This phone\'s new key will be stored encrypted</string>
+    <string name="sec_renew_save_failed">The node took the new key, but this phone couldn\'t store it.</string>
+    <string name="sec_renew_save_failed_cancel">If you cancel, this phone will have to join the node again.</string>
+    <string name="sec_renew_done_title">This phone has a new key</string>
+    <string name="sec_renew_done_body">The old key no longer works at the node.</string>
+    <string name="sec_renew_old_kept">The old key couldn\'t be removed from the node. Remove it in Devices: it is the other \"Boson Identity\" on this phone\'s name.</string>
+    <string name="sec_move">Move to a new phone</string>
+    <string name="sec_move_detail">How to bring your identity to another phone.</string>
+    <string name="sec_move_title">Move to a new phone</string>
+    <string name="sec_move_step1">1. Install Boson Identity on the new phone.</string>
+    <string name="sec_move_step2">2. There, choose \"I already have one\", then \"Move from my old phone\", and choose your home node.</string>
+    <string name="sec_move_step2_node">2. There, choose \"I already have one\", then \"Move from my old phone\", and choose your home node, %1$s.</string>
+    <string name="sec_move_step3">3. The new phone shows a code and asks for your identity\'s key. On this phone, in Devices, tap \"Approve a new device\", scan the code and approve it.</string>
+    <string name="sec_move_note">Your key reaches the new phone sealed to its code: the node can\'t read it. Keep this phone until the new one works. If you can\'t, restore the new phone from your key\'s backup instead.</string>
+
+    <!-- App lock -->
+    <string name="sec_app_lock_title">App lock</string>
+    <string name="sec_app_lock">Protected by your screen lock</string>
+    <string name="sec_app_lock_detail">Your identity\'s key is encrypted on this phone. Every time it is used, the phone asks for your fingerprint or screen lock.</string>
+</resources>

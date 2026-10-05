@@ -75,6 +75,7 @@ dependencies {
     implementation(project(":feature:identity"))
     implementation(project(":feature:account"))
     implementation(project(":feature:devices"))
+    implementation(project(":feature:security"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

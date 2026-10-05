@@ -29,11 +29,11 @@
     <string name="id_passphrase_ok">已设置账户口令</string>
     <string name="id_passphrase_ok_detail">即使密钥泄露，更改账户也需要它。</string>
     <string name="id_passphrase_none">未设置账户口令</string>
-    <string name="id_passphrase_none_detail">即使密钥泄露，口令也能保护你在节点上的账户。目前请在节点的网页门户中设置。</string>
+    <string name="id_passphrase_none_detail">即使密钥泄露，口令也能保护你在节点上的账户。请在“安全”中设置。</string>
     <string name="id_recovery_ok">口令可以找回</string>
     <string name="id_recovery_codes_left">剩余恢复码：%1$d 个</string>
     <string name="id_recovery_none">口令无法找回</string>
-    <string name="id_recovery_none_detail">忘记口令后将无法重置。请在节点的网页门户中生成恢复码。</string>
+    <string name="id_recovery_none_detail">忘记口令后将无法重置。请在“安全”中生成恢复码。</string>
     <string name="id_footer">设备、安全和节点管理功能即将加入本应用。</string>
 
     <string name="id_unlock_prompt_title">解锁 Boson Identity</string>

@@ -46,7 +46,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 
 enum class JoinStep {
     /** Typing the node's address, or choosing to scan its QR code. */
@@ -113,29 +112,24 @@ class JoinNodeViewModel @Inject constructor(
     fun onScanned(text: String) {
         if (text == lastScanned) return
         lastScanned = text
-        val json = runCatching { JSONObject(text) }.getOrNull()
-        val url = json?.optString("url").orEmpty().trim()
-        if (url.isEmpty()) {
+        val scanned = scannedNode(text)
+        if (scanned == null) {
             _state.update { it.copy(step = JoinStep.ADDRESS, error = context.getString(R.string.onb_join_invalid_qr)) }
             return
         }
-        _state.update { it.copy(address = url, nodeIdInput = json?.optString("id").orEmpty().trim(), step = JoinStep.ADDRESS) }
+        _state.update { it.copy(address = scanned.url, nodeIdInput = scanned.nodeId, step = JoinStep.ADDRESS) }
         check()
     }
 
     /** Asks the node who it is and how it takes new accounts. */
     fun check() {
         val s = _state.value
-        val typed = try {
-            NodeAddress.parse(s.address, s.nodeIdInput.ifBlank { null })
-        } catch (e: IllegalArgumentException) {
-            _state.update { it.copy(error = context.getString(R.string.onb_join_invalid_address)) }
-            return
-        }
-        val pinned = typed.nodeId
-        if (pinned != null && runCatching { Id.of(pinned) }.isFailure) {
-            _state.update { it.copy(error = context.getString(R.string.onb_join_invalid_node_id)) }
-            return
+        val typed = when (val checked = typedNode(s.address, s.nodeIdInput)) {
+            is TypedNode.Invalid -> {
+                _state.update { it.copy(error = context.getString(checked.message)) }
+                return
+            }
+            is TypedNode.Valid -> checked.node
         }
         _state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {

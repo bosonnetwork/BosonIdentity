@@ -48,6 +48,8 @@
     <string name="onb_restore_open_file">Open the key file</string>
     <string name="onb_restore_scan">Scan the key\'s QR code</string>
     <string name="onb_restore_invalid">That is not a usable Boson key. Check that the whole key was copied.</string>
+    <string name="onb_restore_move_body">Is your identity on another phone you still have? Move it from there.</string>
+    <string name="onb_restore_move">Move from my old phone</string>
 
     <!-- Protect -->
     <string name="onb_protect_title">Protect your identity</string>
@@ -88,4 +90,24 @@
     <string name="onb_join_passphrase_label">Passphrase</string>
     <string name="onb_join_prompt_title">Join the node</string>
     <string name="onb_join_prompt_subtitle">Your identity will be used at %1$s</string>
+
+    <!-- Move from the old phone -->
+    <string name="onb_move_title">Move from your old phone</string>
+    <string name="onb_move_body">First, choose your home node: scan its QR code, or type its address. Your old phone shows it in Account.</string>
+    <string name="onb_move_connecting">Asking the node...</string>
+    <string name="onb_move_pair_title">Approve this phone on your old phone</string>
+    <string name="onb_move_pair_body">On your old phone, open Boson Identity, go to Devices, tap \"Approve a new device\" and scan this code. It asks for your identity\'s key: approve it there.</string>
+    <string name="onb_move_pair_qr">Pairing code for your old phone</string>
+    <string name="onb_move_pair_text">Or paste this code on the old phone:</string>
+    <string name="onb_move_pair_waiting">Waiting for your old phone. The code works for 3 minutes.</string>
+    <string name="onb_move_storing">Storing your identity on this phone...</string>
+    <string name="onb_move_store_failed_title">Your identity isn\'t stored yet</string>
+    <string name="onb_move_store_failed_body">Your old phone approved this one, but storing the key here didn\'t work. Try again, and confirm with your screen lock.</string>
+    <string name="onb_move_denied_title">Your old phone denied it</string>
+    <string name="onb_move_denied_body">This phone was not added to your identity. If that was a mistake, try again.</string>
+    <string name="onb_move_expired_title">The code expired</string>
+    <string name="onb_move_expired_body">Your old phone didn\'t approve this one in time. Try again to get a new code.</string>
+    <string name="onb_move_try_again">Try again</string>
+    <string name="onb_move_no_key">Your old phone approved this one but didn\'t hand over your identity\'s key. Try again, and approve the new code.</string>
+    <string name="onb_move_already_here">This identity is already on this phone.</string>
 </resources>

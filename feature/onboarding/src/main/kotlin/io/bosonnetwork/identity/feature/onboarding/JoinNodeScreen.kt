@@ -22,14 +22,9 @@
 
 package io.bosonnetwork.identity.feature.onboarding
 
-import android.Manifest
-import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -37,30 +32,23 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.bosonnetwork.identity.core.designsystem.component.IdText
 import io.bosonnetwork.identity.core.designsystem.component.Identicon
-import io.bosonnetwork.identity.core.qr.QrScanner
 
 /**
  * Joining the identity to its home node. [onDone] runs when it joined; [onSkip], when given, lets the
@@ -69,73 +57,31 @@ import io.bosonnetwork.identity.core.qr.QrScanner
 @Composable
 fun JoinNodeScreen(onDone: () -> Unit, onSkip: (() -> Unit)?, viewModel: JoinNodeViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     LaunchedEffect(state.joined) { if (state.joined) onDone() }
     BackHandler(enabled = state.step == JoinStep.SCAN || state.step == JoinStep.CONFIRM || state.step == JoinStep.PASSPHRASE) {
         viewModel.backToAddress()
-    }
-    val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) viewModel.scan()
     }
 
     StepColumn {
         when (state.step) {
             JoinStep.ADDRESS -> {
-                var advanced by rememberSaveable { mutableStateOf(state.nodeIdInput.isNotEmpty()) }
                 StepTitle(stringResource(R.string.onb_join_title))
                 StepText(stringResource(R.string.onb_join_body))
-                OutlinedButton(
-                    onClick = {
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                            viewModel.scan()
-                        } else {
-                            cameraPermission.launch(Manifest.permission.CAMERA)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text(stringResource(R.string.onb_join_scan)) }
-                Spacer(Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = state.address,
-                    onValueChange = viewModel::onAddressChange,
-                    label = { Text(stringResource(R.string.onb_join_address_label)) },
-                    placeholder = { Text("node.example.com") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, autoCorrectEnabled = false),
-                    modifier = Modifier.fillMaxWidth(),
+                NodeAddressFields(
+                    address = state.address,
+                    nodeId = state.nodeIdInput,
+                    busy = state.busy,
+                    onAddressChange = viewModel::onAddressChange,
+                    onNodeIdChange = viewModel::onNodeIdChange,
+                    onScan = viewModel::scan,
+                    onCheck = viewModel::check,
                 )
-                if (advanced) {
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = state.nodeIdInput,
-                        onValueChange = viewModel::onNodeIdChange,
-                        label = { Text(stringResource(R.string.onb_join_node_id_label)) },
-                        supportingText = { Text(stringResource(R.string.onb_join_node_id_hint)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(autoCorrectEnabled = false),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                } else {
-                    TextButton(onClick = { advanced = true }) { Text(stringResource(R.string.onb_join_advanced)) }
-                }
-                Spacer(Modifier.height(8.dp))
-                if (state.busy) {
-                    CircularProgressIndicator()
-                } else {
-                    Button(onClick = viewModel::check, enabled = state.address.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.onb_join_check))
-                    }
-                }
                 if (onSkip != null) {
                     TextButton(onClick = onSkip) { Text(stringResource(R.string.onb_join_skip)) }
                 }
             }
 
-            JoinStep.SCAN -> {
-                StepTitle(stringResource(R.string.onb_join_scan_title))
-                QrScanner(onScanned = viewModel::onScanned, modifier = Modifier.fillMaxWidth().aspectRatio(1f))
-                TextButton(onClick = viewModel::backToAddress) { Text(stringResource(R.string.onb_cancel)) }
-            }
+            JoinStep.SCAN -> NodeScanStep(onScanned = viewModel::onScanned, onCancel = viewModel::backToAddress)
 
             JoinStep.CONFIRM -> state.node?.let { node ->
                 StepTitle(stringResource(R.string.onb_join_confirm_title))

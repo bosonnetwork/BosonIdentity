@@ -23,4 +23,14 @@
     <plurals name="ds_wait_hours">
         <item quantity="other">%d 小时</item>
     </plurals>
+    <string name="ds_passphrase_too_short">至少 8 个字符</string>
+    <string name="ds_passphrase_too_plain">至少使用 5 个不同的字符</string>
+    <string name="ds_recovery_codes_title">你的恢复码</string>
+    <string name="ds_recovery_codes_body">忘记口令时，可用其中任意一个恢复码重置口令，每个只能使用一次。恢复码只在此刻显示：请将其妥善保存，并与你的身份密钥分开存放。</string>
+    <string name="ds_recovery_codes_saved">我已将这些恢复码妥善保存</string>
+    <string name="ds_recovery_codes_copied">已复制</string>
+    <string name="ds_recovery_codes_text">Boson 口令恢复码\n\n用户：%1$s\n\n%2$s\n\n每个恢复码可重置一次遗忘的口令。请与你的身份密钥分开存放。\n</string>
+    <string name="ds_action_copy">复制</string>
+    <string name="ds_action_share">分享</string>
+    <string name="ds_action_done">完成</string>
 </resources>

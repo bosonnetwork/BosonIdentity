@@ -65,9 +65,16 @@ import io.bosonnetwork.identity.core.designsystem.component.Identicon
 import io.bosonnetwork.identity.core.designsystem.component.SecureScreen
 import io.bosonnetwork.identity.core.qr.QrScanner
 
-/** Creating or restoring the identity; [onFinished] gets its id once it is sealed in the vault. */
+/**
+ * Creating or restoring the identity; [onFinished] gets its id once it is sealed in the vault.
+ * [onMoveFromOldPhone] opens moving it here from the old phone instead.
+ */
 @Composable
-fun OnboardingScreen(onFinished: (userId: String) -> Unit, viewModel: OnboardingViewModel = hiltViewModel()) {
+fun OnboardingScreen(
+    onFinished: (userId: String) -> Unit,
+    onMoveFromOldPhone: () -> Unit = {},
+    viewModel: OnboardingViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(state.finishedUserId) { state.finishedUserId?.let(onFinished) }
@@ -97,7 +104,12 @@ fun OnboardingScreen(onFinished: (userId: String) -> Unit, viewModel: Onboarding
                 onSkip = viewModel::skipVerify,
             )
         }
-        OnboardingStep.RESTORE -> Restore(error = state.error, onRestore = viewModel::restore, onBack = viewModel::restart)
+        OnboardingStep.RESTORE -> Restore(
+            error = state.error,
+            onRestore = viewModel::restore,
+            onMoveFromOldPhone = onMoveFromOldPhone,
+            onBack = viewModel::restart,
+        )
         OnboardingStep.PROTECT -> Protect(
             canProtect = state.canProtect,
             backupVerified = state.backupVerified,
@@ -135,7 +147,7 @@ private fun Created(userId: String, onContinue: () -> Unit) {
 }
 
 @Composable
-private fun Restore(error: String?, onRestore: (String) -> Unit, onBack: () -> Unit) {
+private fun Restore(error: String?, onRestore: (String) -> Unit, onMoveFromOldPhone: () -> Unit, onBack: () -> Unit) {
     SecureScreen()
     val context = LocalContext.current
     var text by rememberSaveable { mutableStateOf("") }
@@ -150,6 +162,12 @@ private fun Restore(error: String?, onRestore: (String) -> Unit, onBack: () -> U
 
     StepColumn {
         StepTitle(stringResource(R.string.onb_restore_title))
+        if (!scanning) {
+            // The old phone hands the key over itself: nothing to type, and the node can't read it.
+            StepText(stringResource(R.string.onb_restore_move_body))
+            Button(onClick = onMoveFromOldPhone, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.onb_restore_move)) }
+            Spacer(Modifier.height(24.dp))
+        }
         StepText(stringResource(R.string.onb_restore_body))
         if (scanning) {
             QrScanner(
@@ -168,7 +186,7 @@ private fun Restore(error: String?, onRestore: (String) -> Unit, onBack: () -> U
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
-            Button(onClick = { onRestore(text) }, enabled = text.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = { onRestore(text) }, enabled = text.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.onb_restore_use_key))
             }
             Spacer(Modifier.height(16.dp))

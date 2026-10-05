@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -58,12 +59,15 @@ import io.bosonnetwork.identity.feature.identity.IdentityScreen
 import io.bosonnetwork.identity.feature.onboarding.BackupScreen
 import io.bosonnetwork.identity.feature.onboarding.JoinNodeScreen
 import io.bosonnetwork.identity.feature.onboarding.JoinNodeViewModel
+import io.bosonnetwork.identity.feature.onboarding.MoveFromOldPhoneScreen
 import io.bosonnetwork.identity.feature.onboarding.OnboardingScreen
+import io.bosonnetwork.identity.feature.security.SecurityScreen
 import kotlinx.coroutines.launch
 
 private object Routes {
     const val WELCOME = "welcome"
     const val HOME = "home"
+    const val MOVE = "move"
     const val JOIN = "join/{${JoinNodeViewModel.ARG_USER_ID}}?first={first}"
     const val BACKUP = "backup/{${JoinNodeViewModel.ARG_USER_ID}}"
     const val APPROVE = "approve/{${ApproveDeviceViewModel.ARG_USER_ID}}"
@@ -77,9 +81,10 @@ private object Routes {
 }
 
 /**
- * The app's screens. Onboarding, joining a node, the backup and approving a device are full-screen
- * routes; everything else is in the tabs of [Routes.HOME]. Onboarding is also how an identity is added: opened from the
- * switcher, it sits above the tabs, so Back from its first step returns to them.
+ * The app's screens. Onboarding, moving from the old phone, joining a node, the backup and approving a
+ * device are full-screen routes; everything else is in the tabs of [Routes.HOME]. Onboarding is also how
+ * an identity is added: opened from the switcher, it sits above the tabs, so Back from its first step
+ * returns to them.
  */
 @Composable
 fun AppNavigation(vault: IdentityVault, activeIdentity: ActiveIdentity) {
@@ -99,11 +104,24 @@ fun AppNavigation(vault: IdentityVault, activeIdentity: ActiveIdentity) {
         val scope = rememberCoroutineScope()
         NavHost(navController = nav, startDestination = startRoute) {
             composable(Routes.WELCOME) {
-                OnboardingScreen(onFinished = { userId ->
-                    // A new identity, the first or one more, becomes the one in use.
-                    scope.launch { activeIdentity.select(userId) }
-                    nav.navigate(Routes.join(userId, first = true)) { popUpTo(Routes.WELCOME) { inclusive = true } }
-                })
+                OnboardingScreen(
+                    onFinished = { userId ->
+                        // A new identity, the first or one more, becomes the one in use.
+                        scope.launch { activeIdentity.select(userId) }
+                        nav.navigate(Routes.join(userId, first = true)) { popUpTo(Routes.WELCOME) { inclusive = true } }
+                    },
+                    onMoveFromOldPhone = { nav.navigate(Routes.MOVE) },
+                )
+            }
+            composable(Routes.MOVE) {
+                MoveFromOldPhoneScreen(
+                    onDone = { userId ->
+                        // The moved identity is already one of the node's devices: no joining step.
+                        scope.launch { activeIdentity.select(userId) }
+                        nav.navigate(Routes.HOME) { popUpTo(0) { inclusive = true } }
+                    },
+                    onCancel = { nav.popBackStack() },
+                )
             }
             composable(
                 Routes.JOIN,
@@ -168,8 +186,7 @@ fun AppNavigation(vault: IdentityVault, activeIdentity: ActiveIdentity) {
 }
 
 /**
- * The tabs, in their order. Each is one entry: Security will be one line, and Admin one line with
- * `adminOnly = true`.
+ * The tabs, in their order. Each is one entry; Admin will be one line with `adminOnly = true`.
  */
 private fun homeTabs(nav: NavController): List<HomeTab> = listOf(
     HomeTab("identity", R.string.app_nav_identity, Icons.Filled.Fingerprint) { identityButton ->
@@ -189,6 +206,13 @@ private fun homeTabs(nav: NavController): List<HomeTab> = listOf(
             onJoinNode = { nav.navigate(Routes.join(it, first = false)) },
             changed = changed,
             onChangeSeen = { home.savedStateHandle[Routes.DEVICES_CHANGED] = false },
+            navigationIcon = identityButton,
+        )
+    },
+    HomeTab("security", R.string.app_nav_security, Icons.Filled.Shield) { identityButton ->
+        SecurityScreen(
+            onBackup = { nav.navigate(Routes.backup(it)) },
+            onJoinNode = { nav.navigate(Routes.join(it, first = false)) },
             navigationIcon = identityButton,
         )
     },

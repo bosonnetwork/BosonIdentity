@@ -55,5 +55,7 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    // Android's org.json is a stub on the JVM; the real one lets a real vault be used in tests.
+    testImplementation(libs.json)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }

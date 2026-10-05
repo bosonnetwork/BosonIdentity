@@ -43,6 +43,8 @@
     <string name="onb_restore_open_file">打开密钥文件</string>
     <string name="onb_restore_scan">扫描密钥二维码</string>
     <string name="onb_restore_invalid">这不是可用的 Boson 密钥。请检查是否完整复制了整把密钥。</string>
+    <string name="onb_restore_move_body">你的身份还在另一部手机上？从那里迁移过来。</string>
+    <string name="onb_restore_move">从旧手机迁移</string>
 
     <string name="onb_protect_title">保护你的身份</string>
     <string name="onb_protect_body">你的密钥会加密保存在这部手机上。每次用它代表你行事之前，手机都会先要求你验证指纹或屏幕锁。</string>
@@ -81,4 +83,24 @@
     <string name="onb_join_passphrase_label">口令</string>
     <string name="onb_join_prompt_title">加入节点</string>
     <string name="onb_join_prompt_subtitle">将在 %1$s 使用你的身份</string>
+
+    <!-- 从旧手机迁移 -->
+    <string name="onb_move_title">从旧手机迁移</string>
+    <string name="onb_move_body">首先选择你的主节点：扫描它的二维码，或输入它的地址。旧手机在“账户”中会显示它。</string>
+    <string name="onb_move_connecting">正在询问节点…</string>
+    <string name="onb_move_pair_title">在旧手机上批准这部手机</string>
+    <string name="onb_move_pair_body">在旧手机上打开 Boson Identity，进入“设备”，点按“批准新设备”并扫描此二维码。它会请求你的身份密钥：请在旧手机上批准。</string>
+    <string name="onb_move_pair_qr">供旧手机扫描的配对码</string>
+    <string name="onb_move_pair_text">或在旧手机上粘贴此配对码：</string>
+    <string name="onb_move_pair_waiting">正在等待旧手机。配对码 3 分钟内有效。</string>
+    <string name="onb_move_storing">正在将你的身份保存到这部手机…</string>
+    <string name="onb_move_store_failed_title">你的身份尚未保存</string>
+    <string name="onb_move_store_failed_body">旧手机已批准这部手机，但密钥未能保存到这里。请重试，并用屏幕锁确认。</string>
+    <string name="onb_move_denied_title">旧手机拒绝了请求</string>
+    <string name="onb_move_denied_body">这部手机没有被添加到你的身份。如果这是误操作，请重试。</string>
+    <string name="onb_move_expired_title">配对码已过期</string>
+    <string name="onb_move_expired_body">旧手机没有及时批准这部手机。请重试以获取新的配对码。</string>
+    <string name="onb_move_try_again">重试</string>
+    <string name="onb_move_no_key">旧手机批准了这部手机，但没有交出你的身份密钥。请重试，并批准新的配对码。</string>
+    <string name="onb_move_already_here">此身份已在这部手机上。</string>
 </resources>

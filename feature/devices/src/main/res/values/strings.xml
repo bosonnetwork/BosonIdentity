@@ -34,7 +34,7 @@
     <string name="dev_detail_last_address">Last address</string>
     <string name="dev_detail_id">Device ID</string>
     <string name="dev_detail_unknown">Unknown</string>
-    <string name="dev_detail_this_phone">This is Boson Identity on this phone, with its own key. It can\'t be removed from this list; renewing its key will be in Security, in a later version.</string>
+    <string name="dev_detail_this_phone">This is Boson Identity on this phone, with its own key. It can\'t be removed from this list; to give it a new key, use Security.</string>
     <string name="dev_detail_admin">This device can administer the node.</string>
     <string name="dev_detail_recovery">This device can reset a forgotten passphrase.</string>
 
