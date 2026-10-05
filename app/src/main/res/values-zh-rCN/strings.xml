@@ -2,6 +2,7 @@
 <resources>
     <string name="app_label">Boson ID</string>
     <string name="app_nav_identity">身份</string>
+    <string name="app_nav_devices">设备</string>
     <string name="app_nav_account">账户</string>
 
     <string name="app_switch_identity">切换身份</string>

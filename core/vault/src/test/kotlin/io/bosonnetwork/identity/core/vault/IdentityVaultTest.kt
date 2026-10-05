@@ -196,4 +196,21 @@ class IdentityVaultTest {
         assertTrue(vault().also { it.load() }.identities.value.isEmpty())
         assertNull(File(dir, "vault.json.tmp").takeIf { it.exists() })
     }
+
+    @Test
+    fun `a given device key is the one kept, and it can be replaced`() = runTest {
+        val user = Signature.KeyPair.random()
+        val userId = Id.of(user.publicKey().bytes()).toString()
+        val registered = Signature.KeyPair.random()
+        val vault = vault()
+        vault.add(user, null, backupVerified = false, keepUserKey = true, prompt = prompt, deviceKey = registered)
+        assertArrayEquals(registered.publicKey().bytes(), vault().deviceKey(userId, prompt).publicKey().bytes())
+
+        val renewed = Signature.KeyPair.random()
+        vault.replaceDeviceKey(userId, renewed, prompt)
+        assertArrayEquals(renewed.publicKey().bytes(), vault().deviceKey(userId, prompt).publicKey().bytes())
+        // The user key is untouched.
+        val signed = vault().withUserKey(userId, prompt) { Signature.sign("x".toByteArray(), it.privateKey()) }
+        assertTrue(Signature.verify("x".toByteArray(), signed, user.publicKey()))
+    }
 }

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dev_title">Devices</string>
+    <string name="dev_refresh">Refresh</string>
+    <string name="dev_unnamed">Unnamed device</string>
+    <string name="dev_done">Done</string>
+    <string name="dev_cancel">Cancel</string>
+    <string name="dev_close">Close</string>
+
+    <string name="dev_group_this_phone">This phone</string>
+    <string name="dev_group_apps">Apps</string>
+    <string name="dev_group_passkeys">Passkeys</string>
+    <string name="dev_no_others">No other devices yet. Approve a new device to let it act for your identity.</string>
+    <string name="dev_this_phone_missing">The node doesn\'t list this phone any more. It may have been removed from another device.</string>
+    <string name="dev_no_node">Your devices are kept by your home node. Join a node to add devices.</string>
+    <string name="dev_join">Join a node</string>
+    <string name="dev_failed">Couldn\'t load your devices</string>
+    <string name="dev_locked">Locked</string>
+    <string name="dev_locked_detail">Tap to unlock with your screen lock.</string>
+
+    <string name="dev_last_seen">Last seen %1$s</string>
+    <string name="dev_never_seen">Never seen</string>
+    <!-- This phone is the one in use: the node sees it only when it signs in. -->
+    <string name="dev_in_use_now">In use now</string>
+    <string name="dev_badge_admin">Admin</string>
+    <string name="dev_badge_recovery">Recovery</string>
+    <string name="dev_kind_app">App</string>
+    <string name="dev_kind_passkey">Browser passkey</string>
+
+    <string name="dev_detail_kind">Kind</string>
+    <string name="dev_detail_app">App</string>
+    <string name="dev_detail_added">Added</string>
+    <string name="dev_detail_last_seen">Last seen</string>
+    <string name="dev_detail_last_address">Last address</string>
+    <string name="dev_detail_id">Device ID</string>
+    <string name="dev_detail_unknown">Unknown</string>
+    <string name="dev_detail_this_phone">This is Boson Identity on this phone, with its own key. It can\'t be removed from this list; renewing its key will be in Security, in a later version.</string>
+    <string name="dev_detail_admin">This device can administer the node.</string>
+    <string name="dev_detail_recovery">This device can reset a forgotten passphrase.</string>
+
+    <string name="dev_rename">Rename</string>
+    <string name="dev_rename_title">Rename this device</string>
+    <string name="dev_rename_label">Name</string>
+    <string name="dev_rename_hint">1 to 128 characters</string>
+    <string name="dev_save">Save</string>
+
+    <string name="dev_remove">Remove</string>
+    <string name="dev_remove_title">Remove this device?</string>
+    <string name="dev_remove_body">%1$s will no longer be able to act for your identity. To use it again, you\'ll have to approve it again.</string>
+    <string name="dev_remove_passphrase">Your account has a passphrase. Removing a device needs it.</string>
+    <string name="dev_passphrase">Account passphrase</string>
+    <string name="dev_wrong_passphrase">Wrong passphrase. Try again.</string>
+    <string name="dev_remove_prompt_title">Remove a device</string>
+    <string name="dev_remove_prompt_subtitle">%1$s will be removed from your identity at %2$s</string>
+
+    <string name="dev_backup_title">Back up your key first</string>
+    <string name="dev_backup_body">Your identity\'s key isn\'t backed up yet. Until you\'ve saved it and checked the copy, it can\'t approve or remove devices.</string>
+    <string name="dev_backup_action">Back up your key</string>
+
+    <string name="dev_unlock_prompt_title">Unlock Boson Identity</string>
+    <string name="dev_unlock_prompt_subtitle">Confirm it\'s you</string>
+
+    <!-- Approving a new device -->
+    <string name="dev_approve_fab">Approve a new device</string>
+    <string name="dev_approve_title">Approve a new device</string>
+    <string name="dev_approve_scan_body">On the new device, choose to join with a device you already have. Scan the code it shows, or paste its text.</string>
+    <string name="dev_approve_camera">Use the camera</string>
+    <string name="dev_approve_paste_label">Pairing code</string>
+    <string name="dev_approve_paste_hint">Starts with bosonpair:</string>
+    <string name="dev_approve_continue">Continue</string>
+    <string name="dev_approve_invalid_code">This isn\'t a pairing code. Scan the code the new device shows, or paste its text.</string>
+    <string name="dev_approve_loading">Reading the request...</string>
+    <string name="dev_approve_review_title">A device wants to join</string>
+    <string name="dev_approve_who">Your identity</string>
+    <string name="dev_approve_where">At %1$s</string>
+    <string name="dev_approve_from">Requested from %1$s</string>
+    <string name="dev_approve_from_hint">If that isn\'t where the new device is, deny the request.</string>
+    <string name="dev_approve_expires_in">Expires in %1$s</string>
+    <string name="dev_approve_expired">This request expired. Ask the new device for a new code.</string>
+    <string name="dev_approve_wants_key_title">It asks for your identity key</string>
+    <string name="dev_approve_wants_key">This device will receive your identity key and can act fully as you, everywhere. Approve only a device you own and trust.</string>
+    <string name="dev_approve_understand">I understand</string>
+    <string name="dev_approve_own_key">This device joins with its own key; it never receives your identity key.</string>
+    <string name="dev_approve_admin_option">Allow it to administer %1$s</string>
+    <string name="dev_approve_admin_detail">It can then manage the node, its users and its plans. Leave this off unless you need it.</string>
+    <string name="dev_approve_action">Approve</string>
+    <string name="dev_approve_deny">Deny</string>
+    <string name="dev_approve_passphrase_title">Your account passphrase</string>
+    <string name="dev_approve_passphrase_body">Your account has a passphrase. Approving a device needs it.</string>
+    <string name="dev_approve_working">One moment...</string>
+    <string name="dev_approve_done">%1$s joined your identity</string>
+    <string name="dev_approve_done_body">It now appears in your devices. You can rename or remove it there.</string>
+    <string name="dev_approve_denied">Request denied</string>
+    <string name="dev_approve_denied_body">The device was not added to your identity.</string>
+    <string name="dev_approve_gone">This request expired or was already answered.</string>
+    <string name="dev_approve_gone_body">Ask the new device to show a new code.</string>
+    <string name="dev_approve_error_title">Couldn\'t read the request</string>
+    <string name="dev_approve_retry">Try again</string>
+    <string name="dev_approve_scan_another">Scan another code</string>
+    <string name="dev_approve_unnamed">A new device</string>
+    <string name="dev_approve_prompt_title">Approve a new device</string>
+    <string name="dev_approve_prompt_subtitle">%1$s will join your identity at %2$s</string>
+    <string name="dev_approve_admin_refused">The node didn\'t allow this. Only an administrator can let a device administer the node.</string>
+</resources>

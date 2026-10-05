@@ -65,8 +65,9 @@ class IdentityVault(
     suspend fun load() = mutex.withLock { ensureLoaded() }
 
     /**
-     * Adds an identity: seals [userKey] (unless [keepUserKey] is false) and a new device key for it.
-     * The user authenticates once for the user key, and the device key usually rides on that.
+     * Adds an identity: seals [userKey] (unless [keepUserKey] is false) and its device key - [deviceKey]
+     * when the phone already registered one (moving from an old phone), or a new one. The user
+     * authenticates once for the user key, and the device key usually rides on that.
      *
      * @throws AppError.Conflict if the identity is already on this phone
      */
@@ -76,13 +77,14 @@ class IdentityVault(
         backupVerified: Boolean,
         keepUserKey: Boolean,
         prompt: AuthPrompt,
+        deviceKey: Signature.KeyPair? = null,
     ): IdentityInfo = mutex.withLock {
         ensureLoaded()
         val userId = Id.of(userKey.publicKey().bytes()).toString()
         if (entries.value.any { it.info.userId == userId }) throw AppError.Conflict("This identity is already here")
 
         val userSeed = userKey.privateKey().seed()
-        val deviceSeed = Signature.KeyPair.random().privateKey().seed()
+        val deviceSeed = (deviceKey ?: Signature.KeyPair.random()).privateKey().seed()
         try {
             val sealedUser = if (keepUserKey) protector.seal(userAlias(userId), Protection.PER_USE, userSeed, prompt) else null
             val sealedDevice = protector.seal(deviceAlias(userId), Protection.SESSION, deviceSeed, prompt)
@@ -134,6 +136,24 @@ class IdentityVault(
         val seed = protector.open(deviceAlias(userId), Protection.SESSION, sealed, prompt)
         try {
             return Signature.KeyPair.fromSeed(seed)
+        } finally {
+            seed.wipe()
+        }
+    }
+
+    /**
+     * Replaces this app's device key under [userId] with [deviceKey], once the node knows the new one
+     * (renewing the phone's device key). The old seal is overwritten.
+     */
+    suspend fun replaceDeviceKey(userId: String, deviceKey: Signature.KeyPair, prompt: AuthPrompt) {
+        val seed = deviceKey.privateKey().seed()
+        try {
+            val sealed = protector.seal(deviceAlias(userId), Protection.SESSION, seed, prompt)
+            mutex.withLock {
+                ensureLoaded()
+                val current = entry(userId)
+                save(entries.value.map { if (it.info.userId == userId) VaultEntry(current.info, current.userKey, sealed) else it })
+            }
         } finally {
             seed.wipe()
         }

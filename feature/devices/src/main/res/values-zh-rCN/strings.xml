@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dev_title">设备</string>
+    <string name="dev_refresh">刷新</string>
+    <string name="dev_unnamed">未命名设备</string>
+    <string name="dev_done">完成</string>
+    <string name="dev_cancel">取消</string>
+    <string name="dev_close">关闭</string>
+
+    <string name="dev_group_this_phone">这部手机</string>
+    <string name="dev_group_apps">应用</string>
+    <string name="dev_group_passkeys">通行密钥</string>
+    <string name="dev_no_others">还没有其他设备。批准一台新设备，让它代表你的身份。</string>
+    <string name="dev_this_phone_missing">节点已不再列出这部手机，它可能已从其他设备上被移除。</string>
+    <string name="dev_no_node">你的设备由主节点保存。加入一个节点后才能添加设备。</string>
+    <string name="dev_join">加入节点</string>
+    <string name="dev_failed">无法加载你的设备</string>
+    <string name="dev_locked">已锁定</string>
+    <string name="dev_locked_detail">点按以用屏幕锁解锁。</string>
+
+    <string name="dev_last_seen">最近活动：%1$s</string>
+    <string name="dev_never_seen">从未活动</string>
+    <!-- This phone is the one in use: the node sees it only when it signs in. -->
+    <string name="dev_in_use_now">正在使用</string>
+    <string name="dev_badge_admin">管理员</string>
+    <string name="dev_badge_recovery">恢复</string>
+    <string name="dev_kind_app">应用</string>
+    <string name="dev_kind_passkey">浏览器通行密钥</string>
+
+    <string name="dev_detail_kind">类型</string>
+    <string name="dev_detail_app">应用</string>
+    <string name="dev_detail_added">添加时间</string>
+    <string name="dev_detail_last_seen">最近活动</string>
+    <string name="dev_detail_last_address">最近地址</string>
+    <string name="dev_detail_id">设备 ID</string>
+    <string name="dev_detail_unknown">未知</string>
+    <string name="dev_detail_this_phone">这是这部手机上的 Boson Identity，拥有自己的密钥。它不能从此列表中移除；更新它的密钥将在以后的版本中于“安全”里提供。</string>
+    <string name="dev_detail_admin">此设备可以管理节点。</string>
+    <string name="dev_detail_recovery">此设备可以重置忘记的口令。</string>
+
+    <string name="dev_rename">重命名</string>
+    <string name="dev_rename_title">重命名此设备</string>
+    <string name="dev_rename_label">名称</string>
+    <string name="dev_rename_hint">1 到 128 个字符</string>
+    <string name="dev_save">保存</string>
+
+    <string name="dev_remove">移除</string>
+    <string name="dev_remove_title">移除此设备？</string>
+    <string name="dev_remove_body">%1$s 将无法再代表你的身份。若要再次使用，需要重新批准它。</string>
+    <string name="dev_remove_passphrase">你的账户设置了口令，移除设备需要它。</string>
+    <string name="dev_passphrase">账户口令</string>
+    <string name="dev_wrong_passphrase">口令错误，请重试。</string>
+    <string name="dev_remove_prompt_title">移除设备</string>
+    <string name="dev_remove_prompt_subtitle">%1$s 将从你在 %2$s 的身份中移除</string>
+
+    <string name="dev_backup_title">请先备份你的密钥</string>
+    <string name="dev_backup_body">你的身份密钥还没有备份。在你保存并检查副本之前，它不能批准或移除设备。</string>
+    <string name="dev_backup_action">备份你的密钥</string>
+
+    <string name="dev_unlock_prompt_title">解锁 Boson Identity</string>
+    <string name="dev_unlock_prompt_subtitle">请确认是你本人</string>
+
+    <!-- 批准新设备 -->
+    <string name="dev_approve_fab">批准新设备</string>
+    <string name="dev_approve_title">批准新设备</string>
+    <string name="dev_approve_scan_body">在新设备上选择用已有的设备加入。扫描它显示的二维码，或粘贴其文本。</string>
+    <string name="dev_approve_camera">使用相机</string>
+    <string name="dev_approve_paste_label">配对码</string>
+    <string name="dev_approve_paste_hint">以 bosonpair: 开头</string>
+    <string name="dev_approve_continue">继续</string>
+    <string name="dev_approve_invalid_code">这不是配对码。请扫描新设备显示的二维码，或粘贴其文本。</string>
+    <string name="dev_approve_loading">正在读取请求…</string>
+    <string name="dev_approve_review_title">有设备想要加入</string>
+    <string name="dev_approve_who">你的身份</string>
+    <string name="dev_approve_where">在 %1$s</string>
+    <string name="dev_approve_from">请求来自 %1$s</string>
+    <string name="dev_approve_from_hint">如果这不是新设备所在的位置，请拒绝该请求。</string>
+    <string name="dev_approve_expires_in">%1$s 后过期</string>
+    <string name="dev_approve_expired">此请求已过期。请让新设备显示新的配对码。</string>
+    <string name="dev_approve_wants_key_title">它要求获得你的身份密钥</string>
+    <string name="dev_approve_wants_key">此设备将获得你的身份密钥，可以在任何地方完全以你的身份行事。只批准你拥有并信任的设备。</string>
+    <string name="dev_approve_understand">我明白</string>
+    <string name="dev_approve_own_key">此设备使用自己的密钥加入，永远不会获得你的身份密钥。</string>
+    <string name="dev_approve_admin_option">允许它管理 %1$s</string>
+    <string name="dev_approve_admin_detail">它将可以管理节点、节点的用户和套餐。除非需要，请保持关闭。</string>
+    <string name="dev_approve_action">批准</string>
+    <string name="dev_approve_deny">拒绝</string>
+    <string name="dev_approve_passphrase_title">你的账户口令</string>
+    <string name="dev_approve_passphrase_body">你的账户设置了口令，批准设备需要它。</string>
+    <string name="dev_approve_working">请稍候…</string>
+    <string name="dev_approve_done">%1$s 已加入你的身份</string>
+    <string name="dev_approve_done_body">它现在会出现在你的设备中，你可以在那里重命名或移除它。</string>
+    <string name="dev_approve_denied">已拒绝请求</string>
+    <string name="dev_approve_denied_body">该设备没有被添加到你的身份。</string>
+    <string name="dev_approve_gone">此请求已过期或已被处理。</string>
+    <string name="dev_approve_gone_body">请让新设备显示新的配对码。</string>
+    <string name="dev_approve_error_title">无法读取请求</string>
+    <string name="dev_approve_retry">重试</string>
+    <string name="dev_approve_scan_another">扫描其他配对码</string>
+    <string name="dev_approve_unnamed">一台新设备</string>
+    <string name="dev_approve_prompt_title">批准新设备</string>
+    <string name="dev_approve_prompt_subtitle">%1$s 将加入你在 %2$s 的身份</string>
+    <string name="dev_approve_admin_refused">节点不允许此操作。只有管理员才能让设备管理节点。</string>
+</resources>

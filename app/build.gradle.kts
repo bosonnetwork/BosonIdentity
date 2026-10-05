@@ -74,6 +74,7 @@ dependencies {
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:identity"))
     implementation(project(":feature:account"))
+    implementation(project(":feature:devices"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

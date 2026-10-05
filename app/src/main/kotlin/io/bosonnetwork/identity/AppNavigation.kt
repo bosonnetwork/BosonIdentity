@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +51,9 @@ import androidx.navigation.navArgument
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.vault.IdentityVault
 import io.bosonnetwork.identity.feature.account.AccountScreen
+import io.bosonnetwork.identity.feature.devices.ApproveDeviceScreen
+import io.bosonnetwork.identity.feature.devices.ApproveDeviceViewModel
+import io.bosonnetwork.identity.feature.devices.DevicesScreen
 import io.bosonnetwork.identity.feature.identity.IdentityScreen
 import io.bosonnetwork.identity.feature.onboarding.BackupScreen
 import io.bosonnetwork.identity.feature.onboarding.JoinNodeScreen
@@ -62,14 +66,19 @@ private object Routes {
     const val HOME = "home"
     const val JOIN = "join/{${JoinNodeViewModel.ARG_USER_ID}}?first={first}"
     const val BACKUP = "backup/{${JoinNodeViewModel.ARG_USER_ID}}"
+    const val APPROVE = "approve/{${ApproveDeviceViewModel.ARG_USER_ID}}"
 
     fun join(userId: String, first: Boolean) = "join/$userId?first=$first"
     fun backup(userId: String) = "backup/$userId"
+    fun approve(userId: String) = "approve/$userId"
+
+    /** Set on the tabs' entry when a device was approved, so the device list is asked for again. */
+    const val DEVICES_CHANGED = "devices_changed"
 }
 
 /**
- * The app's screens. Onboarding, joining a node and the backup are full-screen routes; everything
- * else is in the tabs of [Routes.HOME]. Onboarding is also how an identity is added: opened from the
+ * The app's screens. Onboarding, joining a node, the backup and approving a device are full-screen
+ * routes; everything else is in the tabs of [Routes.HOME]. Onboarding is also how an identity is added: opened from the
  * switcher, it sits above the tabs, so Back from its first step returns to them.
  */
 @Composable
@@ -119,6 +128,19 @@ fun AppNavigation(vault: IdentityVault, activeIdentity: ActiveIdentity) {
             ) {
                 BackupScreen(onDone = { nav.popBackStack() }, onCancel = { nav.popBackStack() })
             }
+            composable(
+                Routes.APPROVE,
+                arguments = listOf(navArgument(ApproveDeviceViewModel.ARG_USER_ID) { type = NavType.StringType }),
+            ) {
+                ApproveDeviceScreen(
+                    onDone = {
+                        nav.previousBackStackEntry?.savedStateHandle?.set(Routes.DEVICES_CHANGED, true)
+                        nav.popBackStack()
+                    },
+                    onClose = { nav.popBackStack() },
+                    onBackup = { nav.navigate(Routes.backup(it)) },
+                )
+            }
             composable(Routes.HOME) {
                 val identities by vault.identities.collectAsStateWithLifecycle()
                 val active by activeIdentity.active.collectAsStateWithLifecycle(initialValue = null)
@@ -146,14 +168,27 @@ fun AppNavigation(vault: IdentityVault, activeIdentity: ActiveIdentity) {
 }
 
 /**
- * The tabs, in their order. Each is one entry: Devices and Security will be one line each, and Admin
- * one line with `adminOnly = true`.
+ * The tabs, in their order. Each is one entry: Security will be one line, and Admin one line with
+ * `adminOnly = true`.
  */
 private fun homeTabs(nav: NavController): List<HomeTab> = listOf(
     HomeTab("identity", R.string.app_nav_identity, Icons.Filled.Fingerprint) { identityButton ->
         IdentityScreen(
             onBackup = { nav.navigate(Routes.backup(it)) },
             onJoinNode = { nav.navigate(Routes.join(it, first = false)) },
+            navigationIcon = identityButton,
+        )
+    },
+    HomeTab("devices", R.string.app_nav_devices, Icons.Filled.Devices) { identityButton ->
+        // A device approved on its own screen shows up when the user comes back.
+        val home = remember(nav) { nav.getBackStackEntry(Routes.HOME) }
+        val changed by home.savedStateHandle.getStateFlow(Routes.DEVICES_CHANGED, false).collectAsStateWithLifecycle()
+        DevicesScreen(
+            onApprove = { nav.navigate(Routes.approve(it)) },
+            onBackup = { nav.navigate(Routes.backup(it)) },
+            onJoinNode = { nav.navigate(Routes.join(it, first = false)) },
+            changed = changed,
+            onChangeSeen = { home.savedStateHandle[Routes.DEVICES_CHANGED] = false },
             navigationIcon = identityButton,
         )
     },
