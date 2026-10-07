@@ -1,6 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="sec_title">Security</string>
+    <!-- Summary and status pills -->
+    <string name="sec_summary_ok">Your identity is well protected</string>
+    <string name="sec_summary_ok_detail">Your key is backed up, and your account has a passphrase you can recover.</string>
+    <plurals name="sec_summary_issues">
+        <item quantity="one">%d thing needs your attention</item>
+        <item quantity="other">%d things need your attention</item>
+    </plurals>
+    <string name="sec_issue_backup">Your key isn\'t backed up</string>
+    <string name="sec_issue_backup_detail">Losing this phone would lose your identity. Until you back it up, it can\'t approve anything.</string>
+    <string name="sec_issue_codes_detail">Make recovery codes and keep them apart from your accounts and passkeys.</string>
+    <string name="sec_account_title">Your account</string>
+    <string name="sec_key_title">Key backup</string>
+    <string name="sec_pill_backed_up">Backed up</string>
+    <string name="sec_pill_not_backed_up">Not backed up</string>
+    <string name="sec_pill_on">On</string>
+    <string name="sec_pill_off">Off</string>
+    <string name="sec_pill_none">None</string>
+    <string name="sec_pill_no_codes">No codes</string>
+    <string name="sec_pill_locked">Screen lock</string>
+    <plurals name="sec_pill_codes">
+        <item quantity="one">%d code left</item>
+        <item quantity="other">%d codes left</item>
+    </plurals>
+    <plurals name="sec_pill_methods">
+        <item quantity="one">%d linked</item>
+        <item quantity="other">%d linked</item>
+    </plurals>
     <string name="sec_refresh">Refresh</string>
     <string name="sec_done">Done</string>
     <string name="sec_cancel">Cancel</string>
@@ -24,7 +51,6 @@
 
     <!-- Passphrase -->
     <string name="sec_passphrase_title">Passphrase</string>
-    <string name="sec_passphrase_on">Protected by a passphrase</string>
     <string name="sec_passphrase_on_detail">Changes to your account at the node need it, even with your key. The screen lock protects this phone; the passphrase protects your account.</string>
     <string name="sec_passphrase_off">No passphrase</string>
     <string name="sec_passphrase_off_detail">A passphrase protects your account at the node even if your key leaks.</string>
@@ -65,10 +91,6 @@
 
     <!-- Recovery -->
     <string name="sec_recovery_title">Recovery</string>
-    <plurals name="sec_recovery_codes_left">
-        <item quantity="one">%d recovery code left</item>
-        <item quantity="other">%d recovery codes left</item>
-    </plurals>
     <string name="sec_recovery_codes_detail">Each resets a forgotten passphrase once.</string>
     <string name="sec_recovery_others">Linked accounts (%1$d) and passkeys (%2$d) can reset it too.</string>
     <string name="sec_recovery_no_codes">No recovery codes left</string>
@@ -162,7 +184,7 @@
     <string name="sec_log_unknown_time">Time unknown</string>
 
     <!-- Your key and this phone -->
-    <string name="sec_phone_title">Your key and this phone</string>
+    <string name="sec_phone_title">This phone\'s key</string>
     <string name="sec_backup_key">Show and back up my key</string>
     <string name="sec_backup_key_detail">Save your identity\'s key as a file, a QR code or text.</string>
     <string name="sec_renew">Renew this phone\'s device key</string>
@@ -180,17 +202,8 @@
     <string name="sec_renew_done_title">This phone has a new key</string>
     <string name="sec_renew_done_body">The old key no longer works at the node.</string>
     <string name="sec_renew_old_kept">The old key couldn\'t be removed from the node. Remove it in Devices: it is the other \"Boson Identity\" on this phone\'s name.</string>
-    <string name="sec_move">Move to a new phone</string>
-    <string name="sec_move_detail">How to bring your identity to another phone.</string>
-    <string name="sec_move_title">Move to a new phone</string>
-    <string name="sec_move_step1">1. Install Boson Identity on the new phone.</string>
-    <string name="sec_move_step2">2. There, choose \"I already have one\", then \"Move from my old phone\", and choose your home node.</string>
-    <string name="sec_move_step2_node">2. There, choose \"I already have one\", then \"Move from my old phone\", and choose your home node, %1$s.</string>
-    <string name="sec_move_step3">3. The new phone shows a code and asks for your identity\'s key. On this phone, in Devices, tap \"Approve a new device\", scan the code and approve it.</string>
-    <string name="sec_move_note">Your key reaches the new phone sealed to its code: the node can\'t read it. Keep this phone until the new one works. If you can\'t, restore the new phone from your key\'s backup instead.</string>
 
     <!-- App lock -->
-    <string name="sec_app_lock_title">App lock</string>
     <string name="sec_app_lock">Protected by your screen lock</string>
     <string name="sec_app_lock_detail">Your identity\'s key is encrypted on this phone. Every time it is used, the phone asks for your fingerprint or screen lock.</string>
 

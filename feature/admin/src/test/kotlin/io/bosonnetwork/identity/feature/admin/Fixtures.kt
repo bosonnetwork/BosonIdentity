@@ -75,6 +75,7 @@ class FakeAdmin {
             call { firstArg<suspend (DirectorAdmin) -> Any?>().invoke(admin) }
         }
         coEvery { end() } coAnswers { this@FakeAdmin.state.value = null }
+        every { endSoon() } answers { this@FakeAdmin.state.value = null }
     }
     val context = mockk<Context>(relaxed = true)
     private val viewModels = mutableListOf<ViewModel>()

@@ -5,6 +5,7 @@
     <string name="ds_status_ok">Done</string>
     <string name="ds_status_attention">Needs attention</string>
     <string name="ds_status_problem">Problem</string>
+    <string name="ds_status_off">Off</string>
     <!-- Error messages -->
     <string name="ds_error_network">Can\'t reach the node. Check your connection and try again.</string>
     <string name="ds_error_timeout">That took too long. Try again.</string>
@@ -15,6 +16,7 @@
     <string name="ds_error_cancelled">Cancelled. Nothing was changed.</string>
     <string name="ds_error_key_unavailable">This phone can no longer unlock the key. Restore your identity from its backup.</string>
     <string name="ds_error_unknown">Something went wrong.</string>
+    <string name="ds_error_service_unavailable">Your home node doesn\'t offer this service.</string>
     <string name="ds_error_locked">Too many wrong passphrases. Try again in %1$s.</string>
     <plurals name="ds_wait_seconds">
         <item quantity="one">%d second</item>

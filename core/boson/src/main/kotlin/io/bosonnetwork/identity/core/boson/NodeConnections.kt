@@ -28,6 +28,8 @@ import io.bosonnetwork.director.client.DirectorAdmin
 import io.bosonnetwork.director.client.DirectorClient
 import io.bosonnetwork.director.client.DirectorGuest
 import io.bosonnetwork.director.client.DirectorOAuth
+import io.bosonnetwork.director.client.NodeStatus
+import io.bosonnetwork.higgs.HiggsNode
 import io.bosonnetwork.identity.core.model.AppError
 import io.bosonnetwork.identity.core.model.IdentityInfo
 import io.bosonnetwork.identity.core.model.NodeAddress
@@ -47,6 +49,10 @@ import kotlinx.coroutines.sync.withLock
  *   while the app is unlocked and closed by [lock].
  * - [asUser]: acts as the identity itself, with the user key, for one act of authority; the client
  *   is closed and the key destroyed when the block returns.
+ * - [asUserWithKey]: [asUser], with the user key handed to the block too, for an act that also signs
+ *   something itself (the profile card).
+ * - [gateway]: the home node's web gateway, as the identity through this app's device key; it reaches
+ *   the DHT for a phone that runs no node of its own.
  * - [oauth]: one sign-in at an account provider, to link that account to the identity.
  * - [admin]: administers a node with a short-lived token the user key issued; see [AdminSession].
  *
@@ -116,6 +122,54 @@ class NodeConnections(private val vault: IdentityVault) {
             block(client, deviceKey)
         } finally {
             client.close()
+        }
+    }
+
+    /**
+     * [asUser], with the user key handed to [block] as well: for an act that both calls the node and
+     * signs something itself, such as saving the profile and publishing it as a card, under one prompt.
+     * The key is destroyed when the block returns; the block must not keep it.
+     */
+    suspend fun <T> asUserWithKey(
+        userId: String,
+        node: NodeAddress,
+        prompt: AuthPrompt,
+        block: suspend (client: DirectorClient, userKey: Signature.KeyPair) -> T,
+    ): T = vault.withUserKey(userId, prompt) { userKey ->
+        val client = builder(node).userKey(userKey).build()
+        try {
+            block(client, userKey)
+        } finally {
+            client.close()
+        }
+    }
+
+    /**
+     * Runs [block] with the web gateway of [identity]'s home node, started and acting as the identity
+     * through this app's device key, and stops it afterwards. The gateway is found in the node's status:
+     * its peer id (which pins its certificate) and the endpoint it announces.
+     *
+     * @throws AppError.ServiceUnavailable if the node offers no web gateway, or announces no usable endpoint
+     */
+    suspend fun <T> gateway(identity: IdentityInfo, prompt: AuthPrompt, block: suspend (HiggsNode) -> T): T {
+        val client = deviceClient(identity, prompt)
+        val status = call { client.nodeStatus.await() }
+        val service = status.getService(NodeStatus.Service.WEB_GATEWAY).orElse(null)
+            ?: throw AppError.ServiceUnavailable("The node offers no web gateway")
+        val endpoint = service.endpoint.orElse(null)?.takeIf { it.startsWith("http://") || it.startsWith("https://") }
+            ?: throw AppError.ServiceUnavailable("The node's web gateway announces no endpoint")
+        val node = HiggsNode.builder()
+            .vertx(vertx)
+            .userId(Id.of(identity.userId))
+            .deviceKey(vault.deviceKey(identity.userId, prompt))
+            .gatewayPeerId(service.peerId)
+            .gatewayUrl(endpoint)
+            .build()
+        call { node.start().await() }
+        try {
+            return call { block(node) }
+        } finally {
+            if (node.isRunning) runCatching { node.stop() }
         }
     }
 

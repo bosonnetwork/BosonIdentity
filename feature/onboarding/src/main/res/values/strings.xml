@@ -96,7 +96,7 @@
 
     <!-- Move from the old phone -->
     <string name="onb_move_title">Move from your old phone</string>
-    <string name="onb_move_body">First, choose your home node: scan its QR code, or type its address. Your old phone shows it in Account.</string>
+    <string name="onb_move_body">First, choose your home node: scan its QR code, or type its address. Your old phone shows it on its Identity tab, under Home node.</string>
     <string name="onb_move_connecting">Asking the node...</string>
     <string name="onb_move_pair_title">Approve this phone on your old phone</string>
     <string name="onb_move_pair_body">On your old phone, open Boson Identity, go to Devices, tap \"Approve a new device\" and scan this code. It asks for your identity\'s key: approve it there.</string>

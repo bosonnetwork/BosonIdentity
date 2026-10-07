@@ -70,6 +70,9 @@ sealed class AppError(message: String?, cause: Throwable? = null) : Exception(me
      */
     class KeyUnavailable(message: String? = null, cause: Throwable? = null) : AppError(message, cause)
 
+    /** The node doesn't offer a service this needs (for example, the web gateway that publishes profile cards). */
+    class ServiceUnavailable(message: String? = null, cause: Throwable? = null) : AppError(message, cause)
+
     /** Anything else. */
     class Unknown(message: String? = null, cause: Throwable? = null) : AppError(message, cause)
 }

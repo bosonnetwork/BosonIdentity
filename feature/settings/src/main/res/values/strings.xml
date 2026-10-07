@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="set_title">Settings</string>
+    <string name="set_cancel">Cancel</string>
+    <string name="set_done">Done</string>
+    <string name="set_unnamed">Your identity</string>
+    <string name="set_passphrase">Account passphrase</string>
+    <string name="set_wrong_passphrase">Wrong passphrase. Try again.</string>
+
+    <!-- Appearance -->
+    <string name="set_appearance_title">Appearance</string>
+    <string name="set_theme">Theme</string>
+    <string name="set_theme_system">Same as the phone</string>
+    <string name="set_theme_light">Light</string>
+    <string name="set_theme_dark">Dark</string>
+    <string name="set_language">Language</string>
+    <string name="set_language_system">Same as the phone</string>
+    <string name="set_language_restart">Boson Identity restarts to change its language.</string>
+
+    <!-- This phone -->
+    <string name="set_phone_title">This phone</string>
+    <string name="set_phone_device">Device %1$s</string>
+    <string name="set_phone_unregistered">Not registered with a node yet</string>
+    <string name="set_move">Move to a new phone</string>
+    <string name="set_move_detail">Bring your identity to another phone.</string>
+    <string name="set_move_step1">1. Install Boson Identity on the new phone.</string>
+    <string name="set_move_step2">2. There, choose \"I already have one\", then \"Move from my old phone\", and choose your home node.</string>
+    <string name="set_move_step2_node">2. There, choose \"I already have one\", then \"Move from my old phone\", and choose your home node, %1$s.</string>
+    <string name="set_move_step3">3. The new phone shows a code and asks for your identity\'s key. On this phone, in Devices, tap \"Approve a new device\", scan the code and approve it.</string>
+    <string name="set_move_note">Your key reaches the new phone sealed to its code: the node can\'t read it. Keep this phone until the new one works. If you can\'t, restore the new phone from your key\'s backup instead.</string>
+    <string name="set_remove">Remove from this phone</string>
+    <string name="set_remove_detail">Deletes this identity\'s keys from this phone and signs it out of the node. Your account on the node stays.</string>
+    <string name="set_remove_title">Remove this identity?</string>
+    <string name="set_remove_verified">Its key will be deleted from this phone. Only your backup of the key can bring this identity back. Your account on the node is not deleted.</string>
+    <string name="set_remove_unverified">You haven\'t backed up this identity\'s key. If you remove it, the identity is lost forever: no one, not even the node, can bring it back.</string>
+    <string name="set_remove_type">To confirm, type the first 4 characters of its ID: %1$s</string>
+    <string name="set_remove_type_label">First 4 characters</string>
+    <string name="set_remove_action">Remove</string>
+    <string name="set_remove_prompt_title">Remove this identity from this phone</string>
+    <string name="set_remove_prompt_subtitle">Its keys will be deleted from this phone</string>
+    <string name="set_remove_passphrase">Signing this phone out of the node needs your account passphrase.</string>
+    <string name="set_remove_unreachable">This phone couldn\'t be signed out of the node: %1$s Remove the identity from this phone anyway? The node keeps listing this phone until you remove it from another device.</string>
+    <string name="set_remove_anyway">Remove anyway</string>
+
+    <!-- About -->
+    <string name="set_about_title">About</string>
+    <string name="set_about_name">Boson Identity</string>
+    <string name="set_about_version">Version %1$s</string>
+    <string name="set_about_body">Boson Identity keeps your Boson identity on this phone, under your control, and uses it to look after your account, devices and nodes.</string>
+    <string name="set_about_website">bosonnetwork.io</string>
+    <string name="set_about_website_detail">Learn more about the Boson network</string>
+</resources>

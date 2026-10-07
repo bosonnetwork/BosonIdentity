@@ -22,7 +22,11 @@
 
 package io.bosonnetwork.identity.core.designsystem.component
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalTextStyle
@@ -34,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -42,24 +47,62 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.security.MessageDigest
 
-/** A long id shortened for display: its first and last four characters ("7Hq3...xK2p"). */
-fun shortId(id: String): String = if (id.length <= 12) id else "${id.take(4)}...${id.takeLast(4)}"
+/** How many characters of an id show at each end of its abbreviation. */
+private const val ID_ENDS = 6
 
-/** A long id in groups of four, for reading it aloud or comparing it by eye. */
+/**
+ * An id as the app shows it: the first and last six characters of its Base58 string around an
+ * ellipsis ("7Hq3wZ\u2026NoPxK2p"). Base58 ids are shown only this way; the whole id is reached by
+ * copying it or in its QR code.
+ */
+fun shortId(id: String): String =
+    if (id.length <= ID_ENDS * 2 + 1) id else "${id.take(ID_ENDS)}\u2026${id.takeLast(ID_ENDS)}"
+
+/**
+ * A long secret in groups of four, for writing it down and typing it back: the key backup uses it.
+ * Ids are never grouped; they are abbreviated with [shortId].
+ */
 fun groupedId(id: String): String = id.chunked(4).joinToString(" ")
 
 /**
- * An id as text: monospace, grouped in fours, and read by TalkBack group by group, so that both a
- * sighted and a non-sighted user can compare it piece by piece.
+ * What TalkBack reads for an id: its two ends spelled out character by character, so that it can be
+ * compared with what another screen says.
+ */
+fun spokenId(id: String): String {
+    if (id.length <= ID_ENDS * 2 + 1) return id.toList().joinToString(" ")
+    return id.take(ID_ENDS).toList().joinToString(" ") + ", \u2026, " + id.takeLast(ID_ENDS).toList().joinToString(" ")
+}
+
+/**
+ * An id as text: abbreviated ([shortId]) in monospace. With [onClick], the id is a button, typically
+ * opening its QR code; [clickLabel] says what it does, for TalkBack.
  */
 @Composable
-fun IdText(id: String, modifier: Modifier = Modifier, short: Boolean = false, style: TextStyle = LocalTextStyle.current) {
-    val shown = if (short) shortId(id) else groupedId(id)
+fun IdText(
+    id: String,
+    modifier: Modifier = Modifier,
+    style: TextStyle = LocalTextStyle.current,
+    color: Color = Color.Unspecified,
+    onClick: (() -> Unit)? = null,
+    clickLabel: String? = null,
+) {
+    val clickable = if (onClick != null) {
+        Modifier.clip(RoundedCornerShape(6.dp)).clickable(role = Role.Button, onClickLabel = clickLabel, onClick = onClick)
+    } else {
+        Modifier
+    }
     Text(
-        text = shown,
+        text = shortId(id),
         style = style.copy(fontFamily = FontFamily.Monospace),
-        modifier = modifier.semantics { contentDescription = groupedId(if (short) shortId(id) else id).replace(" ", ", ") },
+        color = color,
+        maxLines = 1,
+        modifier = modifier.then(clickable).semantics { contentDescription = spokenId(id) },
     )
+}
+
+/** Puts [text] on the clipboard, labelled [label]. Ids and addresses are public: no sensitive flag. */
+fun copyToClipboard(context: Context, label: String, text: String) {
+    context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText(label, text))
 }
 
 /**

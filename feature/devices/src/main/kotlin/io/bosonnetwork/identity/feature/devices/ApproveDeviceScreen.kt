@@ -255,7 +255,7 @@ private fun ReviewStep(state: ApproveUiState, viewModel: ApproveDeviceViewModel,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                IdText(pending.deviceId, short = true, style = MaterialTheme.typography.bodySmall)
+                IdText(pending.deviceId, style = MaterialTheme.typography.bodySmall)
             }
         }
         pending.requestedFrom?.let {
@@ -354,7 +354,7 @@ internal fun WhoWhere(identity: IdentityInfo, host: String) {
         Column(Modifier.padding(start = 12.dp).weight(1f)) {
             Text(stringResource(R.string.dev_approve_who), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(identity.name ?: shortId(identity.userId), style = MaterialTheme.typography.titleSmall)
-            IdText(identity.userId, short = true, style = MaterialTheme.typography.bodySmall)
+            IdText(identity.userId, style = MaterialTheme.typography.bodySmall)
             if (host.isNotEmpty()) {
                 Text(stringResource(R.string.dev_approve_where, host), style = MaterialTheme.typography.bodySmall)
             }

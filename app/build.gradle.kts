@@ -74,7 +74,7 @@ dependencies {
     implementation(project(":core:boson"))
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:identity"))
-    implementation(project(":feature:account"))
+    implementation(project(":feature:settings"))
     implementation(project(":feature:devices"))
     implementation(project(":feature:security"))
     implementation(project(":feature:admin"))

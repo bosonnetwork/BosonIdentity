@@ -5,8 +5,7 @@
     <string name="app_nav_identity">Identity</string>
     <string name="app_nav_devices">Devices</string>
     <string name="app_nav_security">Security</string>
-    <string name="app_nav_account">Account</string>
-    <string name="app_nav_admin">Admin</string>
+    <string name="app_nav_settings">Settings</string>
 
     <!-- The identity switcher -->
     <string name="app_switch_identity">Switch identity</string>

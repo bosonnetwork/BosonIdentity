@@ -370,7 +370,7 @@ private fun DeviceSheet(device: DeviceView, onRename: () -> Unit, onRemove: () -
                 Identicon(device.id, size = 48.dp)
                 Column(Modifier.padding(start = 16.dp).weight(1f)) {
                     Text(device.displayName(), style = MaterialTheme.typography.titleLarge)
-                    IdText(device.id, short = true, style = MaterialTheme.typography.bodySmall)
+                    IdText(device.id, style = MaterialTheme.typography.bodySmall)
                 }
             }
             if (device.admin || device.recoveryMethod) {
@@ -475,7 +475,7 @@ private fun RemoveDialog(removal: DeviceRemoval, onPassphraseChange: (String) ->
                     Identicon(removal.device.id, size = 40.dp)
                     Column(Modifier.padding(start = 12.dp)) {
                         Text(removal.device.displayName(), style = MaterialTheme.typography.titleSmall)
-                        IdText(removal.device.id, short = true, style = MaterialTheme.typography.bodySmall)
+                        IdText(removal.device.id, style = MaterialTheme.typography.bodySmall)
                     }
                 }
                 Text(stringResource(R.string.dev_remove_body, removal.device.displayName()))

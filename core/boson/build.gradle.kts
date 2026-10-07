@@ -32,6 +32,10 @@ dependencies {
     api(libs.boson.director.client) {
         exclude(group = "ch.qos.logback")
     }
+    // The web gateway (Higgs): publishes the profile card to the DHT through the home node.
+    implementation(libs.boson.higgs) {
+        exclude(group = "ch.qos.logback")
+    }
     // slf4j 2.x binding for Android (writes to System.err, which logcat picks up).
     runtimeOnly(libs.slf4j.simple)
 

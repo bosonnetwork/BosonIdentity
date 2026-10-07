@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -49,10 +50,12 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PhonelinkSetup
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -88,7 +91,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.bosonnetwork.identity.core.designsystem.component.ActionRow
+import io.bosonnetwork.identity.core.designsystem.component.PageColumn
 import io.bosonnetwork.identity.core.designsystem.component.RecoveryCodesDialog
+import io.bosonnetwork.identity.core.designsystem.component.Section
+import io.bosonnetwork.identity.core.designsystem.component.StatusPill
+import io.bosonnetwork.identity.core.designsystem.component.look
 import io.bosonnetwork.identity.core.designsystem.component.SectionCard
 import io.bosonnetwork.identity.core.designsystem.component.Status
 import io.bosonnetwork.identity.core.designsystem.component.StatusLine
@@ -120,7 +128,6 @@ fun SecurityScreen(
     val link by linkViewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
-    var moving by rememberSaveable { mutableStateOf(false) }
     val identity = state.identity
 
     // After a change made here, the account's security is asked for again.
@@ -169,63 +176,64 @@ fun SecurityScreen(
             onRefresh = viewModel::refresh,
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
-            Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Column(
-                    Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    if (!identity.backupVerified) BackupFirstCard(onBackup = { onBackup(identity.userId) })
-                    when (val o = state.overview) {
-                        OverviewState.None -> SectionCard {
-                            Text(
-                                stringResource(R.string.sec_no_node),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(16.dp),
-                            )
-                            Button(onClick = { onJoinNode(identity.userId) }, modifier = Modifier.padding(start = 16.dp, bottom = 16.dp)) {
-                                Text(stringResource(R.string.sec_join))
-                            }
+            PageColumn {
+                val ready = (state.overview as? OverviewState.Ready)?.overview
+                Summary(
+                    issues = state.issues,
+                    known = ready != null || identity.homeNode == null,
+                    onIssue = { issue ->
+                        when (issue) {
+                            Issue.BACKUP -> onBackup(identity.userId)
+                            Issue.NO_PASSPHRASE -> passphraseViewModel.start(PassphraseAction.SET)
+                            Issue.NO_RECOVERY, Issue.NO_RECOVERY_CODES -> passphraseViewModel.start(PassphraseAction.NEW_CODES)
                         }
-                        OverviewState.Loading -> Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                        OverviewState.Locked -> SectionCard {
-                            StatusLine(Status.ATTENTION, stringResource(R.string.sec_locked), stringResource(R.string.sec_locked_detail), viewModel::refresh)
-                        }
-                        is OverviewState.Failed -> SectionCard {
-                            StatusLine(Status.PROBLEM, stringResource(R.string.sec_failed), o.message, viewModel::refresh)
-                        }
-                        is OverviewState.Ready -> {
-                            PassphraseSection(
-                                o.overview,
-                                onSet = { passphraseViewModel.start(PassphraseAction.SET) },
-                                onChange = { passphraseViewModel.start(PassphraseAction.CHANGE) },
-                                onRemove = { passphraseViewModel.start(PassphraseAction.REMOVE) },
-                                onForgot = forgotViewModel::open,
-                            )
-                            if (o.overview.passphraseProtected) {
-                                RecoverySection(o.overview.recovery, onNewCodes = { passphraseViewModel.start(PassphraseAction.NEW_CODES) })
-                            }
-                            SignInSection(
-                                o.overview,
-                                onLink = { linkViewModel.start(o.overview.passphraseProtected) },
-                                onUnlink = viewModel::startUnlink,
-                            )
-                            o.overview.log?.let { SecurityLogSection(it) }
+                    },
+                )
+                KeyBackupSection(
+                    identity,
+                    passkeyBackup,
+                    onBackup = { onBackup(identity.userId) },
+                    onEnablePasskey = backupViewModel::startEnable,
+                    onDisablePasskey = backupViewModel::disable,
+                )
+                when (val o = state.overview) {
+                    OverviewState.None -> Section(stringResource(R.string.sec_account_title)) {
+                        Note(stringResource(R.string.sec_no_node), Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp))
+                        Button(onClick = { onJoinNode(identity.userId) }, modifier = Modifier.padding(16.dp)) {
+                            Text(stringResource(R.string.sec_join))
                         }
                     }
-                    PhoneSection(
-                        identity,
-                        onBackup = { onBackup(identity.userId) },
-                        onRenew = viewModel::startRenew,
-                        onMove = { moving = true },
-                    )
-                    PasskeyBackupSection(passkeyBackup, onEnable = backupViewModel::startEnable, onDisable = backupViewModel::disable)
-                    AppLockSection()
+                    OverviewState.Loading -> Section(stringResource(R.string.sec_account_title)) {
+                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    OverviewState.Locked -> Section(stringResource(R.string.sec_account_title)) {
+                        StatusLine(Status.ATTENTION, stringResource(R.string.sec_locked), stringResource(R.string.sec_locked_detail), viewModel::refresh)
+                    }
+                    is OverviewState.Failed -> Section(stringResource(R.string.sec_account_title)) {
+                        StatusLine(Status.PROBLEM, stringResource(R.string.sec_failed), o.message, viewModel::refresh)
+                    }
+                    is OverviewState.Ready -> {
+                        PassphraseSection(
+                            o.overview,
+                            onSet = { passphraseViewModel.start(PassphraseAction.SET) },
+                            onChange = { passphraseViewModel.start(PassphraseAction.CHANGE) },
+                            onRemove = { passphraseViewModel.start(PassphraseAction.REMOVE) },
+                            onForgot = forgotViewModel::open,
+                        )
+                        if (o.overview.passphraseProtected) {
+                            RecoverySection(o.overview.recovery, onNewCodes = { passphraseViewModel.start(PassphraseAction.NEW_CODES) })
+                        }
+                        SignInSection(
+                            o.overview,
+                            onLink = { linkViewModel.start(o.overview.passphraseProtected) },
+                            onUnlink = viewModel::startUnlink,
+                        )
+                    }
                 }
+                PhoneKeySection(identity, onRenew = viewModel::startRenew)
+                (state.overview as? OverviewState.Ready)?.overview?.log?.let { SecurityLogSection(it) }
             }
         }
     }
@@ -273,9 +281,6 @@ fun SecurityScreen(
     state.renewal?.let { renewal ->
         RenewDialog(renewal, onPassphraseChange = viewModel::onRenewPassphraseChange, onRenew = viewModel::renew, onClose = viewModel::closeRenew)
     }
-    if (moving) {
-        MoveDialog(host = identity?.homeNode?.hostName(), onDismiss = { moving = false })
-    }
     if ((state.backupNeeded || passphrase.backupNeeded || link.backupNeeded) && identity != null) {
         val dismiss = {
             viewModel.dismissBackupNeeded()
@@ -293,30 +298,97 @@ fun SecurityScreen(
 }
 
 @Composable
-private fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium)
-}
-
-@Composable
 private fun Note(text: String, modifier: Modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
     Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = modifier)
 }
 
-/** An identity without a checked backup authorizes nothing: said once, at the top. */
+/**
+ * The page's answer to "am I protected?": all set, or the things that need the user, each one a
+ * button to what fixes it. Until the node has said how the account is protected ([known] false), an
+ * all-clear would be premature, so the summary shows only what it already knows to be wrong.
+ */
 @Composable
-private fun BackupFirstCard(onBackup: () -> Unit) {
-    Surface(
-        color = MaterialTheme.colorScheme.errorContainer,
-        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-        shape = MaterialTheme.shapes.medium,
-    ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            Text(stringResource(R.string.sec_backup_title), style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(4.dp))
-            Text(stringResource(R.string.sec_backup_body), style = MaterialTheme.typography.bodyMedium)
-            Spacer(Modifier.height(12.dp))
-            Button(onClick = onBackup) { Text(stringResource(R.string.sec_backup_action)) }
+private fun Summary(issues: List<Issue>, known: Boolean, onIssue: (Issue) -> Unit) {
+    if (issues.isEmpty() && !known) return
+    SectionCard {
+        if (issues.isEmpty()) {
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.VerifiedUser, contentDescription = null, tint = MaterialTheme.brand.success, modifier = Modifier.size(40.dp))
+                Column(Modifier.padding(start = 16.dp)) {
+                    Text(stringResource(R.string.sec_summary_ok), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.sec_summary_ok_detail),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            return@SectionCard
         }
+        Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            val (icon, tint) = issues.worst().look()
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(28.dp))
+            Text(
+                pluralStringResource(R.plurals.sec_summary_issues, issues.size, issues.size),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 12.dp),
+            )
+        }
+        issues.forEach { issue ->
+            val (title, detail) = when (issue) {
+                Issue.BACKUP -> R.string.sec_issue_backup to R.string.sec_issue_backup_detail
+                Issue.NO_RECOVERY -> R.string.sec_recovery_none to R.string.sec_recovery_none_detail
+                Issue.NO_PASSPHRASE -> R.string.sec_passphrase_off to R.string.sec_passphrase_off_detail
+                Issue.NO_RECOVERY_CODES -> R.string.sec_recovery_no_codes to R.string.sec_issue_codes_detail
+            }
+            StatusLine(issue.status, stringResource(title), stringResource(detail), onClick = { onIssue(issue) })
+        }
+    }
+}
+
+/** The key's backup, and the passkey copy that can restore it on a new phone. */
+@Composable
+private fun KeyBackupSection(
+    identity: IdentityInfo,
+    passkey: PasskeyBackupUiState,
+    onBackup: () -> Unit,
+    onEnablePasskey: () -> Unit,
+    onDisablePasskey: () -> Unit,
+) {
+    Section(
+        stringResource(R.string.sec_key_title),
+        trailing = {
+            if (identity.backupVerified) {
+                StatusPill(Status.OK, stringResource(R.string.sec_pill_backed_up))
+            } else {
+                StatusPill(Status.ATTENTION, stringResource(R.string.sec_pill_not_backed_up))
+            }
+        },
+    ) {
+        ActionRow(Icons.Filled.Save, stringResource(R.string.sec_backup_key), stringResource(R.string.sec_backup_key_detail), onClick = onBackup)
+        val detail = when (passkey.status) {
+            BackupStatus.CHECKING -> stringResource(R.string.sec_pkb_checking)
+            BackupStatus.ON -> stringResource(R.string.sec_pkb_on)
+            BackupStatus.OFF -> stringResource(R.string.sec_pkb_off)
+            BackupStatus.UNAVAILABLE -> stringResource(R.string.sec_pkb_unavailable)
+        }
+        ListItem(
+            colors = ListItemDefaults.colors(containerColor = MaterialTheme.brand.card),
+            leadingContent = { Icon(Icons.Filled.Key, contentDescription = null) },
+            headlineContent = { Text(stringResource(R.string.sec_pkb_title)) },
+            supportingContent = {
+                Text(passkey.error ?: detail, color = if (passkey.error != null) MaterialTheme.colorScheme.error else Color.Unspecified)
+            },
+            trailingContent = {
+                when {
+                    passkey.busy || passkey.status == BackupStatus.CHECKING ->
+                        CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                    passkey.status == BackupStatus.ON -> TextButton(onClick = onDisablePasskey) { Text(stringResource(R.string.sec_pkb_disable)) }
+                    passkey.status == BackupStatus.OFF -> TextButton(onClick = onEnablePasskey) { Text(stringResource(R.string.sec_pkb_enable)) }
+                    else -> Unit
+                }
+            },
+        )
     }
 }
 
@@ -328,11 +400,19 @@ private fun PassphraseSection(
     onRemove: () -> Unit,
     onForgot: () -> Unit,
 ) {
-    SectionTitle(stringResource(R.string.sec_passphrase_title))
-    SectionCard {
+    Section(
+        stringResource(R.string.sec_passphrase_title),
+        trailing = {
+            if (overview.passphraseProtected) {
+                StatusPill(Status.OK, stringResource(R.string.sec_pill_on))
+            } else {
+                StatusPill(Status.ATTENTION, stringResource(R.string.sec_pill_off))
+            }
+        },
+    ) {
         if (overview.passphraseProtected) {
-            StatusLine(Status.OK, stringResource(R.string.sec_passphrase_on), stringResource(R.string.sec_passphrase_on_detail))
-            Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Note(stringResource(R.string.sec_passphrase_on_detail), Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp))
+            Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onChange) { Text(stringResource(R.string.sec_passphrase_change)) }
                 TextButton(onClick = onRemove, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
                     Text(stringResource(R.string.sec_passphrase_remove))
@@ -342,8 +422,8 @@ private fun PassphraseSection(
                 Text(stringResource(R.string.sec_forgot_action))
             }
         } else {
-            StatusLine(Status.ATTENTION, stringResource(R.string.sec_passphrase_off), stringResource(R.string.sec_passphrase_off_detail))
-            Button(onClick = onSet, modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 12.dp)) {
+            Note(stringResource(R.string.sec_passphrase_off_detail), Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp))
+            Button(onClick = onSet, modifier = Modifier.padding(16.dp)) {
                 Text(stringResource(R.string.sec_passphrase_set))
             }
         }
@@ -352,28 +432,27 @@ private fun PassphraseSection(
 
 @Composable
 private fun RecoverySection(recovery: RecoveryView?, onNewCodes: () -> Unit) {
-    SectionTitle(stringResource(R.string.sec_recovery_title))
-    SectionCard {
-        when {
+    Section(
+        stringResource(R.string.sec_recovery_title),
+        trailing = {
+            when {
+                recovery == null -> Unit
+                !recovery.any -> StatusPill(Status.PROBLEM, stringResource(R.string.sec_pill_none))
+                recovery.recoveryCodes == 0 -> StatusPill(Status.ATTENTION, stringResource(R.string.sec_pill_no_codes))
+                else -> StatusPill(Status.OK, pluralStringResource(R.plurals.sec_pill_codes, recovery.recoveryCodes, recovery.recoveryCodes))
+            }
+        },
+    ) {
+        val text = when {
             // Older nodes don't say; making codes still works.
-            recovery == null -> Note(stringResource(R.string.sec_recovery_unknown))
-            !recovery.any -> StatusLine(Status.PROBLEM, stringResource(R.string.sec_recovery_none), stringResource(R.string.sec_recovery_none_detail))
-            recovery.recoveryCodes == 0 -> StatusLine(
-                Status.ATTENTION,
-                stringResource(R.string.sec_recovery_no_codes),
-                stringResource(R.string.sec_recovery_others, recovery.accounts, recovery.passkeys),
-            )
-            else -> StatusLine(
-                Status.OK,
-                pluralStringResource(R.plurals.sec_recovery_codes_left, recovery.recoveryCodes, recovery.recoveryCodes),
-                if (recovery.accounts + recovery.passkeys > 0) {
-                    stringResource(R.string.sec_recovery_others, recovery.accounts, recovery.passkeys)
-                } else {
-                    stringResource(R.string.sec_recovery_codes_detail)
-                },
-            )
+            recovery == null -> stringResource(R.string.sec_recovery_unknown)
+            !recovery.any -> stringResource(R.string.sec_recovery_none_detail)
+            recovery.recoveryCodes == 0 -> stringResource(R.string.sec_recovery_others, recovery.accounts, recovery.passkeys)
+            recovery.accounts + recovery.passkeys > 0 -> stringResource(R.string.sec_recovery_others, recovery.accounts, recovery.passkeys)
+            else -> stringResource(R.string.sec_recovery_codes_detail)
         }
-        OutlinedButton(onClick = onNewCodes, modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 12.dp)) {
+        Note(text, Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp))
+        OutlinedButton(onClick = onNewCodes, modifier = Modifier.padding(16.dp)) {
             Text(stringResource(R.string.sec_recovery_new_codes))
         }
     }
@@ -381,8 +460,17 @@ private fun RecoverySection(recovery: RecoveryView?, onNewCodes: () -> Unit) {
 
 @Composable
 private fun SignInSection(overview: SecurityOverview, onLink: () -> Unit, onUnlink: (LinkedView) -> Unit) {
-    SectionTitle(stringResource(R.string.sec_signin_title))
-    SectionCard {
+    val count = (overview.linked?.size ?: 0) + overview.passkeys.size
+    Section(
+        stringResource(R.string.sec_signin_title),
+        trailing = {
+            if (count > 0) {
+                StatusPill(Status.OK, pluralStringResource(R.plurals.sec_pill_methods, count, count))
+            } else {
+                StatusPill(Status.OFF, stringResource(R.string.sec_pill_none))
+            }
+        },
+    ) {
         Text(
             stringResource(R.string.sec_linked_title),
             style = MaterialTheme.typography.titleSmall,
@@ -407,7 +495,7 @@ private fun SignInSection(overview: SecurityOverview, onLink: () -> Unit, onUnli
         OutlinedButton(onClick = onLink, modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 8.dp)) {
             Text(stringResource(R.string.sec_link_action))
         }
-
+        HorizontalDivider(Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         Text(
             stringResource(R.string.sec_passkeys_title),
             style = MaterialTheme.typography.titleSmall,
@@ -451,11 +539,10 @@ private fun RecoveryBadge() {
 @Composable
 private fun SecurityLogSection(log: List<LogEntry>) {
     var all by rememberSaveable { mutableStateOf(false) }
-    SectionTitle(stringResource(R.string.sec_log_title))
-    SectionCard {
+    Section(stringResource(R.string.sec_log_title)) {
         if (log.isEmpty()) {
             Note(stringResource(R.string.sec_log_empty), Modifier.padding(16.dp))
-            return@SectionCard
+            return@Section
         }
         val shown = if (all) log else log.take(LOG_SHOWN)
         shown.forEach { entry ->
@@ -517,66 +604,17 @@ private fun LogEntry.whenAndWhere(): String {
     return address?.let { stringResource(R.string.sec_log_when_from, time, it) } ?: time
 }
 
+/** This phone's own protection: the screen lock that guards the key, and the phone's device key. */
 @Composable
-private fun PhoneSection(identity: IdentityInfo, onBackup: () -> Unit, onRenew: () -> Unit, onMove: () -> Unit) {
-    SectionTitle(stringResource(R.string.sec_phone_title))
-    SectionCard {
-        ActionRow(Icons.Filled.Save, stringResource(R.string.sec_backup_key), stringResource(R.string.sec_backup_key_detail), onBackup)
+private fun PhoneKeySection(identity: IdentityInfo, onRenew: () -> Unit) {
+    Section(
+        stringResource(R.string.sec_phone_title),
+        trailing = { StatusPill(Status.OK, stringResource(R.string.sec_pill_locked)) },
+    ) {
+        ActionRow(Icons.Filled.Lock, stringResource(R.string.sec_app_lock), stringResource(R.string.sec_app_lock_detail))
         if (identity.homeNode != null && identity.deviceId != null) {
-            ActionRow(Icons.Filled.Autorenew, stringResource(R.string.sec_renew), stringResource(R.string.sec_renew_detail), onRenew)
+            ActionRow(Icons.Filled.Autorenew, stringResource(R.string.sec_renew), stringResource(R.string.sec_renew_detail), onClick = onRenew)
         }
-        ActionRow(Icons.Filled.PhonelinkSetup, stringResource(R.string.sec_move), stringResource(R.string.sec_move_detail), onMove)
-    }
-}
-
-/** The opt-in passkey backup: a copy of the key a synced passkey can open on a new phone. */
-@Composable
-private fun PasskeyBackupSection(state: PasskeyBackupUiState, onEnable: () -> Unit, onDisable: () -> Unit) {
-    SectionTitle(stringResource(R.string.sec_pkb_title))
-    SectionCard {
-        val detail = when (state.status) {
-            BackupStatus.CHECKING -> stringResource(R.string.sec_pkb_checking)
-            BackupStatus.ON -> stringResource(R.string.sec_pkb_on)
-            BackupStatus.OFF -> stringResource(R.string.sec_pkb_off)
-            BackupStatus.UNAVAILABLE -> stringResource(R.string.sec_pkb_unavailable)
-        }
-        ListItem(
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.brand.card),
-            leadingContent = { Icon(Icons.Filled.Key, contentDescription = null) },
-            headlineContent = { Text(stringResource(R.string.sec_pkb_title)) },
-            supportingContent = { Text(state.error ?: detail, color = if (state.error != null) MaterialTheme.colorScheme.error else Color.Unspecified) },
-        )
-        if (state.busy) {
-            LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
-        } else if (state.status == BackupStatus.ON) {
-            TextButton(onClick = onDisable, modifier = Modifier.padding(start = 8.dp)) { Text(stringResource(R.string.sec_pkb_disable)) }
-        } else if (state.status == BackupStatus.OFF) {
-            TextButton(onClick = onEnable, modifier = Modifier.padding(start = 8.dp)) { Text(stringResource(R.string.sec_pkb_enable)) }
-        }
-    }
-}
-
-@Composable
-private fun ActionRow(icon: ImageVector, title: String, detail: String, onClick: () -> Unit) {
-    ListItem(
-        colors = ListItemDefaults.colors(containerColor = MaterialTheme.brand.card),
-        leadingContent = { Icon(icon, contentDescription = null) },
-        headlineContent = { Text(title) },
-        supportingContent = { Text(detail) },
-        modifier = Modifier.clickable(role = Role.Button, onClick = onClick),
-    )
-}
-
-@Composable
-private fun AppLockSection() {
-    SectionTitle(stringResource(R.string.sec_app_lock_title))
-    SectionCard {
-        ListItem(
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.brand.card),
-            leadingContent = { Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.brand.success) },
-            headlineContent = { Text(stringResource(R.string.sec_app_lock)) },
-            supportingContent = { Text(stringResource(R.string.sec_app_lock_detail)) },
-        )
     }
 }
 

@@ -41,6 +41,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -55,9 +56,10 @@ data class AdminUiState(
 )
 
 /**
- * Admin mode for the identity in use at its home node: opening it (one prompt, never on its own when
- * the tab opens), the time left, and ending it. Only the home node for now; other nodes an identity
- * administers can be added later, with a node picker.
+ * Admin mode for the identity in use at its home node, on the admin page: opening it as the page opens
+ * ([enter], the page's whole purpose, so once), the time left, and ending it. Leaving the page ends
+ * admin mode: the session never outlives the page that shows it. Only the home node for now; other
+ * nodes an identity administers can be added later, with a node picker.
  */
 @HiltViewModel
 class AdminViewModel @Inject constructor(
@@ -81,6 +83,22 @@ class AdminViewModel @Inject constructor(
                     it.copy(identity = identity, session = ours, error = if (switched) null else it.error)
                 }
             }
+        }
+    }
+
+    private var entered = false
+
+    /**
+     * The page opened: admin mode is asked for at once, since opening the page is asking for it. Only
+     * the first time; after a dismissed prompt, the page's button asks again.
+     */
+    fun enter() {
+        if (entered) return
+        entered = true
+        // The page may open before the identity in use is known: wait for it.
+        viewModelScope.launch {
+            val ready = _state.first { it.identity != null }
+            if (ready.session == null) start()
         }
     }
 
@@ -110,6 +128,8 @@ class AdminViewModel @Inject constructor(
                 _state.update { it.copy(starting = false) }
             } catch (e: Exception) {
                 val refused = e is AppError.Unauthorized || e is AppError.Forbidden
+                // No longer an administrator there: the Dashboard goes, unless the account says otherwise.
+                if (refused && identity.administers) vault.update(identity.userId) { it.copy(administers = false) }
                 val message = if (refused) context.getString(R.string.adm_not_admin, node.host()) else e.userMessage(context)
                 _state.update { it.copy(starting = false, error = message) }
             }
@@ -124,5 +144,10 @@ class AdminViewModel @Inject constructor(
     /** The countdown reached zero: ends the session if its time is really up. */
     fun expired() {
         viewModelScope.launch { session.endIfExpired() }
+    }
+
+    // The page is gone: so is admin mode.
+    override fun onCleared() {
+        session.endSoon()
     }
 }

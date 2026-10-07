@@ -13,13 +13,19 @@ The design is in `plans/2026-10-03-boson-identity-android-app.md` (BosonNetwork 
   needs the fingerprint or screen lock for every use; the app's own device key stays usable for 5
   minutes after unlocking. An opt-in passkey backup keeps a copy in Block Store that a synced passkey
   opens on a new phone.
-- **Home node:** join by QR code or address, through the node's proof of work or as an existing member.
+- **Home node:** join by QR code or address, through the node's proof of work or as an existing member;
+  see its status and the plan; publish the profile as a public Boson DID Card through the node's web
+  gateway, which keeps announcing it while the phone is off.
 - **Devices:** list, rename and remove devices; approve new ones by their pairing code, handing over the
   identity key only to devices that ask for it; approve web sign-ins ("Sign in with Boson Identity").
 - **Security:** the account passphrase and its recovery codes, resetting a forgotten one, linked
   accounts, the security log, renewing this phone's device key.
-- **Administration:** for a node's administrators, admin mode (a 10-minute token issued with the user
-  key) and the node's users, plans, federation and blacklist.
+- **Administration:** for a node's administrators, the Dashboard: admin mode (a 10-minute token issued
+  with the user key, ended when the page is left) and the node's users, plans, federation and blacklist.
+- **Settings:** theme and language (English, Simplified Chinese), this phone, about.
+
+The app has four tabs: Identity (the profile and the home node), Devices, Security (a summary of what
+needs attention, and each protection with its status) and Settings. Ids are shown abbreviated.
 
 ## Modules
 
@@ -28,16 +34,16 @@ The design is in `plans/2026-10-03-boson-identity-android-app.md` (BosonNetwork 
 | `app` | Activity, navigation, dependency injection |
 | `core:model` | Errors and identity models |
 | `core:vault` | Keystore protection, the system authentication prompt, the vault file, key backup formats |
-| `core:boson` | Connections to Directors: guest, device and user clients |
+| `core:boson` | Connections to Directors (guest, device and user clients) and the web gateway; profile cards |
 | `core:designsystem` | The Boson brand theme, identicons, ids, shared components |
 | `core:qr` | QR codes and scanning |
 | `core:backup` | The opt-in passkey backup: Credential Manager PRF and Block Store |
 | `feature:onboarding` | Create, restore, move from an old phone, back up, protect, join a node |
-| `feature:identity` | The identity screen |
+| `feature:identity` | The profile, its public card, the home node and the way into administration |
 | `feature:devices` | Devices, device approval, web sign-in approval |
 | `feature:security` | Passphrase, recovery, linked accounts, security log, this phone's key, passkey backup |
-| `feature:account` | Profile, home node, plan, removing an identity, node administration entry |
-| `feature:admin` | Admin mode and the node's administration |
+| `feature:settings` | Theme, language, this phone (moving, removing the identity), about |
+| `feature:admin` | The admin page: admin mode and the node's administration |
 
 ## Building
 

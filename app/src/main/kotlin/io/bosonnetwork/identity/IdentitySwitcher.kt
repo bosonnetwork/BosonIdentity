@@ -102,7 +102,7 @@ fun IdentitySwitcherSheet(
                     headlineContent = { Text(identity.name ?: stringResource(R.string.app_identity_unnamed)) },
                     supportingContent = {
                         Column {
-                            IdText(identity.userId, short = true, style = MaterialTheme.typography.bodySmall)
+                            IdText(identity.userId, style = MaterialTheme.typography.bodySmall)
                             Text(
                                 identity.homeNode?.let { Uri.parse(it.url).host ?: it.url }
                                     ?: stringResource(R.string.app_identity_no_node),

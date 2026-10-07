@@ -25,6 +25,7 @@ package io.bosonnetwork.identity.core.designsystem
 import io.bosonnetwork.identity.core.designsystem.component.IdenticonPattern
 import io.bosonnetwork.identity.core.designsystem.component.groupedId
 import io.bosonnetwork.identity.core.designsystem.component.shortId
+import io.bosonnetwork.identity.core.designsystem.component.spokenId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -34,13 +35,20 @@ class IdsTest {
     private val id = "7Hq3wZcLmN4pQrStUvWxYz2aBcDeFgHiJkLmNoPxK2p"
 
     @Test
-    fun `short ids keep both ends`() {
-        assertEquals("7Hq3...xK2p", shortId(id))
+    fun `ids are abbreviated to both ends around an ellipsis`() {
+        assertEquals("7Hq3wZ\u2026oPxK2p", shortId(id))
         assertEquals("short", shortId("short"))
+        // Abbreviating would not make it shorter.
+        assertEquals("1234567890123", shortId("1234567890123"))
     }
 
     @Test
-    fun `grouped ids read in fours`() {
+    fun `TalkBack spells out both ends`() {
+        assertEquals("7 H q 3 w Z, \u2026, o P x K 2 p", spokenId(id))
+    }
+
+    @Test
+    fun `secrets read in fours`() {
         assertEquals("7Hq3 wZcL mN4p", groupedId(id).take(14))
     }
 

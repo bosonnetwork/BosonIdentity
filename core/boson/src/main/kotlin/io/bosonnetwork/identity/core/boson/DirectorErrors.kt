@@ -24,6 +24,7 @@ package io.bosonnetwork.identity.core.boson
 
 import io.bosonnetwork.director.client.exceptions.DirectorException
 import io.bosonnetwork.director.client.exceptions.RateLimitException
+import io.bosonnetwork.higgs.exceptions.HiggsException
 import io.bosonnetwork.identity.core.model.AppError
 import java.io.IOException
 import java.util.concurrent.CompletionException
@@ -46,6 +47,18 @@ fun Throwable.toAppError(): AppError = when (val e = unwrapped()) {
         409, 412 -> AppError.Conflict(e.message, e)
         428 -> AppError.PassphraseRequired(e.message, e)
         429 -> AppError.RateLimited(e.message, e, (e as? RateLimitException)?.retryAfter ?: 0)
+        else -> AppError.Unknown(e.message, e)
+    }
+    // The web gateway's client reports the same way, with its own exception type.
+    is HiggsException -> when (e.status) {
+        HiggsException.NO_HTTP_STATUS -> AppError.Network(e.message, e)
+        400 -> AppError.InvalidInput(e.message, e)
+        401 -> AppError.Unauthorized(e.message, e)
+        403 -> AppError.Forbidden(e.message, e)
+        404 -> AppError.NotFound(e.message, e)
+        408, 504 -> AppError.Timeout(e.message, e)
+        409, 412 -> AppError.Conflict(e.message, e)
+        429, 503 -> AppError.RateLimited(e.message, e)
         else -> AppError.Unknown(e.message, e)
     }
     is IOException -> AppError.Network(e.message, e)

@@ -257,7 +257,7 @@ class AdminSessionTest {
     }
 
     @Test
-    fun `the Admin tab shows for an identity that administers, or whose profile says admin`() {
+    fun `the Dashboard shows for an identity that administers, or whose profile says admin`() {
         val access = AdminAccess()
         val plain = IdentityInfo("user")
         assertFalse(AdminAccess.shows(null, access.profileAdmins.value))

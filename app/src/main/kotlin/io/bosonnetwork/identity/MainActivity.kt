@@ -22,19 +22,28 @@
 
 package io.bosonnetwork.identity
 
+import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import io.bosonnetwork.identity.core.backup.CredentialManagerPrf
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
-import io.bosonnetwork.identity.core.boson.AdminAccess
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.boson.OAuthReturns
 import io.bosonnetwork.identity.core.designsystem.theme.BosonIdentityTheme
+import io.bosonnetwork.identity.core.model.ThemeMode
 import io.bosonnetwork.identity.core.vault.ActivityAuthenticator
 import io.bosonnetwork.identity.core.vault.IdentityVault
 import javax.inject.Inject
@@ -53,7 +62,10 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var activeIdentity: ActiveIdentity
     @Inject lateinit var oauthReturns: OAuthReturns
     @Inject lateinit var passkeyPrf: CredentialManagerPrf
-    @Inject lateinit var adminAccess: AdminAccess
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppSettings.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,8 +73,32 @@ class MainActivity : FragmentActivity() {
         passkeyPrf.attach(this)
         enableEdgeToEdge()
         setContent {
-            BosonIdentityTheme {
-                AppNavigation(vault, activeIdentity, adminAccess)
+            var theme by remember { mutableStateOf(AppSettings.theme(this)) }
+            val dark = when (theme) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+            // The system bars follow the app's theme, not the phone's: light icons on the dark theme.
+            DisposableEffect(dark) {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark },
+                    navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark },
+                )
+                onDispose {}
+            }
+            BosonIdentityTheme(darkTheme = dark) {
+                AppNavigation(
+                    vault = vault,
+                    activeIdentity = activeIdentity,
+                    theme = theme,
+                    onThemeChange = {
+                        AppSettings.setTheme(this, it)
+                        theme = it
+                    },
+                    language = AppSettings.language(this),
+                    onLanguageChange = { AppSettings.setLanguageAndRestart(this, it) },
+                )
             }
         }
         // Started by a return from an account provider (the app was not running).

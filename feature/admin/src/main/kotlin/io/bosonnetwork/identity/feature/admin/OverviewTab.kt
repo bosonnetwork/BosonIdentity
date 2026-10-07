@@ -91,7 +91,7 @@ private fun NodeCard(overview: NodeOverview) {
             Identicon(overview.nodeId, size = 48.dp)
             Column(Modifier.padding(start = 16.dp).weight(1f)) {
                 Text(overview.name ?: stringResource(R.string.adm_overview_unnamed), style = MaterialTheme.typography.titleMedium)
-                IdText(overview.nodeId, short = true, style = MaterialTheme.typography.bodyMedium)
+                IdText(overview.nodeId, style = MaterialTheme.typography.bodyMedium)
             }
         }
         StatusLine(

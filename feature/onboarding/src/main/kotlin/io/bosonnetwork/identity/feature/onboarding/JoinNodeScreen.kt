@@ -90,7 +90,7 @@ fun JoinNodeScreen(onDone: () -> Unit, onSkip: (() -> Unit)?, viewModel: JoinNod
                     Spacer(Modifier.padding(start = 12.dp))
                     androidx.compose.foundation.layout.Column {
                         Text(node.url, style = MaterialTheme.typography.titleMedium)
-                        node.nodeId?.let { IdText(it, short = true, style = MaterialTheme.typography.bodySmall) }
+                        node.nodeId?.let { IdText(it, style = MaterialTheme.typography.bodySmall) }
                     }
                 }
                 Spacer(Modifier.height(16.dp))

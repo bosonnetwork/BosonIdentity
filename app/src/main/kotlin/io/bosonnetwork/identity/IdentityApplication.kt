@@ -23,7 +23,14 @@
 package io.bosonnetwork.identity
 
 import android.app.Application
+import android.content.Context
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
-class IdentityApplication : Application()
+class IdentityApplication : Application() {
+    // In the chosen language, so that strings made from the application's context (most view models')
+    // speak it too.
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(AppSettings.wrap(base))
+    }
+}

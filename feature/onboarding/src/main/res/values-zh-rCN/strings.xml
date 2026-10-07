@@ -89,7 +89,7 @@
 
     <!-- 从旧手机迁移 -->
     <string name="onb_move_title">从旧手机迁移</string>
-    <string name="onb_move_body">首先选择你的主节点：扫描它的二维码，或输入它的地址。旧手机在“账户”中会显示它。</string>
+    <string name="onb_move_body">首先选择你的主节点：扫描它的二维码，或输入它的地址。旧手机的“身份”页面中，“主节点”下会显示它。</string>
     <string name="onb_move_connecting">正在询问节点…</string>
     <string name="onb_move_pair_title">在旧手机上批准这部手机</string>
     <string name="onb_move_pair_body">在旧手机上打开 Boson Identity，进入“设备”，点按“批准新设备”并扫描此二维码。它会请求你的身份密钥：请在旧手机上批准。</string>

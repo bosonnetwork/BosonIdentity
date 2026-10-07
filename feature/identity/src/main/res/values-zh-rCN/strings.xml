@@ -2,39 +2,78 @@
 <resources>
     <string name="id_title">身份</string>
     <string name="id_refresh">刷新</string>
-    <string name="id_unnamed">你的身份</string>
-    <string name="id_show_id">显示我的 ID</string>
-    <string name="id_admin_badge">节点管理员</string>
-    <string name="id_done">完成</string>
+    <string name="id_retry">重试</string>
+    <string name="id_retry_detail">点按以重试。</string>
+    <string name="id_unnamed">尚未设置名称</string>
+    <string name="id_cancel">取消</string>
+    <string name="id_save">保存</string>
+    <string name="id_copy">复制</string>
+    <string name="id_copied">已复制</string>
+    <string name="id_share">分享</string>
+    <string name="id_show_qr">显示二维码</string>
 
-    <string name="id_show_id_title">你的 ID</string>
-    <string name="id_show_id_qr">你的 ID 二维码</string>
-    <string name="id_show_id_body">你的 ID 是公开的：分享它，别人就能找到你。它不是你的密钥。</string>
+    <string name="id_backup_title">备份你的密钥</string>
+    <string name="id_backup_body">没有副本，手机丢失就会失去你的身份。在备份之前，此身份无法批准或更改任何内容。</string>
+    <string name="id_backup_action">立即备份</string>
+    <string name="id_backup_first">请先备份你的密钥：在此之前，此身份无法行使其权限。</string>
 
-    <string name="id_protection_title">保护状态</string>
-    <string name="id_backup_ok">密钥已备份</string>
-    <string name="id_backup_ok_detail">你有一份已检查过的密钥副本。</string>
-    <string name="id_backup_needed">备份你的密钥</string>
-    <string name="id_backup_needed_detail">没有副本，手机丢失就会失去你的身份。在备份之前，它无法批准任何操作。</string>
-    <string name="id_lock_ok">已受屏幕锁保护</string>
-    <string name="id_lock_ok_detail">密钥在这部手机上加密保存；使用它需要验证指纹或屏幕锁。</string>
+    <!-- Profile -->
+    <string name="id_edit">编辑资料</string>
+    <string name="id_profile_no_node">你的个人资料保存在主节点上。加入一个节点后即可添加名称和简介。</string>
+    <string name="id_profile_empty">添加名称和简短介绍，让别人认出你。</string>
+    <string name="id_name">名称</string>
+    <string name="id_bio">简介</string>
+    <string name="id_email">电子邮件</string>
+    <string name="id_email_private">只有你和你的主节点能看到。</string>
+    <string name="id_my_id_title">你的 ID</string>
+    <string name="id_my_id_qr">你的 ID 二维码</string>
+    <string name="id_my_id_body">你的 ID 是公开的：分享它，别人就能找到你。它不是你的密钥。</string>
+
+    <string name="id_edit_title">编辑资料</string>
+    <string name="id_edit_passphrase">账户口令</string>
+    <string name="id_edit_passphrase_hint">你的账户设置了口令，更改个人资料需要它。</string>
+    <string name="id_edit_updates_card">你的公开资料卡也会一并更新。</string>
+    <string name="id_edit_invalid_email">请输入有效的电子邮件地址，或留空。</string>
+    <string name="id_wrong_passphrase">口令错误，请重试。</string>
+    <string name="id_edit_prompt_title">更改个人资料</string>
+    <string name="id_edit_prompt_subtitle">在 %1$s 上</string>
+
+    <!-- Public profile card -->
+    <string name="id_card_title">公开资料卡</string>
+    <string name="id_card_checking">正在检查…</string>
+    <string name="id_card_off">未开启。只有你主节点上的用户能看到你的资料。</string>
+    <string name="id_card_on">任何人都可以通过你的 ID 查到你的名称和头像。</string>
+    <string name="id_card_unavailable">你的主节点不发布资料卡。</string>
+    <string name="id_card_publish_title">发布你的资料卡？</string>
+    <string name="id_card_publish_body">你的名称、简介、头像和主节点将会公开：任何知道你 ID 的人都能查到，Boson 应用也会显示它们。你的电子邮件仍保持私密。\n\n即使这部手机关机，你的主节点也会让资料卡保持可用。</string>
+    <string name="id_card_publish_action">发布</string>
+    <string name="id_card_stop_title">停止发布资料卡？</string>
+    <string name="id_card_stop_body">你的主节点将停止分享你的资料卡。其他节点已持有的副本会在约两小时内过期。</string>
+    <string name="id_card_stop_action">停止发布</string>
+    <string name="id_card_prompt_title">发布你的资料卡</string>
+    <string name="id_card_prompt_subtitle">用你的身份密钥签名</string>
+    <string name="id_card_update_failed">个人资料已保存，但无法更新你的公开资料卡：%1$s</string>
+
+    <!-- Home node -->
+    <string name="id_node_title">主节点</string>
+    <string name="id_node_more">主节点的更多选项</string>
+    <string name="id_node_copy">复制地址</string>
+    <string name="id_node_administer">管理此节点</string>
     <string name="id_node_none">尚无主节点</string>
-    <string name="id_node_none_detail">加入一个节点，才能在 Boson 网络中使用你的身份。</string>
-    <string name="id_node_checking">正在检查你的主节点</string>
+    <string name="id_node_none_detail">主节点保存你的个人资料、连接你的设备，并让你能在网页上登录。</string>
+    <string name="id_node_join">加入节点</string>
+    <string name="id_node_qr_desc">节点的二维码</string>
+    <string name="id_node_qr_body">在另一部手机上用 Boson Identity 扫描它，即可加入同一节点。</string>
+    <string name="id_status_online">在线</string>
+    <string name="id_status_starting">启动中</string>
+    <string name="id_status_checking">检查中</string>
+    <string name="id_status_locked">已锁定</string>
+    <string name="id_status_unreachable">无法连接</string>
+    <string name="id_status_error">出错</string>
     <string name="id_locked">已锁定</string>
     <string name="id_locked_detail">点按以用屏幕锁解锁。</string>
-    <string name="id_node_failed">无法连接主节点</string>
-    <string name="id_node_ok">主节点连接正常</string>
-    <string name="id_node_ok_plan">套餐：%1$s</string>
-    <string name="id_passphrase_ok">已设置账户口令</string>
-    <string name="id_passphrase_ok_detail">即使密钥泄露，更改账户也需要它。</string>
-    <string name="id_passphrase_none">未设置账户口令</string>
-    <string name="id_passphrase_none_detail">即使密钥泄露，口令也能保护你在节点上的账户。请在“安全”中设置。</string>
-    <string name="id_recovery_ok">口令可以找回</string>
-    <string name="id_recovery_codes_left">剩余恢复码：%1$d 个</string>
-    <string name="id_recovery_none">口令无法找回</string>
-    <string name="id_recovery_none_detail">忘记口令后将无法重置。请在“安全”中生成恢复码。</string>
-    <string name="id_footer">设备、安全和节点管理功能即将加入本应用。</string>
+    <string name="id_plan">%1$s 套餐</string>
+    <string name="id_dashboard">管理面板</string>
 
     <string name="id_unlock_prompt_title">解锁 Boson Identity</string>
     <string name="id_unlock_prompt_subtitle">请确认是你本人</string>

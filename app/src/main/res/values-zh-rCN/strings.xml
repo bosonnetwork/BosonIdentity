@@ -4,8 +4,7 @@
     <string name="app_nav_identity">身份</string>
     <string name="app_nav_devices">设备</string>
     <string name="app_nav_security">安全</string>
-    <string name="app_nav_account">账户</string>
-    <string name="app_nav_admin">管理</string>
+    <string name="app_nav_settings">设置</string>
 
     <string name="app_switch_identity">切换身份</string>
     <string name="app_identities_title">此手机上的身份</string>

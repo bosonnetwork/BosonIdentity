@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="set_title">设置</string>
+    <string name="set_cancel">取消</string>
+    <string name="set_done">完成</string>
+    <string name="set_unnamed">你的身份</string>
+    <string name="set_passphrase">账户口令</string>
+    <string name="set_wrong_passphrase">口令错误，请重试。</string>
+
+    <!-- Appearance -->
+    <string name="set_appearance_title">外观</string>
+    <string name="set_theme">主题</string>
+    <string name="set_theme_system">跟随手机</string>
+    <string name="set_theme_light">浅色</string>
+    <string name="set_theme_dark">深色</string>
+    <string name="set_language">语言</string>
+    <string name="set_language_system">跟随手机</string>
+    <string name="set_language_restart">切换语言时 Boson Identity 会重新启动。</string>
+
+    <!-- This phone -->
+    <string name="set_phone_title">此手机</string>
+    <string name="set_phone_device">设备 %1$s</string>
+    <string name="set_phone_unregistered">尚未在节点上注册</string>
+    <string name="set_move">迁移到新手机</string>
+    <string name="set_move_detail">把你的身份带到另一部手机。</string>
+    <string name="set_move_step1">1. 在新手机上安装 Boson Identity。</string>
+    <string name="set_move_step2">2. 在新手机上选择“我已有身份”，再选择“从旧手机迁移”，然后选择你的主节点。</string>
+    <string name="set_move_step2_node">2. 在新手机上选择“我已有身份”，再选择“从旧手机迁移”，然后选择你的主节点 %1$s。</string>
+    <string name="set_move_step3">3. 新手机会显示一个配对码，并请求你的身份密钥。在这部手机的“设备”中点按“批准新设备”，扫描配对码并批准。</string>
+    <string name="set_move_note">你的密钥以加密方式送达新手机，节点无法读取。在新手机可用之前，请保留这部手机。如果做不到，请改用你的密钥备份在新手机上恢复。</string>
+    <string name="set_remove">从此手机移除</string>
+    <string name="set_remove_detail">从这部手机删除此身份的密钥，并将这部手机从节点注销。你在节点上的账户仍会保留。</string>
+    <string name="set_remove_title">移除此身份？</string>
+    <string name="set_remove_verified">它的密钥将从此手机删除。只有你备份的密钥才能找回此身份。你在节点上的账户不会被删除。</string>
+    <string name="set_remove_unverified">你还没有备份此身份的密钥。一旦移除，此身份将永久丢失：任何人，包括节点，都无法找回。</string>
+    <string name="set_remove_type">请输入其 ID 的前 4 个字符以确认：%1$s</string>
+    <string name="set_remove_type_label">前 4 个字符</string>
+    <string name="set_remove_action">移除</string>
+    <string name="set_remove_prompt_title">从这部手机移除此身份</string>
+    <string name="set_remove_prompt_subtitle">它的密钥将从这部手机上删除</string>
+    <string name="set_remove_passphrase">将这部手机从节点注销需要你的账户口令。</string>
+    <string name="set_remove_unreachable">无法将这部手机从节点注销：%1$s 仍要从这部手机移除此身份吗？在你从其他设备移除之前，节点会继续列出这部手机。</string>
+    <string name="set_remove_anyway">仍然移除</string>
+
+    <!-- About -->
+    <string name="set_about_title">关于</string>
+    <string name="set_about_name">Boson Identity</string>
+    <string name="set_about_version">版本 %1$s</string>
+    <string name="set_about_body">Boson Identity 把你的 Boson 身份保存在这部手机上、由你掌控，并用它管理你的账户、设备和节点。</string>
+    <string name="set_about_website">bosonnetwork.io</string>
+    <string name="set_about_website_detail">进一步了解 Boson 网络</string>
+</resources>

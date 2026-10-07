@@ -79,6 +79,7 @@ play-services-blockstore = { group = "com.google.android.gms", name = "play-serv
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
 boson-api = { group = "io.bosonnetwork", name = "boson-api", version.ref = "boson" }
 boson-director-client = { group = "io.bosonnetwork", name = "boson-director-client", version.ref = "boson" }
+boson-higgs = { group = "io.bosonnetwork", name = "boson-higgs", version.ref = "boson" }
 slf4j-simple = { group = "org.slf4j", name = "slf4j-simple", version.ref = "slf4j" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitExt" }

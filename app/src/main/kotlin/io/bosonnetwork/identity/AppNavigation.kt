@@ -25,10 +25,9 @@ package io.bosonnetwork.identity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +42,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavType
@@ -51,9 +51,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
-import io.bosonnetwork.identity.core.boson.AdminAccess
+import io.bosonnetwork.identity.core.model.AppLanguage
+import io.bosonnetwork.identity.core.model.ThemeMode
 import io.bosonnetwork.identity.core.vault.IdentityVault
-import io.bosonnetwork.identity.feature.account.AccountScreen
 import io.bosonnetwork.identity.feature.admin.AdminScreen
 import io.bosonnetwork.identity.feature.devices.ApproveDeviceScreen
 import io.bosonnetwork.identity.feature.devices.ApproveSignInScreen
@@ -67,6 +67,9 @@ import io.bosonnetwork.identity.feature.onboarding.JoinNodeViewModel
 import io.bosonnetwork.identity.feature.onboarding.MoveFromOldPhoneScreen
 import io.bosonnetwork.identity.feature.onboarding.OnboardingScreen
 import io.bosonnetwork.identity.feature.security.SecurityScreen
+import io.bosonnetwork.identity.feature.security.SecurityViewModel
+import io.bosonnetwork.identity.feature.security.worst
+import io.bosonnetwork.identity.feature.settings.SettingsScreen
 import kotlinx.coroutines.launch
 
 private object Routes {
@@ -83,21 +86,29 @@ private object Routes {
     fun approve(userId: String) = "approve/$userId"
     fun signIn(userId: String, requestId: String) = "signin/$userId/$requestId"
 
+    /** The admin page, opened from the home node's Dashboard. */
+    const val ADMIN = "admin"
+
     /** Set on the tabs' entry when a device was approved, so the device list is asked for again. */
     const val DEVICES_CHANGED = "devices_changed"
-
-    /** The Admin tab's route. */
-    const val ADMIN_TAB = "admin"
 }
 
 /**
- * The app's screens. Onboarding, moving from the old phone, joining a node, the backup and approving a
- * device are full-screen routes; everything else is in the tabs of [Routes.HOME]. Onboarding is also how
- * an identity is added: opened from the switcher, it sits above the tabs, so Back from its first step
- * returns to them.
+ * The app's screens. Onboarding, moving from the old phone, joining a node, the backup, approving a
+ * device and administering the node are full-screen routes; everything else is in the four tabs of
+ * [Routes.HOME]: Identity, Devices, Security and Settings. Onboarding is also how an identity is
+ * added: opened from the switcher, it sits above the tabs, so Back from its first step returns to
+ * them. The app's [theme] and [language] are its own settings, changed in Settings.
  */
 @Composable
-fun AppNavigation(vault: IdentityVault, activeIdentity: ActiveIdentity, adminAccess: AdminAccess) {
+fun AppNavigation(
+    vault: IdentityVault,
+    activeIdentity: ActiveIdentity,
+    theme: ThemeMode,
+    onThemeChange: (ThemeMode) -> Unit,
+    language: AppLanguage,
+    onLanguageChange: (AppLanguage) -> Unit,
+) {
     var start by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
         vault.load()
@@ -186,22 +197,26 @@ fun AppNavigation(vault: IdentityVault, activeIdentity: ActiveIdentity, adminAcc
                     onBackup = { nav.navigate(Routes.backup(it)) },
                 )
             }
+            composable(Routes.ADMIN) {
+                // Leaving the page (this arrow, or the system's Back) ends admin mode.
+                AdminScreen(onBack = { nav.popBackStack() })
+            }
             composable(Routes.HOME) {
                 val identities by vault.identities.collectAsStateWithLifecycle()
                 val active by activeIdentity.active.collectAsStateWithLifecycle(initialValue = null)
                 var switching by rememberSaveable { mutableStateOf(false) }
-                var requestedTab by remember { mutableStateOf<String?>(null) }
 
-                // The Admin tab: for an identity that opened admin mode at its home node, or whose
-                // account there is marked as an administrator (the node's root user may not be).
-                val profileAdmins by adminAccess.profileAdmins.collectAsStateWithLifecycle()
-                val showAdmin = AdminAccess.shows(active, profileAdmins)
+                // Security's badge: what needs the user, from the same view model the tab shows.
+                val security: SecurityViewModel = hiltViewModel()
+                val securityState by security.state.collectAsStateWithLifecycle()
+                val issues = securityState.issues
+                val badges = if (issues.isEmpty()) emptyMap() else mapOf(Tabs.SECURITY to issues.worst())
+
+                val settings = Settings(theme, onThemeChange, language, onLanguageChange)
                 HomeTabs(
-                    tabs = remember(nav) { homeTabs(nav, onAdminOpened = { requestedTab = Routes.ADMIN_TAB }) },
-                    showAdmin = showAdmin,
+                    tabs = remember(nav, settings) { homeTabs(nav, settings) },
                     identityButton = { IdentityButton(active, onClick = { switching = true }) },
-                    requested = requestedTab,
-                    onRequestDone = { requestedTab = null },
+                    badges = badges,
                 )
                 if (switching) {
                     IdentitySwitcherSheet(
@@ -217,19 +232,32 @@ fun AppNavigation(vault: IdentityVault, activeIdentity: ActiveIdentity, adminAcc
     }
 }
 
-/**
- * The tabs, in their order. Admin, last, shows only to an identity that administers its home node;
- * [onAdminOpened] asks to show it once admin mode was opened from Account.
- */
-private fun homeTabs(nav: NavController, onAdminOpened: () -> Unit): List<HomeTab> = listOf(
-    HomeTab("identity", R.string.app_nav_identity, Icons.Filled.Fingerprint) { identityButton ->
+private object Tabs {
+    const val IDENTITY = "identity"
+    const val DEVICES = "devices"
+    const val SECURITY = "security"
+    const val SETTINGS = "settings"
+}
+
+/** The app's own settings, as the Settings tab shows and changes them. */
+private data class Settings(
+    val theme: ThemeMode,
+    val onThemeChange: (ThemeMode) -> Unit,
+    val language: AppLanguage,
+    val onLanguageChange: (AppLanguage) -> Unit,
+)
+
+/** The tabs, in their order: who I am, what acts as me, how protected I am, and this app on this phone. */
+private fun homeTabs(nav: NavController, settings: Settings): List<HomeTab> = listOf(
+    HomeTab(Tabs.IDENTITY, R.string.app_nav_identity, Icons.Filled.Fingerprint) { identityButton ->
         IdentityScreen(
             onBackup = { nav.navigate(Routes.backup(it)) },
             onJoinNode = { nav.navigate(Routes.join(it, first = false)) },
+            onOpenAdmin = { nav.navigate(Routes.ADMIN) },
             navigationIcon = identityButton,
         )
     },
-    HomeTab("devices", R.string.app_nav_devices, Icons.Filled.Devices) { identityButton ->
+    HomeTab(Tabs.DEVICES, R.string.app_nav_devices, Icons.Filled.Devices) { identityButton ->
         // A device approved on its own screen shows up when the user comes back.
         val home = remember(nav) { nav.getBackStackEntry(Routes.HOME) }
         val changed by home.savedStateHandle.getStateFlow(Routes.DEVICES_CHANGED, false).collectAsStateWithLifecycle()
@@ -242,22 +270,21 @@ private fun homeTabs(nav: NavController, onAdminOpened: () -> Unit): List<HomeTa
             navigationIcon = identityButton,
         )
     },
-    HomeTab("security", R.string.app_nav_security, Icons.Filled.Shield) { identityButton ->
+    HomeTab(Tabs.SECURITY, R.string.app_nav_security, Icons.Filled.Shield) { identityButton ->
         SecurityScreen(
             onBackup = { nav.navigate(Routes.backup(it)) },
             onJoinNode = { nav.navigate(Routes.join(it, first = false)) },
             navigationIcon = identityButton,
         )
     },
-    HomeTab("account", R.string.app_nav_account, Icons.Filled.AccountCircle) { identityButton ->
-        AccountScreen(
-            onJoinNode = { nav.navigate(Routes.join(it, first = false)) },
+    HomeTab(Tabs.SETTINGS, R.string.app_nav_settings, Icons.Filled.Settings) { identityButton ->
+        SettingsScreen(
+            theme = settings.theme,
+            onThemeChange = settings.onThemeChange,
+            language = settings.language,
+            onLanguageChange = settings.onLanguageChange,
             onNoIdentityLeft = { nav.navigate(Routes.WELCOME) { popUpTo(0) { inclusive = true } } },
-            onAdminOpened = onAdminOpened,
             navigationIcon = identityButton,
         )
-    },
-    HomeTab(Routes.ADMIN_TAB, R.string.app_nav_admin, Icons.Filled.AdminPanelSettings, adminOnly = true) { identityButton ->
-        AdminScreen(navigationIcon = identityButton)
     },
 )

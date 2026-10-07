@@ -2,39 +2,78 @@
 <resources>
     <string name="id_title">Identity</string>
     <string name="id_refresh">Refresh</string>
-    <string name="id_unnamed">Your identity</string>
-    <string name="id_show_id">Show my ID</string>
-    <string name="id_admin_badge">Node administrator</string>
-    <string name="id_done">Done</string>
+    <string name="id_retry">Try again</string>
+    <string name="id_retry_detail">Tap to try again.</string>
+    <string name="id_unnamed">No name yet</string>
+    <string name="id_cancel">Cancel</string>
+    <string name="id_save">Save</string>
+    <string name="id_copy">Copy</string>
+    <string name="id_copied">Copied</string>
+    <string name="id_share">Share</string>
+    <string name="id_show_qr">Show QR code</string>
 
-    <string name="id_show_id_title">Your ID</string>
-    <string name="id_show_id_qr">Your ID as a QR code</string>
-    <string name="id_show_id_body">Your ID is public: share it so people can find you. It is not your key.</string>
+    <string name="id_backup_title">Back up your key</string>
+    <string name="id_backup_body">Without a copy, losing this phone loses your identity. Until you back it up, this identity can\'t approve or change anything.</string>
+    <string name="id_backup_action">Back up now</string>
+    <string name="id_backup_first">Back up your key first: until you do, this identity can\'t act with its authority.</string>
 
-    <string name="id_protection_title">Protection</string>
-    <string name="id_backup_ok">Key backed up</string>
-    <string name="id_backup_ok_detail">You have a checked copy of your key.</string>
-    <string name="id_backup_needed">Back up your key</string>
-    <string name="id_backup_needed_detail">Without a copy, losing this phone loses your identity. Until then, it can\'t approve anything.</string>
-    <string name="id_lock_ok">Protected by your screen lock</string>
-    <string name="id_lock_ok_detail">The key is encrypted on this phone; using it needs your fingerprint or screen lock.</string>
+    <!-- Profile -->
+    <string name="id_edit">Edit profile</string>
+    <string name="id_profile_no_node">Your profile is kept by your home node. Join one to add a name and a bio.</string>
+    <string name="id_profile_empty">Add a name and a short bio, so people recognize you.</string>
+    <string name="id_name">Name</string>
+    <string name="id_bio">Bio</string>
+    <string name="id_email">Email</string>
+    <string name="id_email_private">Only you and your home node see it.</string>
+    <string name="id_my_id_title">Your ID</string>
+    <string name="id_my_id_qr">Your ID as a QR code</string>
+    <string name="id_my_id_body">Your ID is public: share it so people can find you. It is not your key.</string>
+
+    <string name="id_edit_title">Edit profile</string>
+    <string name="id_edit_passphrase">Account passphrase</string>
+    <string name="id_edit_passphrase_hint">Your account has a passphrase. Changing your profile needs it.</string>
+    <string name="id_edit_updates_card">Your public profile card is updated too.</string>
+    <string name="id_edit_invalid_email">Enter a valid email address, or leave it empty.</string>
+    <string name="id_wrong_passphrase">Wrong passphrase. Try again.</string>
+    <string name="id_edit_prompt_title">Change your profile</string>
+    <string name="id_edit_prompt_subtitle">On %1$s</string>
+
+    <!-- Public profile card -->
+    <string name="id_card_title">Public profile card</string>
+    <string name="id_card_checking">Checking…</string>
+    <string name="id_card_off">Off. Only people on your home node see your profile.</string>
+    <string name="id_card_on">Anyone can look up your name and avatar by your ID.</string>
+    <string name="id_card_unavailable">Your home node doesn\'t publish profile cards.</string>
+    <string name="id_card_publish_title">Publish your profile card?</string>
+    <string name="id_card_publish_body">Your name, bio, avatar and home node become public: anyone who knows your ID can look them up, and Boson apps show them. Your email stays private.\n\nYour home node keeps the card available, even while this phone is off.</string>
+    <string name="id_card_publish_action">Publish</string>
+    <string name="id_card_stop_title">Stop publishing your card?</string>
+    <string name="id_card_stop_body">Your home node stops sharing your profile card. Copies other nodes already hold expire within about two hours.</string>
+    <string name="id_card_stop_action">Stop publishing</string>
+    <string name="id_card_prompt_title">Publish your profile card</string>
+    <string name="id_card_prompt_subtitle">Sign it with your identity\'s key</string>
+    <string name="id_card_update_failed">Your profile was saved, but your public card couldn\'t be updated: %1$s</string>
+
+    <!-- Home node -->
+    <string name="id_node_title">Home node</string>
+    <string name="id_node_more">More options for your home node</string>
+    <string name="id_node_copy">Copy address</string>
+    <string name="id_node_administer">Administer this node</string>
     <string name="id_node_none">No home node yet</string>
-    <string name="id_node_none_detail">Join a node to use your identity on the Boson network.</string>
-    <string name="id_node_checking">Checking your home node</string>
+    <string name="id_node_none_detail">A home node keeps your profile, connects your devices and lets you sign in on the web.</string>
+    <string name="id_node_join">Join a node</string>
+    <string name="id_node_qr_desc">The node\'s QR code</string>
+    <string name="id_node_qr_body">Scan this with Boson Identity on another phone to join the same node.</string>
+    <string name="id_status_online">Online</string>
+    <string name="id_status_starting">Starting</string>
+    <string name="id_status_checking">Checking</string>
+    <string name="id_status_locked">Locked</string>
+    <string name="id_status_unreachable">Unreachable</string>
+    <string name="id_status_error">Error</string>
     <string name="id_locked">Locked</string>
     <string name="id_locked_detail">Tap to unlock with your screen lock.</string>
-    <string name="id_node_failed">Home node not reachable</string>
-    <string name="id_node_ok">Home node reachable</string>
-    <string name="id_node_ok_plan">Plan: %1$s</string>
-    <string name="id_passphrase_ok">Account passphrase set</string>
-    <string name="id_passphrase_ok_detail">Account changes need it, even if your key leaks.</string>
-    <string name="id_passphrase_none">No account passphrase</string>
-    <string name="id_passphrase_none_detail">A passphrase protects your account on the node even if your key leaks. Set one in Security.</string>
-    <string name="id_recovery_ok">Passphrase can be recovered</string>
-    <string name="id_recovery_codes_left">Recovery codes left: %1$d</string>
-    <string name="id_recovery_none">No way to recover the passphrase</string>
-    <string name="id_recovery_none_detail">If you forget it, it can\'t be reset. Make recovery codes in Security.</string>
-    <string name="id_footer">Devices, security and node administration come to this app next.</string>
+    <string name="id_plan">%1$s plan</string>
+    <string name="id_dashboard">Dashboard</string>
 
     <string name="id_unlock_prompt_title">Unlock Boson Identity</string>
     <string name="id_unlock_prompt_subtitle">Confirm it\'s you</string>

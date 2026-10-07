@@ -1,6 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="sec_title">安全</string>
+    <!-- Summary and status pills -->
+    <string name="sec_summary_ok">你的身份受到良好保护</string>
+    <string name="sec_summary_ok_detail">你的密钥已备份，你的账户设置了可找回的口令。</string>
+    <plurals name="sec_summary_issues">
+        <item quantity="other">有 %d 项需要你处理</item>
+    </plurals>
+    <string name="sec_issue_backup">你的密钥尚未备份</string>
+    <string name="sec_issue_backup_detail">丢失这部手机就会失去你的身份。在备份之前，它无法批准任何操作。</string>
+    <string name="sec_issue_codes_detail">生成恢复码，并与你的账户和通行密钥分开保管。</string>
+    <string name="sec_account_title">你的账户</string>
+    <string name="sec_key_title">密钥备份</string>
+    <string name="sec_pill_backed_up">已备份</string>
+    <string name="sec_pill_not_backed_up">未备份</string>
+    <string name="sec_pill_on">已开启</string>
+    <string name="sec_pill_off">未开启</string>
+    <string name="sec_pill_none">无</string>
+    <string name="sec_pill_no_codes">无恢复码</string>
+    <string name="sec_pill_locked">屏幕锁</string>
+    <plurals name="sec_pill_codes">
+        <item quantity="other">剩余 %d 个</item>
+    </plurals>
+    <plurals name="sec_pill_methods">
+        <item quantity="other">已关联 %d 个</item>
+    </plurals>
     <string name="sec_refresh">刷新</string>
     <string name="sec_done">完成</string>
     <string name="sec_cancel">取消</string>
@@ -24,7 +48,6 @@
 
     <!-- 口令 -->
     <string name="sec_passphrase_title">口令</string>
-    <string name="sec_passphrase_on">已通过口令保护</string>
     <string name="sec_passphrase_on_detail">即使使用你的密钥，在节点上更改账户也需要口令。屏幕锁保护这部手机；口令保护你的账户。</string>
     <string name="sec_passphrase_off">未设置口令</string>
     <string name="sec_passphrase_off_detail">即使你的密钥泄露，口令也能保护你在节点上的账户。</string>
@@ -65,9 +88,6 @@
 
     <!-- 恢复 -->
     <string name="sec_recovery_title">恢复</string>
-    <plurals name="sec_recovery_codes_left">
-        <item quantity="other">剩余 %d 个恢复码</item>
-    </plurals>
     <string name="sec_recovery_codes_detail">每个恢复码可重置一次遗忘的口令。</string>
     <string name="sec_recovery_others">关联账户（%1$d 个）和通行密钥（%2$d 个）也可以重置口令。</string>
     <string name="sec_recovery_no_codes">恢复码已用完</string>
@@ -161,7 +181,7 @@
     <string name="sec_log_unknown_time">时间未知</string>
 
     <!-- 你的密钥和这部手机 -->
-    <string name="sec_phone_title">你的密钥和这部手机</string>
+    <string name="sec_phone_title">这部手机的密钥</string>
     <string name="sec_backup_key">显示并备份我的密钥</string>
     <string name="sec_backup_key_detail">将你的身份密钥保存为文件、二维码或文本。</string>
     <string name="sec_renew">更新这部手机的设备密钥</string>
@@ -179,17 +199,8 @@
     <string name="sec_renew_done_title">这部手机已使用新密钥</string>
     <string name="sec_renew_done_body">旧密钥已无法在节点上使用。</string>
     <string name="sec_renew_old_kept">无法从节点移除旧密钥。请在“设备”中移除它：它是以这部手机命名的另一个“Boson Identity”。</string>
-    <string name="sec_move">迁移到新手机</string>
-    <string name="sec_move_detail">如何把你的身份带到另一部手机。</string>
-    <string name="sec_move_title">迁移到新手机</string>
-    <string name="sec_move_step1">1. 在新手机上安装 Boson Identity。</string>
-    <string name="sec_move_step2">2. 在新手机上选择“我已有身份”，再选择“从旧手机迁移”，然后选择你的主节点。</string>
-    <string name="sec_move_step2_node">2. 在新手机上选择“我已有身份”，再选择“从旧手机迁移”，然后选择你的主节点 %1$s。</string>
-    <string name="sec_move_step3">3. 新手机会显示一个配对码，并请求你的身份密钥。在这部手机的“设备”中点按“批准新设备”，扫描配对码并批准。</string>
-    <string name="sec_move_note">你的密钥以加密方式送达新手机，节点无法读取。在新手机可用之前，请保留这部手机。如果做不到，请改用你的密钥备份在新手机上恢复。</string>
 
     <!-- 应用锁 -->
-    <string name="sec_app_lock_title">应用锁</string>
     <string name="sec_app_lock">已通过屏幕锁保护</string>
     <string name="sec_app_lock_detail">你的身份密钥在这部手机上加密保存。每次使用时，手机都会要求你验证指纹或屏幕锁。</string>
 

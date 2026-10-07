@@ -36,6 +36,8 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * The [KeyProtector] backed by the Android Keystore: an AES-256-GCM key per secret, in StrongBox
@@ -88,12 +90,39 @@ class KeystoreProtector(
                 Protection.SESSION -> try {
                     init()
                 } catch (e: UserNotAuthenticatedException) {
-                    authenticator.authenticate(prompt)
-                    init()
+                    unlockSession(prompt, init)
                 }
             }
         } catch (e: KeyPermanentlyInvalidatedException) {
             throw AppError.KeyUnavailable("The key protecting this secret was invalidated", e)
+        }
+    }
+
+    // One session prompt at a time. Screens open side by side ask for their keys together; without
+    // this each would show its own prompt, and a second prompt cancels the first. Whoever waited
+    // tries the key again first, since the prompt before it most likely unlocked the session; and
+    // whoever waited behind a dismissed prompt is dismissed too, rather than asked again at once.
+    private val sessionPrompt = Mutex()
+    private var prompts = 0L
+    private var lastDismissed = false
+
+    private suspend fun unlockSession(prompt: AuthPrompt, init: () -> Cipher): Cipher {
+        val seen = prompts
+        return sessionPrompt.withLock {
+            try {
+                init()
+            } catch (e: UserNotAuthenticatedException) {
+                if (prompts != seen && lastDismissed) throw AppError.AuthenticationCancelled("The prompt was dismissed")
+                prompts++
+                try {
+                    authenticator.authenticate(prompt)
+                    lastDismissed = false
+                } catch (cancelled: AppError.AuthenticationCancelled) {
+                    lastDismissed = true
+                    throw cancelled
+                }
+                init()
+            }
         }
     }
 

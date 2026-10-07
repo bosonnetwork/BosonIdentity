@@ -145,7 +145,11 @@ data class SecurityUiState(
      * checked backup authorizes nothing, so the screen explains and offers the backup instead.
      */
     val backupNeeded: Boolean = false,
-)
+) {
+    /** What needs the user, most urgent first: the summary, the section headers and the tab's badge read it. */
+    val issues: List<Issue>
+        get() = protectionIssues(identity, (overview as? OverviewState.Ready)?.overview)
+}
 
 /**
  * The security of the identity in use at its home node: the passphrase's state, the ways to recover

@@ -4,6 +4,7 @@
     <string name="ds_status_ok">已完成</string>
     <string name="ds_status_attention">需要处理</string>
     <string name="ds_status_problem">有问题</string>
+    <string name="ds_status_off">未开启</string>
     <string name="ds_error_network">无法连接到节点。请检查网络后重试。</string>
     <string name="ds_error_timeout">耗时过长，请重试。</string>
     <string name="ds_error_unauthorized">节点不接受此身份或此手机。</string>
@@ -13,6 +14,7 @@
     <string name="ds_error_cancelled">已取消，未做任何更改。</string>
     <string name="ds_error_key_unavailable">此手机已无法解锁该密钥。请用备份恢复你的身份。</string>
     <string name="ds_error_unknown">出错了。</string>
+    <string name="ds_error_service_unavailable">你的主节点不提供此服务。</string>
     <string name="ds_error_locked">口令错误次数过多，请在 %1$s后重试。</string>
     <plurals name="ds_wait_seconds">
         <item quantity="other">%d 秒</item>

@@ -35,18 +35,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -55,45 +54,40 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import io.bosonnetwork.identity.core.designsystem.component.Status
+import io.bosonnetwork.identity.core.designsystem.component.label
+import io.bosonnetwork.identity.core.designsystem.component.look
 
 /**
  * One destination of the tab bar: its [route] (also the key its saved state is kept under), [label]
  * and [icon], and the screen it shows. The screen gets the identity button to put at the start of
- * its top bar. An [adminOnly] tab is shown only to an identity that is an admin at a node.
+ * its top bar.
  */
 class HomeTab(
     val route: String,
     @StringRes val label: Int,
     val icon: ImageVector,
-    val adminOnly: Boolean = false,
     val content: @Composable (identityButton: @Composable () -> Unit) -> Unit,
 )
 
 /**
  * The tabs: a bottom navigation bar on phones, a navigation rail from 600 dp wide (tablets,
  * unfolded foldables, landscape). Each tab keeps its scroll position and inputs while another is
- * shown. Back from any other tab returns to the first before it leaves the app. [requested] asks to
- * show a tab (an admin tab as soon as it is visible); [onRequestDone] runs once it is shown. Admin
- * tabs are marked in the brand's violet.
+ * shown. Back from any other tab returns to the first before it leaves the app. [badges] marks a
+ * tab that needs the user (Security, when a protection is missing) with a dot in the status's color.
  */
 @Composable
 fun HomeTabs(
     tabs: List<HomeTab>,
-    showAdmin: Boolean,
     identityButton: @Composable () -> Unit,
-    requested: String? = null,
-    onRequestDone: () -> Unit = {},
+    badges: Map<String, Status> = emptyMap(),
 ) {
-    val visible = tabs.filter { showAdmin || !it.adminOnly }
+    val visible = tabs
     var selected by rememberSaveable { mutableStateOf(visible.first().route) }
     val current = visible.firstOrNull { it.route == selected } ?: visible.first()
-    LaunchedEffect(requested, showAdmin) {
-        if (requested != null && visible.any { it.route == requested }) {
-            selected = requested
-            onRequestDone()
-        }
-    }
     val saved = rememberSaveableStateHolder()
     BackHandler(enabled = current != visible.first()) { selected = visible.first().route }
 
@@ -110,19 +104,8 @@ fun HomeTabs(
                             NavigationBarItem(
                                 selected = tab == current,
                                 onClick = { selected = tab.route },
-                                icon = { Icon(tab.icon, contentDescription = null) },
+                                icon = { TabIcon(tab, badges[tab.route]) },
                                 label = { Text(stringResource(tab.label)) },
-                                colors = if (tab.adminOnly) {
-                                    NavigationBarItemDefaults.colors(
-                                        selectedIconColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                                        selectedTextColor = MaterialTheme.colorScheme.tertiary,
-                                        indicatorColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                        unselectedIconColor = MaterialTheme.colorScheme.tertiary,
-                                        unselectedTextColor = MaterialTheme.colorScheme.tertiary,
-                                    )
-                                } else {
-                                    NavigationBarItemDefaults.colors()
-                                },
                             )
                         }
                     }
@@ -136,19 +119,8 @@ fun HomeTabs(
                             NavigationRailItem(
                                 selected = tab == current,
                                 onClick = { selected = tab.route },
-                                icon = { Icon(tab.icon, contentDescription = null) },
+                                icon = { TabIcon(tab, badges[tab.route]) },
                                 label = { Text(stringResource(tab.label)) },
-                                colors = if (tab.adminOnly) {
-                                    NavigationRailItemDefaults.colors(
-                                        selectedIconColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                                        selectedTextColor = MaterialTheme.colorScheme.tertiary,
-                                        indicatorColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                        unselectedIconColor = MaterialTheme.colorScheme.tertiary,
-                                        unselectedTextColor = MaterialTheme.colorScheme.tertiary,
-                                    )
-                                } else {
-                                    NavigationRailItemDefaults.colors()
-                                },
                             )
                         }
                     }
@@ -160,5 +132,19 @@ fun HomeTabs(
                 }
             }
         }
+    }
+}
+
+/** A tab's icon, with a dot in the color of [badge] when the tab needs the user. */
+@Composable
+private fun TabIcon(tab: HomeTab, badge: Status?) {
+    if (badge == null || badge == Status.OK || badge == Status.OFF) {
+        Icon(tab.icon, contentDescription = null)
+        return
+    }
+    val (_, color) = badge.look()
+    val label = badge.label()
+    BadgedBox(badge = { Badge(containerColor = color, modifier = Modifier.semantics { contentDescription = label }) }) {
+        Icon(tab.icon, contentDescription = null)
     }
 }

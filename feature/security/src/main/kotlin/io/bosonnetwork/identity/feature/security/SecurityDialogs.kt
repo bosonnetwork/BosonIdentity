@@ -283,26 +283,6 @@ internal fun RenewDialog(renewal: Renewal, onPassphraseChange: (String) -> Unit,
 }
 
 @Composable
-internal fun MoveDialog(host: String?, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.brand.card,
-        title = { Text(stringResource(R.string.sec_move_title)) },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.sec_move_step1))
-                Text(
-                    host?.let { stringResource(R.string.sec_move_step2_node, it) } ?: stringResource(R.string.sec_move_step2),
-                )
-                Text(stringResource(R.string.sec_move_step3))
-                Text(stringResource(R.string.sec_move_note), style = MaterialTheme.typography.bodySmall)
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.sec_done)) } },
-    )
-}
-
-@Composable
 internal fun BackupNeededDialog(onBackup: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,

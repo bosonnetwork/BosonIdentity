@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
@@ -88,15 +89,17 @@ enum class AdminTab(@StringRes val label: Int) {
 /**
  * Admin: administering the home node, in the brand's violet so it is never mistaken for the user's
  * own screens. Without an admin session it offers to open one (one prompt, never on its own); with
- * one, a violet bar says how long it has left, beside "End now", above the sections.
- * [navigationIcon] goes at the start of the top bar; the app puts its identity switcher there.
+ * one, a violet bar says how long it has left, beside "End now", above the sections. It is a page of
+ * its own, opened from the home node's Dashboard: opening it asks for admin mode, and leaving it
+ * ([onBack], or the system's Back) ends admin mode.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminScreen(
-    navigationIcon: @Composable () -> Unit = {},
+    onBack: () -> Unit,
     viewModel: AdminViewModel = hiltViewModel(),
 ) {
+    LaunchedEffect(Unit) { viewModel.enter() }
     val state by viewModel.state.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(AdminTab.OVERVIEW) }
     // Bumped by the refresh button; the section shown asks its node again.
@@ -116,7 +119,11 @@ fun AdminScreen(
                         }
                     }
                 },
-                navigationIcon = navigationIcon,
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.adm_back))
+                    }
+                },
                 actions = {
                     if (session != null) {
                         IconButton(onClick = { refreshes++ }) {

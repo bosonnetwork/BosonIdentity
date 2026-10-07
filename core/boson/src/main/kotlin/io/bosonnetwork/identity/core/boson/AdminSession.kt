@@ -154,6 +154,14 @@ class AdminSession(
         end(current.state)
     }
 
+    /**
+     * Ends the session open now without waiting for it to close: for a caller that can't wait, such as
+     * the admin page going away (leaving the page ends admin mode).
+     */
+    fun endSoon() {
+        scope.launch { end() }
+    }
+
     // Ends the session that was [state], unless another one replaced it meanwhile.
     private suspend fun end(state: AdminState) {
         val ended = mutex.withLock {
@@ -178,7 +186,7 @@ class AdminSession(
 }
 
 /**
- * Which identities the app shows the Admin tab to: those that proved they administer their home node
+ * Which identities the app shows the Dashboard to: those that proved they administer their home node
  * ([IdentityInfo.administers]), and those whose account there is marked as an administrator. The
  * second comes from the profile the app reads anyway, reported here, so knowing it costs no prompt.
  *
@@ -199,7 +207,7 @@ class AdminAccess {
     }
 
     companion object {
-        /** Whether [identity] gets the Admin tab, given [profileAdmins]. */
+        /** Whether [identity] gets the Dashboard, given [profileAdmins]. */
         fun shows(identity: IdentityInfo?, profileAdmins: Set<String>): Boolean =
             identity != null && (identity.administers || identity.userId in profileAdmins)
     }

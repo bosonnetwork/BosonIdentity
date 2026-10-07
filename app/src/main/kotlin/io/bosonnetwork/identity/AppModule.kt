@@ -37,7 +37,9 @@ import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.AdminAccess
 import io.bosonnetwork.identity.core.boson.AdminSession
 import io.bosonnetwork.identity.core.boson.NodeConnections
+import io.bosonnetwork.identity.core.boson.NodeLogos
 import io.bosonnetwork.identity.core.boson.OAuthReturns
+import io.bosonnetwork.identity.core.boson.ProfileCards
 import io.bosonnetwork.identity.core.vault.ActivityAuthenticator
 import io.bosonnetwork.identity.core.vault.IdentityVault
 import io.bosonnetwork.identity.core.vault.KeystoreProtector
@@ -87,7 +89,17 @@ object AppModule {
     fun adminSession(vault: IdentityVault, nodes: NodeConnections): AdminSession =
         AdminSession(vault, nodes, CoroutineScope(SupervisorJob() + Dispatchers.Default))
 
-    /** Which identities see the Admin tab. */
+    /** The public profile card, published through the home node's web gateway. */
+    @Provides
+    @Singleton
+    fun profileCards(vault: IdentityVault, nodes: NodeConnections): ProfileCards = ProfileCards(vault, nodes)
+
+    /** Nodes' logos, fetched once per run. */
+    @Provides
+    @Singleton
+    fun nodeLogos(): NodeLogos = NodeLogos()
+
+    /** Which identities see the Dashboard. */
     @Provides
     @Singleton
     fun adminAccess(): AdminAccess = AdminAccess()

@@ -23,6 +23,9 @@
 package io.bosonnetwork.identity.feature.admin
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import io.bosonnetwork.crypto.Signature
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.AdminState
@@ -36,6 +39,7 @@ import io.bosonnetwork.identity.core.vault.VaultStore
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.verify
 import java.io.File
 import java.nio.file.Files
 import kotlinx.coroutines.CoroutineScope
@@ -114,6 +118,62 @@ class AdminViewModelTest {
 
         vm.end()
         vm.state.first { it.session == null }
+    }
+
+    @Test
+    fun `opening the page asks for admin mode once`() = runTest {
+        val userId = addIdentity()
+        coEvery { fake.session.start(any(), node, any()) } throws AppError.AuthenticationCancelled("no")
+        val vm = viewModel()
+        vm.enter()
+        vm.state.first { !it.starting }
+        // Coming back to the page (a rotation, say) doesn't ask again; its button does.
+        vm.enter()
+        coVerify(exactly = 1) { fake.session.start(match { it.userId == userId }, node, any()) }
+    }
+
+    @Test
+    fun `a page opened before the identity is known still asks for admin mode`() = runTest {
+        addIdentity()
+        coEvery { fake.session.start(any(), node, any()) } throws AppError.AuthenticationCancelled("no")
+        // Entered at once, as the page does on its first frame.
+        val vm = fake.track(AdminViewModel(active, vault, fake.session, fake.context))
+        vm.enter()
+        vm.state.first { it.identity != null && !it.starting }
+        coVerify(timeout = 5_000, exactly = 1) { fake.session.start(any(), node, any()) }
+    }
+
+    @Test
+    fun `leaving the page ends admin mode`() = runTest {
+        val userId = addIdentity()
+        val store = ViewModelStore()
+        val vm = fake.track(
+            ViewModelProvider(
+                store,
+                object : ViewModelProvider.Factory {
+                    @Suppress("UNCHECKED_CAST")
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T = AdminViewModel(active, vault, fake.session, fake.context) as T
+                },
+            )[AdminViewModel::class.java],
+        )
+        vm.state.first { it.identity != null }
+        fake.state.value = AdminState(userId, node, Long.MAX_VALUE)
+        vm.state.first { it.session != null }
+
+        store.clear()
+        verify { fake.session.endSoon() }
+        assertNull(fake.state.value)
+    }
+
+    @Test
+    fun `a refused identity no longer counts as an administrator`() = runTest {
+        val userId = addIdentity()
+        vault.update(userId) { it.copy(administers = true) }
+        coEvery { fake.session.start(any(), any(), any()) } throws AppError.Forbidden("no")
+        val vm = viewModel()
+        vm.start()
+        vm.state.first { it.error != null }
+        assertFalse(vault.identities.first { ids -> !ids.single().administers }.single().administers)
     }
 
     @Test
