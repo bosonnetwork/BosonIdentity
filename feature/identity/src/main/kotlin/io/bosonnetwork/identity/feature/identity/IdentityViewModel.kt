@@ -29,6 +29,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.bosonnetwork.director.client.Avatar
+import io.bosonnetwork.director.client.AvatarRefresh
 import io.bosonnetwork.director.client.NodeStatus
 import io.bosonnetwork.director.client.ProfileUpdate
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
@@ -62,7 +64,8 @@ data class ProfileView(
     val name: String?,
     val bio: String?,
     val email: String?,
-    val hasAvatar: Boolean,
+    /** The avatar's bnr:// URI at the home node, or null when the account has none. */
+    val avatar: String?,
     val plan: String,
     val passphraseProtected: Boolean,
     /** The account is marked as an administrator of the node. */
@@ -139,6 +142,8 @@ data class IdentityUiState(
     /** Asking the node again while what it said last is still shown. */
     val refreshing: Boolean = false,
     val logo: Bitmap? = null,
+    /** The avatar's image, as downloaded; null while there is none to show (the identicon stands in). */
+    val avatar: ByteArray? = null,
     val card: CardUi = CardUi(),
     /** Set while the edit dialog is open. */
     val edit: ProfileEdit? = null,
@@ -170,6 +175,9 @@ class IdentityViewModel @Inject constructor(
     private var loading: Job? = null
     private var working: Job? = null
 
+    // The avatar as last downloaded, with the validators that let the node say it is unchanged.
+    private var heldAvatar: Pair<String, Avatar>? = null
+
     init {
         viewModelScope.launch {
             // The identity picked in the switcher. A change of its name alone doesn't ask the node again.
@@ -177,7 +185,10 @@ class IdentityViewModel @Inject constructor(
                 val previous = _state.value.identity
                 val switched = identity?.userId != previous?.userId
                 val moved = identity?.homeNode != previous?.homeNode
-                if (switched || moved) working?.cancel()
+                if (switched || moved) {
+                    working?.cancel()
+                    heldAvatar = null
+                }
                 _state.update {
                     if (switched || moved) IdentityUiState(identity = identity) else it.copy(identity = identity)
                 }
@@ -203,6 +214,7 @@ class IdentityViewModel @Inject constructor(
             val node = load(identity)
             _state.update { it.copy(node = node, refreshing = false) }
             if (node is NodeState.Ready) {
+                loadAvatar(identity, node.profile.avatar)
                 loadLogo(homeNode, node.node.logo)
                 loadCard(identity, node.node)
             }
@@ -228,7 +240,7 @@ class IdentityViewModel @Inject constructor(
                 name = profile.name.orElse(null)?.takeIf { it.isNotBlank() },
                 bio = profile.bio.orElse(null)?.takeIf { it.isNotBlank() },
                 email = profile.email.orElse(null)?.takeIf { it.isNotBlank() },
-                hasAvatar = !profile.avatar.orElse(null).isNullOrBlank(),
+                avatar = profile.avatar.orElse(null)?.takeIf { it.isNotBlank() },
                 plan = profile.planName,
                 passphraseProtected = profile.isPassphraseProtected,
                 admin = profile.isAdmin,
@@ -254,6 +266,35 @@ class IdentityViewModel @Inject constructor(
             messagingPeer = status?.getService(NodeStatus.Service.PHOTON_MESSAGING)?.orElse(null)?.peerId?.toString(),
             logo = status?.logo?.orElse(null),
         )
+
+    /**
+     * Shows the account's avatar. A copy already held is checked with the node, which sends the image
+     * again only if it changed. A picture is a nicety: when it can't be had, the identicon stays.
+     */
+    private suspend fun loadAvatar(identity: IdentityInfo, uri: String?) {
+        if (uri == null) {
+            heldAvatar = null
+            _state.update { it.copy(avatar = null) }
+            return
+        }
+        try {
+            val client = nodes.deviceClient(identity, unlockPrompt())
+            val held = heldAvatar?.takeIf { it.first == identity.userId }?.second
+            val avatar = if (held == null) {
+                call { client.avatar.await() }.orElse(null)
+            } else {
+                val refresh = call { client.refreshAvatar(held).await() }
+                if (refresh.status == AvatarRefresh.Status.UNCHANGED) return
+                refresh.avatar.orElse(null)
+            }
+            heldAvatar = avatar?.let { identity.userId to it }
+            _state.update { it.copy(avatar = avatar?.data) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Keeps what is shown.
+        }
+    }
 
     private suspend fun loadLogo(node: NodeAddress, logo: String?) {
         val bytes = logos.load(node, logo) ?: return
@@ -340,7 +381,7 @@ class IdentityViewModel @Inject constructor(
         return CardContent(
             name = profile.name,
             bio = profile.bio,
-            avatar = if (profile.hasAvatar) CardContent.avatarPath(identity.userId) else null,
+            avatar = profile.avatar,
             homeNode = nodeId,
             messagingHomePeer = node.messagingPeer,
         )

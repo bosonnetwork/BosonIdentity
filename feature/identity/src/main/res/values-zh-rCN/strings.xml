@@ -19,6 +19,7 @@
 
     <!-- Profile -->
     <string name="id_edit">编辑资料</string>
+    <string name="id_avatar">你的头像</string>
     <string name="id_profile_no_node">你的个人资料保存在主节点上。加入一个节点后即可添加名称和简介。</string>
     <string name="id_profile_empty">添加名称和简短介绍，让别人认出你。</string>
     <string name="id_name">名称</string>

@@ -23,6 +23,7 @@
 package io.bosonnetwork.identity.feature.identity
 
 import android.content.Intent
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -247,7 +248,7 @@ private fun ProfileCard(
     val name = profile?.name ?: identity.name
     SectionCard {
         Row(Modifier.padding(start = 16.dp, top = 12.dp, end = 4.dp), verticalAlignment = Alignment.Top) {
-            Identicon(identity.userId, size = 64.dp, modifier = Modifier.padding(top = 4.dp))
+            ProfilePicture(state.avatar, identity.userId, Modifier.padding(top = 4.dp))
             Column(Modifier.padding(start = 16.dp, top = 6.dp).weight(1f)) {
                 Text(
                     name ?: stringResource(R.string.id_unnamed),
@@ -301,6 +302,27 @@ private fun ProfileCard(
             PublicCardRow(state.card, profileReady = profile != null, onCard = onCard, onRetry = onRetryCard)
         }
     }
+}
+
+/**
+ * The account's avatar, in the identicon's place and shape; the identicon when there is none, or it
+ * can't be read as an image.
+ */
+@Composable
+private fun ProfilePicture(avatar: ByteArray?, userId: String, modifier: Modifier = Modifier) {
+    val image = remember(avatar) {
+        avatar?.let { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() }
+    }
+    if (image == null) {
+        Identicon(userId, size = 64.dp, modifier = modifier)
+        return
+    }
+    Image(
+        image,
+        contentDescription = stringResource(R.string.id_avatar),
+        contentScale = ContentScale.Crop,
+        modifier = modifier.size(64.dp).clip(RoundedCornerShape(64.dp / 5)),
+    )
 }
 
 /** The abbreviated id with a QR glyph: the button that shows the id's QR code. */

@@ -27,6 +27,8 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.viewModelScope
 import io.bosonnetwork.Id
 import io.bosonnetwork.crypto.Signature
+import io.bosonnetwork.director.client.Avatar
+import io.bosonnetwork.director.client.AvatarRefresh
 import io.bosonnetwork.director.client.DirectorClient
 import io.bosonnetwork.director.client.NodeStatus
 import io.bosonnetwork.director.client.Profile
@@ -53,6 +55,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import java.io.File
 import java.nio.file.Files
 import java.util.Optional
@@ -71,6 +74,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.json.JSONObject
 import org.junit.After
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -153,11 +157,12 @@ class IdentityViewModelTest {
         email: String? = null,
         passphrase: Boolean = false,
         admin: Boolean = false,
+        avatar: String? = null,
     ): Profile =
         Profile::class.java.getDeclaredConstructor(
             Id::class.java, Boolean::class.java, String::class.java, String::class.java, String::class.java, String::class.java,
             Long::class.java, Long::class.java, String::class.java, Boolean::class.java,
-        ).apply { isAccessible = true }.newInstance(Id.random(), admin, name, null, email, bio, 0L, 0L, "Free", passphrase)
+        ).apply { isAccessible = true }.newInstance(Id.random(), admin, name, avatar, email, bio, 0L, 0L, "Free", passphrase)
 
     private fun status(gateway: Boolean, name: String? = "Example node", running: Boolean = true): NodeStatus {
         val service = mockk<NodeStatus.Service>()
@@ -283,6 +288,78 @@ class IdentityViewModelTest {
         assertEquals(node.nodeId, json.getString("id"))
         assertFalse(JSONObject(nodeQrPayload(NodeAddress("https://ca.example"))).has("id"))
         assertEquals("node.example", node.host())
+    }
+
+    // ---- The avatar ----------------------------------------------------------------------------
+
+    private val avatarUri = "bnr://$nodeId/api/v1/client/avatar/someone"
+
+    @Test
+    fun `the avatar is downloaded and shown, then only checked again`() = runTest {
+        addIdentity()
+        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice", avatar = avatarUri))
+        val held = Avatar.of("image/png", byteArrayOf(1, 2, 3), "\"v1\"", null)
+        every { client.avatar } returns CompletableFuture.completedFuture(Optional.of(held))
+        every { client.refreshAvatar(held) } returns CompletableFuture.completedFuture(
+            mockk<AvatarRefresh> { every { status } returns AvatarRefresh.Status.UNCHANGED },
+        )
+        val vm = viewModel()
+        assertArrayEquals(byteArrayOf(1, 2, 3), vm.state.first { it.avatar != null }.avatar)
+
+        vm.refresh()
+        vm.state.first { it.node is NodeState.Ready && !it.refreshing }
+        verify(exactly = 1) { client.avatar }
+        verify(exactly = 1) { client.refreshAvatar(held) }
+        assertArrayEquals(byteArrayOf(1, 2, 3), vm.state.value.avatar)
+    }
+
+    @Test
+    fun `a changed avatar replaces the one shown, a removed one goes`() = runTest {
+        addIdentity()
+        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice", avatar = avatarUri))
+        val held = Avatar.of("image/png", byteArrayOf(1), "\"v1\"", null)
+        val changed = Avatar.of("image/png", byteArrayOf(9), "\"v2\"", null)
+        every { client.avatar } returns CompletableFuture.completedFuture(Optional.of(held))
+        every { client.refreshAvatar(held) } returns CompletableFuture.completedFuture(
+            mockk<AvatarRefresh> {
+                every { status } returns AvatarRefresh.Status.CHANGED
+                every { avatar } returns Optional.of(changed)
+            },
+        )
+        val vm = viewModel()
+        vm.state.first { it.avatar != null }
+        vm.refresh()
+        assertArrayEquals(byteArrayOf(9), vm.state.first { it.avatar?.contentEquals(byteArrayOf(9)) == true }.avatar)
+
+        // The account no longer has one.
+        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice"))
+        vm.refresh()
+        assertNull(vm.state.first { it.avatar == null }.avatar)
+    }
+
+    @Test
+    fun `an avatar that can't be had leaves the identicon`() = runTest {
+        addIdentity()
+        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice", avatar = avatarUri))
+        every { client.avatar } returns CompletableFuture.failedFuture(DirectorException.fromResponse(500, "oops", null))
+        val vm = viewModel()
+        assertEquals("Alice", vm.ready().profile.name)
+        assertNull(vm.state.value.avatar)
+    }
+
+    @Test
+    fun `the card names the avatar by the URI the node gives it`() = runTest {
+        addIdentity()
+        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice", avatar = avatarUri))
+        every { client.avatar } returns CompletableFuture.completedFuture(Optional.empty())
+        val content = slot<CardContent>()
+        coEvery { cards.publish(any(), capture(content), any<AuthPrompt>()) } returns 0
+        val vm = viewModel()
+        vm.card()
+        vm.requestCard(true)
+        vm.confirmCard()
+        vm.state.first { it.card.state is CardState.On }
+        assertEquals(avatarUri, content.captured.avatar)
     }
 
     // ---- The public profile card ---------------------------------------------------------------

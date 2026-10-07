@@ -70,7 +70,7 @@ class ProfileCardsTest {
         val nodes = mockk<NodeConnections> {
             coEvery { gateway<Int>(any(), any(), any()) } coAnswers { arg<suspend (HiggsNode) -> Int>(2).invoke(gateway) }
         }
-        val content = CardContent("Alice", "Hi", CardContent.avatarPath(identity.userId), nodeId, null)
+        val content = CardContent("Alice", "Hi", "bnr://$nodeId/api/v1/client/avatar/${identity.userId}", nodeId, null)
 
         val version = ProfileCards(mockk(), nodes).publish(identity, content, userKey, AuthPrompt("Publish"))
 
@@ -84,6 +84,7 @@ class ProfileCardsTest {
         val profile = UserProfile.fromCard(card)
         assertEquals("Alice", profile.name.orElse(null))
         assertEquals(nodeId, profile.homeNode.orElse(null)?.toString())
+        assertEquals(content.avatar, profile.avatar.orElse(null))
         verify(exactly = 0) { gateway.findValue(any<Id>()) }
     }
 
@@ -95,11 +96,12 @@ class ProfileCardsTest {
     }
 
     @Test
-    fun `a card names the home node, and the avatar by its public path there`() {
-        val content = CardContent.of(userId, profile("Alice", "Hi", "avatar.png"), nodeId, null)
+    fun `a card names the home node, and the avatar by the URI the node gives it`() {
+        val avatar = "bnr://$nodeId/api/v1/client/avatar/$userId"
+        val content = CardContent.of(userId, profile("Alice", "Hi", avatar), nodeId, null)
         assertEquals("Alice", content.name)
         assertEquals("Hi", content.bio)
-        assertEquals("/api/v1/client/avatar/$userId", content.avatar)
+        assertEquals(avatar, content.avatar)
         assertEquals(nodeId, content.homeNode)
         assertNull(content.messagingHomePeer)
     }

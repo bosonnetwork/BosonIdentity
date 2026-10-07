@@ -19,6 +19,7 @@
 
     <!-- Profile -->
     <string name="id_edit">Edit profile</string>
+    <string name="id_avatar">Your avatar</string>
     <string name="id_profile_no_node">Your profile is kept by your home node. Join one to add a name and a bio.</string>
     <string name="id_profile_empty">Add a name and a short bio, so people recognize you.</string>
     <string name="id_name">Name</string>

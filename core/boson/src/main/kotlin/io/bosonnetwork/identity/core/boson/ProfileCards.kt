@@ -40,7 +40,8 @@ import kotlinx.coroutines.future.await
  *
  * @property homeNode the home node's id; the node announces itself under it, so other nodes find
  *   where to fetch the avatar
- * @property avatar the avatar's path at the home node, or null when the account has none
+ * @property avatar the avatar's bnr:// URI, as the home node gives it (the node and the path there that
+ *   serves it to anyone), or null when the account has none
  * @property messagingHomePeer the home node's messaging service, when it offers one
  */
 data class CardContent(
@@ -51,15 +52,12 @@ data class CardContent(
     val messagingHomePeer: String?,
 ) {
     companion object {
-        /** The path at which a Director serves a member's avatar to anyone, and other Directors fetch it. */
-        fun avatarPath(userId: String): String = "/api/v1/client/avatar/$userId"
-
         /** The card for [userId]'s [profile] at the node with [nodeId] and [status]. */
         fun of(userId: String, profile: Profile, nodeId: String, status: NodeStatus?): CardContent =
             CardContent(
                 name = profile.name.orElse(null)?.takeIf { it.isNotBlank() },
                 bio = profile.bio.orElse(null)?.takeIf { it.isNotBlank() },
-                avatar = if (profile.avatar.orElse(null).isNullOrBlank()) null else avatarPath(userId),
+                avatar = profile.avatar.orElse(null)?.takeIf { it.isNotBlank() },
                 homeNode = nodeId,
                 messagingHomePeer = status?.getService(NodeStatus.Service.PHOTON_MESSAGING)?.orElse(null)?.peerId?.toString(),
             )
