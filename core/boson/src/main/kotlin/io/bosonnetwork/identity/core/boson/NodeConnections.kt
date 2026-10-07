@@ -207,14 +207,35 @@ class NodeConnections(private val vault: IdentityVault) {
     private fun builder(node: NodeAddress): DirectorClient.Builder =
         DirectorClient.builder().vertx(vertx).directorUrl(node.url).apply { node.nodeId?.let { nodeId(Id.of(it)) } }
 
-    private companion object {
+    internal companion object {
         /**
          * Vert.x with Netty's DNS resolver off, so names resolve through Android's system resolver.
          * Netty's own can't find the phone's name servers and fails on many networks.
          */
         fun newVertx(): Vertx {
             System.setProperty("vertx.disableDnsResolver", "true")
+            seedVertxVersion()
             return Vertx.vertx()
+        }
+
+        /**
+         * Gives Vert.x its version string before anything asks for it. Vert.x reads it from
+         * META-INF/vertx/vertx-version.txt with `new Scanner(InputStream, Charset)`, which Android has
+         * only from 13 (API 33): on older phones the web client's first use (its User-Agent) threw
+         * NoSuchMethodError and closed the app. The version is cached in a static field that is read
+         * first, so filling it in with a read every Android can do skips that code. A version that
+         * can't be had leaves Vert.x to try as before.
+         */
+        internal fun seedVertxVersion() {
+            runCatching {
+                val field = Class.forName("io.vertx.core.impl.VertxImpl").getDeclaredField("version")
+                field.isAccessible = true
+                if (field.get(null) != null) return
+                val text = Vertx::class.java.classLoader?.getResourceAsStream("META-INF/vertx/vertx-version.txt")
+                    ?.use { it.readBytes().toString(Charsets.UTF_8).trim() }
+                    ?: return
+                field.set(null, text)
+            }
         }
     }
 }
