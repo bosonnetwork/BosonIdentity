@@ -47,6 +47,7 @@ fun Throwable.toAppError(): AppError = when (val e = unwrapped()) {
         409, 412 -> AppError.Conflict(e.message, e)
         428 -> AppError.PassphraseRequired(e.message, e)
         429 -> AppError.RateLimited(e.message, e, (e as? RateLimitException)?.retryAfter ?: 0)
+        in 500..599 -> AppError.ServerError(e.message, e)
         else -> AppError.Unknown(e.message, e)
     }
     // The web gateway's client reports the same way, with its own exception type.
@@ -59,6 +60,7 @@ fun Throwable.toAppError(): AppError = when (val e = unwrapped()) {
         408, 504 -> AppError.Timeout(e.message, e)
         409, 412 -> AppError.Conflict(e.message, e)
         429, 503 -> AppError.RateLimited(e.message, e)
+        in 500..599 -> AppError.ServerError(e.message, e)
         else -> AppError.Unknown(e.message, e)
     }
     is IOException -> AppError.Network(e.message, e)

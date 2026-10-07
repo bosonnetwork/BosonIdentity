@@ -39,6 +39,7 @@ fun Throwable.userMessage(context: Context): String = when (this) {
     is AppError.AuthenticationCancelled -> context.getString(R.string.ds_error_cancelled)
     is AppError.KeyUnavailable -> context.getString(R.string.ds_error_key_unavailable)
     is AppError.ServiceUnavailable -> context.getString(R.string.ds_error_service_unavailable)
+    is AppError.ServerError -> context.getString(R.string.ds_error_server)
     else -> message?.takeIf { it.isNotBlank() } ?: context.getString(R.string.ds_error_unknown)
 }
 

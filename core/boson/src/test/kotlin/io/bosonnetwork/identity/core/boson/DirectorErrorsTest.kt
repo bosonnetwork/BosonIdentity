@@ -23,6 +23,7 @@
 package io.bosonnetwork.identity.core.boson
 
 import io.bosonnetwork.director.client.exceptions.DirectorException
+import io.bosonnetwork.higgs.exceptions.HiggsException
 import io.bosonnetwork.identity.core.model.AppError
 import java.io.IOException
 import java.util.concurrent.CompletionException
@@ -45,7 +46,8 @@ class DirectorErrorsTest {
         assertTrue(answered(409).toAppError() is AppError.Conflict)
         assertTrue(answered(412).toAppError() is AppError.Conflict)
         assertTrue(answered(428).toAppError() is AppError.PassphraseRequired)
-        assertTrue(answered(500).toAppError() is AppError.Unknown)
+        assertTrue(answered(500).toAppError() is AppError.ServerError)
+        assertTrue(answered(418).toAppError() is AppError.Unknown)
     }
 
     @Test
@@ -63,5 +65,14 @@ class DirectorErrorsTest {
     fun `an AppError passes through`() {
         val e = AppError.Conflict("x")
         assertSame(e, e.toAppError())
+    }
+
+    @Test
+    fun `the gateway's failures map as the Director's, its internals kept from the user`() {
+        val internal = HiggsException(500, "BodyHandler invoked after the request has ended.")
+        assertTrue(internal.toAppError() is AppError.ServerError)
+        assertTrue(HiggsException(503, "busy").toAppError() is AppError.RateLimited)
+        assertTrue(HiggsException(HiggsException.NO_HTTP_STATUS, "down").toAppError() is AppError.Network)
+        assertTrue(HiggsException(401, "who").toAppError() is AppError.Unauthorized)
     }
 }

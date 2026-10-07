@@ -15,6 +15,7 @@
     <string name="ds_error_key_unavailable">此手机已无法解锁该密钥。请用备份恢复你的身份。</string>
     <string name="ds_error_unknown">出错了。</string>
     <string name="ds_error_service_unavailable">你的主节点不提供此服务。</string>
+    <string name="ds_error_server">你的主节点出现问题。请稍后重试；如果问题持续，请告知节点运营者。</string>
     <string name="ds_error_locked">口令错误次数过多，请在 %1$s后重试。</string>
     <plurals name="ds_wait_seconds">
         <item quantity="other">%d 秒</item>

@@ -17,6 +17,7 @@
     <string name="ds_error_key_unavailable">This phone can no longer unlock the key. Restore your identity from its backup.</string>
     <string name="ds_error_unknown">Something went wrong.</string>
     <string name="ds_error_service_unavailable">Your home node doesn\'t offer this service.</string>
+    <string name="ds_error_server">Your home node ran into a problem. Try again later; if it keeps happening, tell its operator.</string>
     <string name="ds_error_locked">Too many wrong passphrases. Try again in %1$s.</string>
     <plurals name="ds_wait_seconds">
         <item quantity="one">%d second</item>

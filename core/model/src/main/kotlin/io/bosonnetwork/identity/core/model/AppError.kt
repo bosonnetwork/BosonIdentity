@@ -70,6 +70,11 @@ sealed class AppError(message: String?, cause: Throwable? = null) : Exception(me
      */
     class KeyUnavailable(message: String? = null, cause: Throwable? = null) : AppError(message, cause)
 
+    /**
+     * The node failed on its side (HTTP 5xx). Its own message is for its operator's log, not the user.
+     */
+    class ServerError(message: String? = null, cause: Throwable? = null) : AppError(message, cause)
+
     /** The node doesn't offer a service this needs (for example, the web gateway that publishes profile cards). */
     class ServiceUnavailable(message: String? = null, cause: Throwable? = null) : AppError(message, cause)
 
