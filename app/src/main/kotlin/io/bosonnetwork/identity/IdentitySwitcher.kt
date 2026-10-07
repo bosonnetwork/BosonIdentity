@@ -51,17 +51,17 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.bosonnetwork.identity.core.designsystem.component.IdText
-import io.bosonnetwork.identity.core.designsystem.component.Identicon
+import io.bosonnetwork.identity.core.designsystem.component.IdentityPicture
 import io.bosonnetwork.identity.core.designsystem.theme.brand
 import io.bosonnetwork.identity.core.model.IdentityInfo
 import kotlinx.coroutines.launch
 
-/** The identity in use, as its identicon at the start of the top bar; it opens the switcher. */
+/** The identity in use, as its picture at the start of the top bar; it opens the switcher. */
 @Composable
-fun IdentityButton(identity: IdentityInfo?, onClick: () -> Unit) {
+fun IdentityButton(identity: IdentityInfo?, avatar: ByteArray?, onClick: () -> Unit) {
     val label = stringResource(R.string.app_switch_identity)
     IconButton(onClick = onClick, modifier = Modifier.semantics { contentDescription = label }) {
-        identity?.let { Identicon(it.userId, size = 32.dp) }
+        identity?.let { IdentityPicture(it.userId, avatar, size = 32.dp) }
     }
 }
 
@@ -74,6 +74,7 @@ fun IdentityButton(identity: IdentityInfo?, onClick: () -> Unit) {
 fun IdentitySwitcherSheet(
     identities: List<IdentityInfo>,
     activeUserId: String?,
+    avatars: Map<String, ByteArray>,
     onSelect: (userId: String) -> Unit,
     onAdd: () -> Unit,
     onDismiss: () -> Unit,
@@ -98,7 +99,7 @@ fun IdentitySwitcherSheet(
                 val active = identity.userId == activeUserId
                 ListItem(
                     colors = ListItemDefaults.colors(containerColor = MaterialTheme.brand.card),
-                    leadingContent = { Identicon(identity.userId, size = 40.dp) },
+                    leadingContent = { IdentityPicture(identity.userId, avatars[identity.userId], size = 40.dp) },
                     headlineContent = { Text(identity.name ?: stringResource(R.string.app_identity_unnamed)) },
                     supportingContent = {
                         Column {

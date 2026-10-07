@@ -30,6 +30,7 @@ import io.bosonnetwork.crypto.Signature
 import io.bosonnetwork.director.client.DirectorClient
 import io.bosonnetwork.director.client.exceptions.DirectorException
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
+import io.bosonnetwork.identity.core.boson.AvatarCache
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.model.NodeAddress
 import io.bosonnetwork.identity.core.vault.AuthPrompt
@@ -115,12 +116,25 @@ class SettingsViewModelTest {
         dir.deleteRecursively()
     }
 
-    private fun viewModel() = SettingsViewModel(vault, active, nodes, context).also { viewModels += it }
+    private val avatars = AvatarCache(File(dir, "avatars"))
+
+    private fun viewModel() = SettingsViewModel(vault, active, nodes, avatars, context).also { viewModels += it }
 
     private suspend fun addIdentity(homeNode: NodeAddress? = node, backupVerified: Boolean = true): String {
         val userId = vault.add(Signature.KeyPair.random(), null, backupVerified, keepUserKey = true, prompt = AuthPrompt("Confirm")).userId
         if (homeNode != null) vault.update(userId) { it.copy(homeNode = homeNode) }
         return userId
+    }
+
+    @Test
+    fun `a removed identity's avatar goes with it`() = runTest {
+        val userId = addIdentity(homeNode = null)
+        avatars.put(userId, io.bosonnetwork.director.client.Avatar.of("image/png", byteArrayOf(1), null, null))
+        val vm = viewModel()
+        vm.state.first { it.identity != null }
+        vm.remove(removalCode(userId))
+        vm.state.first { it.noIdentityLeft }
+        assertNull(avatars.avatars.value[userId])
     }
 
     @Test
@@ -136,6 +150,7 @@ class SettingsViewModelTest {
         assertTrue(vm.state.first { it.noIdentityLeft }.noIdentityLeft)
         assertTrue(vault.identities.value.isEmpty())
         coVerify { nodes.forget(userId) }
+        assertNull(avatars.held(userId))
     }
 
     @Test

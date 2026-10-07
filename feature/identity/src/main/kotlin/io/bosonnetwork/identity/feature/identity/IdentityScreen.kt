@@ -23,7 +23,6 @@
 package io.bosonnetwork.identity.feature.identity
 
 import android.content.Intent
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -103,6 +102,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.bosonnetwork.identity.core.designsystem.component.Banner
 import io.bosonnetwork.identity.core.designsystem.component.IdText
 import io.bosonnetwork.identity.core.designsystem.component.Identicon
+import io.bosonnetwork.identity.core.designsystem.component.IdentityPicture
 import io.bosonnetwork.identity.core.designsystem.component.PageColumn
 import io.bosonnetwork.identity.core.designsystem.component.Section
 import io.bosonnetwork.identity.core.designsystem.component.SectionCard
@@ -248,7 +248,13 @@ private fun ProfileCard(
     val name = profile?.name ?: identity.name
     SectionCard {
         Row(Modifier.padding(start = 16.dp, top = 12.dp, end = 4.dp), verticalAlignment = Alignment.Top) {
-            ProfilePicture(state.avatar, identity.userId, Modifier.padding(top = 4.dp))
+            IdentityPicture(
+                identity.userId,
+                state.avatar,
+                Modifier.padding(top = 4.dp),
+                size = 64.dp,
+                contentDescription = stringResource(R.string.id_avatar),
+            )
             Column(Modifier.padding(start = 16.dp, top = 6.dp).weight(1f)) {
                 Text(
                     name ?: stringResource(R.string.id_unnamed),
@@ -302,27 +308,6 @@ private fun ProfileCard(
             PublicCardRow(state.card, profileReady = profile != null, onCard = onCard, onRetry = onRetryCard)
         }
     }
-}
-
-/**
- * The account's avatar, in the identicon's place and shape; the identicon when there is none, or it
- * can't be read as an image.
- */
-@Composable
-private fun ProfilePicture(avatar: ByteArray?, userId: String, modifier: Modifier = Modifier) {
-    val image = remember(avatar) {
-        avatar?.let { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() }
-    }
-    if (image == null) {
-        Identicon(userId, size = 64.dp, modifier = modifier)
-        return
-    }
-    Image(
-        image,
-        contentDescription = stringResource(R.string.id_avatar),
-        contentScale = ContentScale.Crop,
-        modifier = modifier.size(64.dp).clip(RoundedCornerShape(64.dp / 5)),
-    )
 }
 
 /** The abbreviated id with a QR glyph: the button that shows the id's QR code. */

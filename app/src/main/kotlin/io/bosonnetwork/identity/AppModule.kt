@@ -36,6 +36,7 @@ import io.bosonnetwork.identity.core.backup.PasskeyBackup
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.AdminAccess
 import io.bosonnetwork.identity.core.boson.AdminSession
+import io.bosonnetwork.identity.core.boson.AvatarCache
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.boson.NodeLogos
 import io.bosonnetwork.identity.core.boson.OAuthReturns
@@ -93,6 +94,11 @@ object AppModule {
     @Provides
     @Singleton
     fun profileCards(vault: IdentityVault, nodes: NodeConnections): ProfileCards = ProfileCards(vault, nodes)
+
+    /** The identities' avatars, in the app's cache directory: the system may clear it, and they come again. */
+    @Provides
+    @Singleton
+    fun avatarCache(@ApplicationContext context: Context): AvatarCache = AvatarCache(File(context.cacheDir, "avatars"))
 
     /** Nodes' logos, fetched once per run. */
     @Provides

@@ -36,6 +36,7 @@ import io.bosonnetwork.director.client.ProfileUpdate
 import io.bosonnetwork.director.client.exceptions.DirectorException
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.AdminAccess
+import io.bosonnetwork.identity.core.boson.AvatarCache
 import io.bosonnetwork.identity.core.boson.CardContent
 import io.bosonnetwork.identity.core.boson.CardStatus
 import io.bosonnetwork.identity.core.boson.NodeConnections
@@ -148,7 +149,9 @@ class IdentityViewModelTest {
         dir.deleteRecursively()
     }
 
-    private fun viewModel() = IdentityViewModel(vault, active, nodes, cards, logos, adminAccess, context).also { viewModels += it }
+    private val avatars = AvatarCache(File(dir, "avatars"))
+
+    private fun viewModel() = IdentityViewModel(vault, active, nodes, cards, logos, avatars, adminAccess, context).also { viewModels += it }
 
     // The profile as the client would decode it; its constructor is the one Jackson uses.
     private fun profile(
@@ -335,6 +338,16 @@ class IdentityViewModelTest {
         every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice"))
         vm.refresh()
         assertNull(vm.state.first { it.avatar == null }.avatar)
+    }
+
+    @Test
+    fun `the kept avatar shows at once, even while the node can't be reached`() = runTest {
+        val userId = addIdentity()
+        avatars.put(userId, Avatar.of("image/png", byteArrayOf(7), "\"v1\"", null))
+        every { client.profile } returns CompletableFuture.failedFuture(DirectorException("no answer", java.io.IOException("refused")))
+        val vm = viewModel()
+        vm.state.first { it.node is NodeState.Failed }
+        assertArrayEquals(byteArrayOf(7), vm.state.first { it.avatar != null }.avatar)
     }
 
     @Test

@@ -25,6 +25,8 @@ package io.bosonnetwork.identity.core.designsystem.component
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
@@ -38,6 +40,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -122,6 +126,33 @@ fun Identicon(id: String, modifier: Modifier = Modifier, size: Dp = 40.dp) {
             }
         }
     }
+}
+
+/**
+ * An identity's picture: its avatar when it has one that reads as an image, in the identicon's place
+ * and shape; its identicon otherwise. Everywhere an identity is shown, so it looks the same everywhere.
+ */
+@Composable
+fun IdentityPicture(
+    id: String,
+    avatar: ByteArray?,
+    modifier: Modifier = Modifier,
+    size: Dp = 40.dp,
+    contentDescription: String? = null,
+) {
+    val image = remember(avatar) {
+        avatar?.let { runCatching { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() }.getOrNull() }
+    }
+    if (image == null) {
+        Identicon(id, modifier, size)
+        return
+    }
+    Image(
+        image,
+        contentDescription = contentDescription,
+        contentScale = ContentScale.Crop,
+        modifier = modifier.size(size).clip(RoundedCornerShape(size / 5)),
+    )
 }
 
 /** The deterministic part of [Identicon], separated so it can be tested. */

@@ -51,6 +51,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
+import io.bosonnetwork.identity.core.boson.AvatarCache
 import io.bosonnetwork.identity.core.model.AppLanguage
 import io.bosonnetwork.identity.core.model.ThemeMode
 import io.bosonnetwork.identity.core.vault.IdentityVault
@@ -104,6 +105,7 @@ private object Routes {
 fun AppNavigation(
     vault: IdentityVault,
     activeIdentity: ActiveIdentity,
+    avatarCache: AvatarCache,
     theme: ThemeMode,
     onThemeChange: (ThemeMode) -> Unit,
     language: AppLanguage,
@@ -205,6 +207,9 @@ fun AppNavigation(
                 val identities by vault.identities.collectAsStateWithLifecycle()
                 val active by activeIdentity.active.collectAsStateWithLifecycle(initialValue = null)
                 var switching by rememberSaveable { mutableStateOf(false) }
+                // The identities' pictures, as the Identity tab keeps them current.
+                val avatars by avatarCache.avatars.collectAsStateWithLifecycle()
+                LaunchedEffect(avatarCache) { avatarCache.load() }
 
                 // Security's badge: what needs the user, from the same view model the tab shows.
                 val security: SecurityViewModel = hiltViewModel()
@@ -215,13 +220,14 @@ fun AppNavigation(
                 val settings = Settings(theme, onThemeChange, language, onLanguageChange)
                 HomeTabs(
                     tabs = remember(nav, settings) { homeTabs(nav, settings) },
-                    identityButton = { IdentityButton(active, onClick = { switching = true }) },
+                    identityButton = { IdentityButton(active, active?.userId?.let { avatars[it] }, onClick = { switching = true }) },
                     badges = badges,
                 )
                 if (switching) {
                     IdentitySwitcherSheet(
                         identities = identities,
                         activeUserId = active?.userId,
+                        avatars = avatars,
                         onSelect = { userId -> scope.launch { activeIdentity.select(userId) } },
                         onAdd = { nav.navigate(Routes.WELCOME) },
                         onDismiss = { switching = false },

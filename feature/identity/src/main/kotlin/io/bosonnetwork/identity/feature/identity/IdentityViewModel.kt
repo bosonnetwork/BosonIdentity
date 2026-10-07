@@ -29,12 +29,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import io.bosonnetwork.director.client.Avatar
 import io.bosonnetwork.director.client.AvatarRefresh
 import io.bosonnetwork.director.client.NodeStatus
 import io.bosonnetwork.director.client.ProfileUpdate
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.AdminAccess
+import io.bosonnetwork.identity.core.boson.AvatarCache
 import io.bosonnetwork.identity.core.boson.CardContent
 import io.bosonnetwork.identity.core.boson.CardStatus
 import io.bosonnetwork.identity.core.boson.NodeConnections
@@ -54,6 +54,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
@@ -165,6 +166,7 @@ class IdentityViewModel @Inject constructor(
     private val nodes: NodeConnections,
     private val cards: ProfileCards,
     private val logos: NodeLogos,
+    private val avatars: AvatarCache,
     private val adminAccess: AdminAccess,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
@@ -175,9 +177,6 @@ class IdentityViewModel @Inject constructor(
     private var loading: Job? = null
     private var working: Job? = null
 
-    // The avatar as last downloaded, with the validators that let the node say it is unchanged.
-    private var heldAvatar: Pair<String, Avatar>? = null
-
     init {
         viewModelScope.launch {
             // The identity picked in the switcher. A change of its name alone doesn't ask the node again.
@@ -185,15 +184,22 @@ class IdentityViewModel @Inject constructor(
                 val previous = _state.value.identity
                 val switched = identity?.userId != previous?.userId
                 val moved = identity?.homeNode != previous?.homeNode
-                if (switched || moved) {
-                    working?.cancel()
-                    heldAvatar = null
-                }
+                if (switched || moved) working?.cancel()
                 _state.update {
-                    if (switched || moved) IdentityUiState(identity = identity) else it.copy(identity = identity)
+                    if (switched || moved) {
+                        IdentityUiState(identity = identity, avatar = identity?.userId?.let { id -> avatars.avatars.value[id] })
+                    } else {
+                        it.copy(identity = identity)
+                    }
                 }
                 if (switched || moved) refresh()
             }
+        }
+        viewModelScope.launch {
+            // The picture kept for the identity shows at once; the node is asked whether it is current.
+            avatars.load()
+            combine(activeIdentity.active, avatars.avatars) { identity, all -> identity?.userId?.let { all[it] } }
+                .collect { avatar -> _state.update { it.copy(avatar = avatar) } }
         }
     }
 
@@ -273,13 +279,12 @@ class IdentityViewModel @Inject constructor(
      */
     private suspend fun loadAvatar(identity: IdentityInfo, uri: String?) {
         if (uri == null) {
-            heldAvatar = null
-            _state.update { it.copy(avatar = null) }
+            avatars.put(identity.userId, null)
             return
         }
         try {
             val client = nodes.deviceClient(identity, unlockPrompt())
-            val held = heldAvatar?.takeIf { it.first == identity.userId }?.second
+            val held = avatars.held(identity.userId)
             val avatar = if (held == null) {
                 call { client.avatar.await() }.orElse(null)
             } else {
@@ -287,8 +292,7 @@ class IdentityViewModel @Inject constructor(
                 if (refresh.status == AvatarRefresh.Status.UNCHANGED) return
                 refresh.avatar.orElse(null)
             }
-            heldAvatar = avatar?.let { identity.userId to it }
-            _state.update { it.copy(avatar = avatar?.data) }
+            avatars.put(identity.userId, avatar)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {

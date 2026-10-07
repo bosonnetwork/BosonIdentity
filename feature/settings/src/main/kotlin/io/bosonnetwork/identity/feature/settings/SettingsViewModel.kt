@@ -29,6 +29,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.bosonnetwork.Id
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
+import io.bosonnetwork.identity.core.boson.AvatarCache
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.boson.call
 import io.bosonnetwork.identity.core.designsystem.component.userMessage
@@ -76,6 +77,7 @@ class SettingsViewModel @Inject constructor(
     private val vault: IdentityVault,
     private val activeIdentity: ActiveIdentity,
     private val nodes: NodeConnections,
+    private val avatars: AvatarCache,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -131,6 +133,7 @@ class SettingsViewModel @Inject constructor(
                 }
                 nodes.forget(identity.userId)
                 vault.remove(identity.userId)
+                avatars.put(identity.userId, null)
                 _state.update { it.copy(removal = null) }
                 if (vault.identities.value.isEmpty()) _state.update { it.copy(noIdentityLeft = true) }
             } catch (e: CancellationException) {

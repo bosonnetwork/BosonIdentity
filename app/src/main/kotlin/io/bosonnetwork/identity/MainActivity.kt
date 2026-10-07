@@ -40,6 +40,7 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import io.bosonnetwork.identity.core.backup.CredentialManagerPrf
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
+import io.bosonnetwork.identity.core.boson.AvatarCache
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.boson.OAuthReturns
 import io.bosonnetwork.identity.core.designsystem.theme.BosonIdentityTheme
@@ -60,6 +61,7 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var vault: IdentityVault
     @Inject lateinit var nodes: NodeConnections
     @Inject lateinit var activeIdentity: ActiveIdentity
+    @Inject lateinit var avatarCache: AvatarCache
     @Inject lateinit var oauthReturns: OAuthReturns
     @Inject lateinit var passkeyPrf: CredentialManagerPrf
 
@@ -91,6 +93,7 @@ class MainActivity : FragmentActivity() {
                 AppNavigation(
                     vault = vault,
                     activeIdentity = activeIdentity,
+                    avatarCache = avatarCache,
                     theme = theme,
                     onThemeChange = {
                         AppSettings.setTheme(this, it)
