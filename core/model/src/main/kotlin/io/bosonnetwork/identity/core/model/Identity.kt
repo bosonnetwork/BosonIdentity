@@ -55,8 +55,7 @@ data class NodeAddress(val url: String, val nodeId: String? = null) {
  * @property homeNode the node the identity is registered with as a user, or null before registration
  * @property deviceId this app's own device id under the identity, once registered with the home node
  * @property administers whether the identity proved it administers its home node, by opening admin
- *   mode there. A node's root user is an administrator through its key even when its account record
- *   says otherwise, so the profile's admin flag alone can't tell.
+ *   mode there; remembered so the Dashboard stays while the node's profile can't be read
  */
 data class IdentityInfo(
     val userId: String,

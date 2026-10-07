@@ -47,7 +47,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Email
@@ -118,7 +117,9 @@ import kotlinx.coroutines.delay
 /**
  * The Identity tab: who the identity is and where it lives. The profile comes first, with its id
  * (tap for the QR code) and the public profile card; then the home node, with its status, the plan
- * and, for its administrators, the Dashboard: the one way into administration. [onOpenAdmin] opens
+ * and, for the accounts marked as its administrators, the Dashboard: the one way into administration.
+ * The node's root user is not one of them here: it is the node's safeguard, kept off phones and remote
+ * access, and administers through the node itself. [onOpenAdmin] opens
  * it. [navigationIcon] goes at the start of the top bar; the app puts its identity switcher there.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -451,18 +452,6 @@ private fun HomeNodeSection(
                             copyToClipboard(context, context.getString(R.string.id_node_title), node.url)
                         },
                     )
-                    // An identity not yet known to administer the node may still (the node's root user
-                    // is an administrator by its key, whatever its account says): this is its way in.
-                    if (!state.administers && ready != null) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.id_node_administer)) },
-                            leadingIcon = { Icon(Icons.Outlined.AdminPanelSettings, contentDescription = null) },
-                            onClick = {
-                                menu = false
-                                onOpenAdmin()
-                            },
-                        )
-                    }
                 }
             }
         }

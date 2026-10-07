@@ -59,7 +59,6 @@
     <string name="id_node_title">主节点</string>
     <string name="id_node_more">主节点的更多选项</string>
     <string name="id_node_copy">复制地址</string>
-    <string name="id_node_administer">管理此节点</string>
     <string name="id_node_none">尚无主节点</string>
     <string name="id_node_none_detail">主节点保存你的个人资料、连接你的设备，并让你能在网页上登录。</string>
     <string name="id_node_join">加入节点</string>

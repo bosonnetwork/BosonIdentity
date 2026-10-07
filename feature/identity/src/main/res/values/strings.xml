@@ -59,7 +59,6 @@
     <string name="id_node_title">Home node</string>
     <string name="id_node_more">More options for your home node</string>
     <string name="id_node_copy">Copy address</string>
-    <string name="id_node_administer">Administer this node</string>
     <string name="id_node_none">No home node yet</string>
     <string name="id_node_none_detail">A home node keeps your profile, connects your devices and lets you sign in on the web.</string>
     <string name="id_node_join">Join a node</string>
