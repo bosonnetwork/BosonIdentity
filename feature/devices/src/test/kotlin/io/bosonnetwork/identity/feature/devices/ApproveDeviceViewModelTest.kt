@@ -95,6 +95,7 @@ class ApproveDeviceViewModelTest {
     private val context = mockk<Context>(relaxed = true) {
         every { getString(R.string.dev_wrong_passphrase) } returns "wrong passphrase"
         every { getString(R.string.dev_approve_invalid_code) } returns "not a pairing code"
+        every { getString(R.string.dev_scan_invalid_code) } returns "not a code the app uses"
         every { getString(R.string.dev_approve_admin_refused) } returns "admin refused"
         every { getString(R.string.dev_approve_prompt_title) } returns "Approve a new device"
         every { getString(R.string.dev_approve_prompt_subtitle, any(), any()) } answers {
@@ -128,10 +129,11 @@ class ApproveDeviceViewModelTest {
         dir.deleteRecursively()
     }
 
-    private suspend fun TestScope.viewModel(backupVerified: Boolean = true): ApproveDeviceViewModel {
+    private suspend fun TestScope.viewModel(backupVerified: Boolean = true, general: Boolean = false): ApproveDeviceViewModel {
         val userId = vault.add(Signature.KeyPair.random(), null, backupVerified, keepUserKey = true, prompt = AuthPrompt("Confirm")).userId
         vault.update(userId) { it.copy(homeNode = node, deviceId = Id.random().toString()) }
-        val vm = ApproveDeviceViewModel(SavedStateHandle(mapOf(ApproveDeviceViewModel.ARG_USER_ID to userId)), vault, nodes, context)
+        val args = mapOf(ApproveDeviceViewModel.ARG_USER_ID to userId, ApproveDeviceViewModel.ARG_GENERAL to general)
+        val vm = ApproveDeviceViewModel(SavedStateHandle(args), vault, nodes, context)
         vm.clock = { testScheduler.currentTime }
         viewModels += vm
         vm.state.first { it.identity?.homeNode != null }
@@ -188,6 +190,39 @@ class ApproveDeviceViewModelTest {
         vm.submitPasted()
         assertEquals(ApproveStep.SCAN, vm.state.value.step)
         coVerify(exactly = 0) { nodes.deviceClient(any(), any()) }
+    }
+
+    @Test
+    fun `a web page's sign-in code is handed to the sign-in screen, and scanning goes on after`() = runTest {
+        val vm = viewModel()
+        vm.onScanned("bosonsignin:1:req123")
+        assertEquals("req123", vm.state.value.signInRequestId)
+        assertEquals(ApproveStep.SCAN, vm.state.value.step)
+        coVerify(exactly = 0) { nodes.deviceClient(any(), any()) }
+
+        vm.signInHandled()
+        assertNull(vm.state.value.signInRequestId)
+        // The same code, scanned again when the user comes back, is handed over again.
+        vm.onScanned("bosonsignin:1:req123")
+        assertEquals("req123", vm.state.value.signInRequestId)
+    }
+
+    @Test
+    fun `as the app's scanner it reads both codes, and names an unknown one generally`() = runTest {
+        val vm = viewModel(general = true)
+        assertTrue(vm.state.value.general)
+        vm.onScanned("https://example.com")
+        assertEquals("not a code the app uses", vm.state.value.error)
+
+        vm.onScanned("bosonsignin:1:req456")
+        assertEquals("req456", vm.state.value.signInRequestId)
+        vm.signInHandled()
+
+        vm.onScanned(code)
+        assertEquals(ApproveStep.REVIEW, vm.state.first { it.step == ApproveStep.REVIEW }.step)
+        // Starting over keeps it the app's scanner.
+        vm.scanAgain()
+        assertTrue(vm.state.value.general)
     }
 
     @Test

@@ -98,6 +98,11 @@ data class PendingView(
 
 data class ApproveUiState(
     val identity: IdentityInfo? = null,
+    /**
+     * Opened as the app's scanner (Identity's Scan button) rather than for a new device: the scan step
+     * speaks of any code the app reads, a web page's sign-in code or a new device's pairing code.
+     */
+    val general: Boolean = false,
     val step: ApproveStep = ApproveStep.SCAN,
     /** The pairing code as pasted. */
     val pasted: String = "",
@@ -139,7 +144,9 @@ class ApproveDeviceViewModel @Inject constructor(
 
     private val userId: String = checkNotNull(savedState[ARG_USER_ID]) { "No identity to approve for" }
 
-    private val _state = MutableStateFlow(ApproveUiState())
+    private val general: Boolean = savedState[ARG_GENERAL] ?: false
+
+    private val _state = MutableStateFlow(ApproveUiState(general = general))
     val state: StateFlow<ApproveUiState> = _state.asStateFlow()
 
     /** This phone's clock for the countdown, in milliseconds; monotonic, so changing the time doesn't move it. */
@@ -189,7 +196,7 @@ class ApproveDeviceViewModel @Inject constructor(
         ticker?.cancel()
         code = null
         lastScanned = null
-        _state.update { ApproveUiState(identity = it.identity) }
+        _state.update { ApproveUiState(identity = it.identity, general = general) }
     }
 
     /** Reads the request again, after it couldn't be read. */
@@ -212,7 +219,8 @@ class ApproveDeviceViewModel @Inject constructor(
         val parsed = try {
             PairingCode.parse(text.trim())
         } catch (e: IllegalArgumentException) {
-            _state.update { it.copy(error = context.getString(R.string.dev_approve_invalid_code)) }
+            val message = if (general) R.string.dev_scan_invalid_code else R.string.dev_approve_invalid_code
+            _state.update { it.copy(error = context.getString(message)) }
             return
         }
         load(parsed)
@@ -392,6 +400,9 @@ class ApproveDeviceViewModel @Inject constructor(
     companion object {
         /** The navigation argument naming the identity the device joins. */
         const val ARG_USER_ID = "userId"
+
+        /** Opens the screen as the app's general scanner; see [ApproveUiState.general]. */
+        const val ARG_GENERAL = "general"
     }
 }
 

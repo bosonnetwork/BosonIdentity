@@ -91,6 +91,12 @@
     <string name="dev_approve_done">%1$s 已加入你的身份</string>
     <string name="dev_approve_done_body">它现在会出现在你的设备中，你可以在那里重命名或移除它。</string>
     <string name="dev_approve_denied">已拒绝请求</string>
+    <!-- The app's scanner, opened from Identity's Scan button -->
+    <string name="dev_scan_title">扫一扫</string>
+    <string name="dev_scan_body">扫描网页上用于“使用 Boson Identity 登录”的二维码，或新设备上用于加入你身份的二维码。也可以粘贴其文本。</string>
+    <string name="dev_scan_paste_label">代码</string>
+    <string name="dev_scan_paste_hint">以 bosonsignin: 或 bosonpair: 开头</string>
+    <string name="dev_scan_invalid_code">Boson Identity 无法使用此代码。请扫描网页或新设备显示的二维码，或粘贴其文本。</string>
     <string name="dev_approve_denied_body">该设备没有被添加到你的身份。</string>
     <string name="dev_approve_gone">此请求已过期或已被处理。</string>
     <string name="dev_approve_gone_body">请让新设备显示新的配对码。</string>

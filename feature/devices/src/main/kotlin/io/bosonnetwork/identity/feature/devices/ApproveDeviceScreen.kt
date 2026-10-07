@@ -124,7 +124,11 @@ fun ApproveDeviceScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.dev_approve_title)) },
+                title = {
+                    // As the app's scanner, the screen is named for the scan until it knows what was scanned.
+                    val scanning = state.general && state.step == ApproveStep.SCAN
+                    Text(stringResource(if (scanning) R.string.dev_scan_title else R.string.dev_approve_title))
+                },
                 navigationIcon = {
                     IconButton(onClick = if (state.step == ApproveStep.DONE) onDone else onClose) {
                         Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.dev_close))
@@ -204,7 +208,7 @@ private fun ScanStep(state: ApproveUiState, viewModel: ApproveDeviceViewModel) {
     val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) cameraOn = true
     }
-    StepText(stringResource(R.string.dev_approve_scan_body))
+    StepText(stringResource(if (state.general) R.string.dev_scan_body else R.string.dev_approve_scan_body))
     if (cameraOn) {
         QrScanner(onScanned = viewModel::onScanned, modifier = Modifier.fillMaxWidth().aspectRatio(1f))
     } else {
@@ -223,8 +227,8 @@ private fun ScanStep(state: ApproveUiState, viewModel: ApproveDeviceViewModel) {
     OutlinedTextField(
         value = state.pasted,
         onValueChange = viewModel::onPastedChange,
-        label = { Text(stringResource(R.string.dev_approve_paste_label)) },
-        placeholder = { Text(stringResource(R.string.dev_approve_paste_hint)) },
+        label = { Text(stringResource(if (state.general) R.string.dev_scan_paste_label else R.string.dev_approve_paste_label)) },
+        placeholder = { Text(stringResource(if (state.general) R.string.dev_scan_paste_hint else R.string.dev_approve_paste_hint)) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, autoCorrectEnabled = false),
         modifier = Modifier.fillMaxWidth(),

@@ -79,12 +79,15 @@ private object Routes {
     const val MOVE = "move"
     const val JOIN = "join/{${JoinNodeViewModel.ARG_USER_ID}}?first={first}"
     const val BACKUP = "backup/{${JoinNodeViewModel.ARG_USER_ID}}"
-    const val APPROVE = "approve/{${ApproveDeviceViewModel.ARG_USER_ID}}"
+    const val APPROVE = "approve/{${ApproveDeviceViewModel.ARG_USER_ID}}?${ApproveDeviceViewModel.ARG_GENERAL}={${ApproveDeviceViewModel.ARG_GENERAL}}"
     const val SIGN_IN = "signin/{${ApproveDeviceViewModel.ARG_USER_ID}}/{${ApproveSignInViewModel.ARG_REQUEST_ID}}"
 
     fun join(userId: String, first: Boolean) = "join/$userId?first=$first"
     fun backup(userId: String) = "backup/$userId"
     fun approve(userId: String) = "approve/$userId"
+
+    /** The app's scanner: the approve screen, reading any code (a web sign-in or a new device). */
+    fun scan(userId: String) = "approve/$userId?${ApproveDeviceViewModel.ARG_GENERAL}=true"
     fun signIn(userId: String, requestId: String) = "signin/$userId/$requestId"
 
     /** The admin page, opened from the home node's Dashboard. */
@@ -171,7 +174,10 @@ fun AppNavigation(
             }
             composable(
                 Routes.APPROVE,
-                arguments = listOf(navArgument(ApproveDeviceViewModel.ARG_USER_ID) { type = NavType.StringType }),
+                arguments = listOf(
+                    navArgument(ApproveDeviceViewModel.ARG_USER_ID) { type = NavType.StringType },
+                    navArgument(ApproveDeviceViewModel.ARG_GENERAL) { type = NavType.BoolType; defaultValue = false },
+                ),
             ) {
                 ApproveDeviceScreen(
                     onDone = {
@@ -260,6 +266,7 @@ private fun homeTabs(nav: NavController, settings: Settings): List<HomeTab> = li
             onBackup = { nav.navigate(Routes.backup(it)) },
             onJoinNode = { nav.navigate(Routes.join(it, first = false)) },
             onOpenAdmin = { nav.navigate(Routes.ADMIN) },
+            onScan = { nav.navigate(Routes.scan(it)) },
             navigationIcon = identityButton,
         )
     },

@@ -91,6 +91,12 @@
     <string name="dev_approve_done">%1$s joined your identity</string>
     <string name="dev_approve_done_body">It now appears in your devices. You can rename or remove it there.</string>
     <string name="dev_approve_denied">Request denied</string>
+    <!-- The app's scanner, opened from Identity's Scan button -->
+    <string name="dev_scan_title">Scan a code</string>
+    <string name="dev_scan_body">Scan the code a web page shows to sign in with Boson Identity, or the code a new device shows to join your identity. Or paste its text.</string>
+    <string name="dev_scan_paste_label">Code</string>
+    <string name="dev_scan_paste_hint">Starts with bosonsignin: or bosonpair:</string>
+    <string name="dev_scan_invalid_code">Boson Identity can\'t use this code. Scan the code a web page or a new device shows, or paste its text.</string>
     <string name="dev_approve_denied_body">The device was not added to your identity.</string>
     <string name="dev_approve_gone">This request expired or was already answered.</string>
     <string name="dev_approve_gone_body">Ask the new device to show a new code.</string>

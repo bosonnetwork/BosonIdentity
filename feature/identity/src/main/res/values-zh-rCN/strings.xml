@@ -2,6 +2,7 @@
 <resources>
     <string name="id_title">身份</string>
     <string name="id_refresh">刷新</string>
+    <string name="id_scan">扫一扫</string>
     <string name="id_retry">重试</string>
     <string name="id_retry_detail">点按以重试。</string>
     <string name="id_unnamed">尚未设置名称</string>

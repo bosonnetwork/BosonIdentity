@@ -2,6 +2,7 @@
 <resources>
     <string name="id_title">Identity</string>
     <string name="id_refresh">Refresh</string>
+    <string name="id_scan">Scan a code</string>
     <string name="id_retry">Try again</string>
     <string name="id_retry_detail">Tap to try again.</string>
     <string name="id_unnamed">No name yet</string>
