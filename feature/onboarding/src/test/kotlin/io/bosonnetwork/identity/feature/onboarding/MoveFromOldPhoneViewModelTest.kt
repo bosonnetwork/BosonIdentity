@@ -142,7 +142,7 @@ class MoveFromOldPhoneViewModelTest {
     private fun registration(key: Signature.KeyPair): DeviceRegistration =
         DeviceRegistration::class.java.getDeclaredConstructor(
             String::class.java, Signature.KeyPair::class.java, CryptoBox.KeyPair::class.java, Boolean::class.java,
-        ).apply { isAccessible = true }.newInstance("reg-" + requested.size, key, CryptoBox.KeyPair.random(), true)
+        ).apply { isAccessible = true }.newInstance(Id.random().toBase58String(), key, CryptoBox.KeyPair.random(), true)
 
     private fun approval(key: Signature.KeyPair? = Signature.KeyPair.fromPrivateKey(userKey.privateKey().bytes())): DeviceApproval =
         DeviceApproval::class.java.getDeclaredConstructor(Id::class.java, Signature.KeyPair::class.java)

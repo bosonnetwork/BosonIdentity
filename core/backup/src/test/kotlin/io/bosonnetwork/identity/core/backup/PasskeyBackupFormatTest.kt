@@ -88,8 +88,13 @@ class PasskeyBackupFormatTest {
         // Changing them would orphan every backup made so far.
         assertEquals("bosonnetwork.io", PasskeyBackupFormat.RP_ID)
         assertArrayEquals(
-            java.security.MessageDigest.getInstance("SHA-256").digest("boson:passkey:backup#v1".toByteArray()),
+            java.security.MessageDigest.getInstance("SHA-256").digest("boson:prf:1:passkey-backup".toByteArray()),
             PasskeyBackupFormat.PRF_SALT,
+        )
+        val prf = ByteArray(32) { it.toByte() }
+        assertArrayEquals(
+            PasskeyBackupFormat.hkdfSha256(prf, ByteArray(0), "boson:kdf:1:aes256gcm:user-key-wrap".toByteArray(), 32),
+            PasskeyBackupFormat.wrapKey(prf),
         )
     }
 }

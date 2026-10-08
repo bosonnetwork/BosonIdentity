@@ -50,19 +50,20 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import io.bosonnetwork.Id
+import io.bosonnetwork.director.client.SuperNodeCode
 import io.bosonnetwork.identity.core.model.NodeAddress
 import io.bosonnetwork.identity.core.qr.QrScanner
-import org.json.JSONObject
 
-/** What a node's QR code says: `{"url": ..., "id": ...}`, as the node's home page and the portal show it. */
+/**
+ * What a node's QR code says: `boson:supernode:1:<nodeId>:<url>`, as the portal and Boson Identity show it,
+ * or the JSON `{"url": ..., "id": ...}` they showed before, whose id may be missing (then empty here).
+ */
 internal data class ScannedNode(val url: String, val nodeId: String)
 
 /** Reads a node's QR code; null when [text] is not one. */
 internal fun scannedNode(text: String): ScannedNode? {
-    val json = runCatching { JSONObject(text) }.getOrNull() ?: return null
-    val url = json.optString("url").trim()
-    if (url.isEmpty()) return null
-    return ScannedNode(url, json.optString("id").trim())
+    val code = SuperNodeCode.parse(text).orElse(null) ?: return null
+    return ScannedNode(code.url, code.nodeId.map { it.toBase58String() }.orElse(""))
 }
 
 /** A typed node address, checked: the node to ask, or what is wrong with it. */

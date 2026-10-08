@@ -29,8 +29,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.bosonnetwork.Id
 import io.bosonnetwork.director.client.AvatarRefresh
 import io.bosonnetwork.director.client.NodeStatus
+import io.bosonnetwork.director.client.SuperNodeCode
 import io.bosonnetwork.director.client.ProfileUpdate
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.AdminAccess
@@ -58,7 +60,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 
 /** The identity's profile, as its home node keeps it. */
 data class ProfileView(
@@ -514,9 +515,12 @@ class IdentityViewModel @Inject constructor(
     }
 }
 
-/** The node's QR code, in the form the node's home page shows and the app's scanner reads. */
-fun nodeQrPayload(node: NodeAddress): String =
-    JSONObject().put("url", node.url).apply { node.nodeId?.let { put("id", it) } }.toString()
+/**
+ * The node's QR code, the Boson string `boson:supernode:1:<nodeId>:<url>` the portal shows and the
+ * scanners read. The id pins the node for whoever scans it, so a code needs it: [nodeId] is the node's.
+ */
+fun nodeQrPayload(node: NodeAddress, nodeId: String): String =
+    SuperNodeCode.of(Id.of(nodeId), node.url).toString()
 
 /** The node's host name, to name it in a sentence; its URL when that has none. */
 fun NodeAddress.host(): String = runCatching { URI(url).host }.getOrNull() ?: url

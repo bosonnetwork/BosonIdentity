@@ -32,6 +32,7 @@ import io.bosonnetwork.director.client.AvatarRefresh
 import io.bosonnetwork.director.client.DirectorClient
 import io.bosonnetwork.director.client.NodeStatus
 import io.bosonnetwork.director.client.Profile
+import io.bosonnetwork.director.client.SuperNodeCode
 import io.bosonnetwork.director.client.ProfileUpdate
 import io.bosonnetwork.director.client.exceptions.DirectorException
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
@@ -73,7 +74,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -285,11 +285,12 @@ class IdentityViewModelTest {
     }
 
     @Test
-    fun `the node QR code is what the scanner reads`() {
-        val json = JSONObject(nodeQrPayload(node))
-        assertEquals(node.url, json.getString("url"))
-        assertEquals(node.nodeId, json.getString("id"))
-        assertFalse(JSONObject(nodeQrPayload(NodeAddress("https://ca.example"))).has("id"))
+    fun `the node QR code is the super node code the scanners read`() {
+        val code = nodeQrPayload(node, nodeId.toString())
+        assertEquals("boson:supernode:1:$nodeId:${node.url}", code)
+        val read = SuperNodeCode.parse(code).orElseThrow()
+        assertEquals(nodeId, read.nodeId.orElseThrow())
+        assertEquals(node.url, read.url)
         assertEquals("node.example", node.host())
     }
 

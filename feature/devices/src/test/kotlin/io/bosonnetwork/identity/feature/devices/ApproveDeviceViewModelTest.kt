@@ -106,7 +106,7 @@ class ApproveDeviceViewModelTest {
     }
     private val viewModels = mutableListOf<ApproveDeviceViewModel>()
 
-    private val code = "bosonpair:1:reg42:" + Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32) { it.toByte() })
+    private val code = "boson:pair:1:reg42:" + Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32) { it.toByte() })
     private val pairing = PairingCode.parse(code)
 
     @Before
@@ -186,7 +186,7 @@ class ApproveDeviceViewModelTest {
         vm.onScanned("https://example.com")
         assertEquals(ApproveStep.SCAN, vm.state.value.step)
         assertEquals("not a pairing code", vm.state.value.error)
-        vm.onPastedChange("bosonpair:1:nope")
+        vm.onPastedChange("boson:pair:1:nope")
         vm.submitPasted()
         assertEquals(ApproveStep.SCAN, vm.state.value.step)
         coVerify(exactly = 0) { nodes.deviceClient(any(), any()) }
@@ -195,7 +195,7 @@ class ApproveDeviceViewModelTest {
     @Test
     fun `a web page's sign-in code is handed to the sign-in screen, and scanning goes on after`() = runTest {
         val vm = viewModel()
-        vm.onScanned("bosonsignin:1:req123")
+        vm.onScanned("boson:signin:1:req123")
         assertEquals("req123", vm.state.value.signInRequestId)
         assertEquals(ApproveStep.SCAN, vm.state.value.step)
         coVerify(exactly = 0) { nodes.deviceClient(any(), any()) }
@@ -203,7 +203,7 @@ class ApproveDeviceViewModelTest {
         vm.signInHandled()
         assertNull(vm.state.value.signInRequestId)
         // The same code, scanned again when the user comes back, is handed over again.
-        vm.onScanned("bosonsignin:1:req123")
+        vm.onScanned("boson:signin:1:req123")
         assertEquals("req123", vm.state.value.signInRequestId)
     }
 
@@ -214,7 +214,7 @@ class ApproveDeviceViewModelTest {
         vm.onScanned("https://example.com")
         assertEquals("not a code the app uses", vm.state.value.error)
 
-        vm.onScanned("bosonsignin:1:req456")
+        vm.onScanned("boson:signin:1:req456")
         assertEquals("req456", vm.state.value.signInRequestId)
         vm.signInHandled()
 

@@ -99,6 +99,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.bosonnetwork.Id
 import io.bosonnetwork.identity.core.designsystem.component.Banner
 import io.bosonnetwork.identity.core.designsystem.component.IdText
 import io.bosonnetwork.identity.core.designsystem.component.Identicon
@@ -186,7 +187,12 @@ fun IdentityScreen(
                 HomeNodeSection(
                     identity = identity,
                     state = state,
-                    onShowQr = { showNode = true },
+                    // The node's code pins it by its id: until the id is known, there is no code to show.
+                    onShowQr = if (((state.node as? NodeState.Ready)?.node?.nodeId ?: identity.homeNode?.nodeId) != null) {
+                        { showNode = true }
+                    } else {
+                        null
+                    },
                     onJoin = { onJoinNode(identity.userId) },
                     onUnlock = viewModel::refresh,
                     onOpenAdmin = onOpenAdmin,
@@ -198,7 +204,8 @@ fun IdentityScreen(
     if (showId && identity != null) {
         QrSheet(
             title = stringResource(R.string.id_my_id_title),
-            qrText = identity.userId,
+            // The id as a W3C DID: what Boson apps read, and what any DID tool recognizes.
+            qrText = Id.of(identity.userId).toDIDString(),
             qrDescription = stringResource(R.string.id_my_id_qr),
             id = identity.userId,
             body = stringResource(R.string.id_my_id_body),
@@ -208,13 +215,14 @@ fun IdentityScreen(
         )
     }
     val node = identity?.homeNode
-    if (showNode && node != null) {
+    val nodeId = (state.node as? NodeState.Ready)?.node?.nodeId ?: node?.nodeId
+    if (showNode && node != null && nodeId != null) {
         val view = (state.node as? NodeState.Ready)?.node
         QrSheet(
             title = view?.name ?: node.host(),
-            qrText = nodeQrPayload(node),
+            qrText = nodeQrPayload(node, nodeId),
             qrDescription = stringResource(R.string.id_node_qr_desc),
-            id = view?.nodeId ?: node.nodeId,
+            id = nodeId,
             subtitle = node.url,
             body = stringResource(R.string.id_node_qr_body),
             copyLabel = stringResource(R.string.id_node_title),
@@ -388,7 +396,7 @@ private fun PublicCardRow(card: CardUi, profileReady: Boolean, onCard: (Boolean)
 private fun HomeNodeSection(
     identity: IdentityInfo,
     state: IdentityUiState,
-    onShowQr: () -> Unit,
+    onShowQr: (() -> Unit)?,
     onJoin: () -> Unit,
     onUnlock: () -> Unit,
     onOpenAdmin: () -> Unit,
@@ -408,9 +416,10 @@ private fun HomeNodeSection(
         val context = LocalContext.current
         Row(Modifier.padding(start = 16.dp, top = 12.dp, end = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             NodeLogo(state, view?.nodeId ?: node.nodeId ?: node.url)
+            val showQrLabel = stringResource(R.string.id_show_qr)
             Column(
                 Modifier.padding(start = 12.dp).weight(1f).clip(RoundedCornerShape(8.dp))
-                    .clickable(role = Role.Button, onClickLabel = stringResource(R.string.id_show_qr), onClick = onShowQr)
+                    .then(if (onShowQr != null) Modifier.clickable(role = Role.Button, onClickLabel = showQrLabel, onClick = onShowQr) else Modifier)
                     .padding(horizontal = 4.dp, vertical = 2.dp),
             ) {
                 Text(
@@ -445,14 +454,16 @@ private fun HomeNodeSection(
                     Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.id_node_more))
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = MaterialTheme.brand.card) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.id_show_qr)) },
-                        leadingIcon = { Icon(Icons.Filled.QrCode2, contentDescription = null) },
-                        onClick = {
-                            menu = false
-                            onShowQr()
-                        },
-                    )
+                    if (onShowQr != null) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.id_show_qr)) },
+                            leadingIcon = { Icon(Icons.Filled.QrCode2, contentDescription = null) },
+                            onClick = {
+                                menu = false
+                                onShowQr()
+                            },
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.id_node_copy)) },
                         leadingIcon = { Icon(Icons.Filled.ContentCopy, contentDescription = null) },

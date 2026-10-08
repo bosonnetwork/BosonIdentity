@@ -43,10 +43,12 @@ object PasskeyBackupFormat {
     /** The passkey belongs to the project's site, not to a node: it signs in nowhere, it only unlocks this backup. */
     const val RP_ID = "bosonnetwork.io"
 
-    /** The PRF input, the same for every backup. */
-    val PRF_SALT: ByteArray = sha256("boson:passkey:backup#v1".toByteArray(Charsets.US_ASCII))
+    /** The PRF input, the same for every backup: SHA-256 of the Boson string label `boson:prf:1:passkey-backup`. */
+    val PRF_SALT: ByteArray = sha256("boson:prf:1:passkey-backup".toByteArray(Charsets.US_ASCII))
 
-    private val HKDF_INFO = "boson:backup:user-key#v1".toByteArray(Charsets.US_ASCII)
+    // HKDF info for the AES-256-GCM key that wraps the user key: the Boson string label
+    // `boson:kdf:1:aes256gcm:user-key-wrap` (Boson's core/api/docs/formats.md).
+    private val HKDF_INFO = "boson:kdf:1:aes256gcm:user-key-wrap".toByteArray(Charsets.US_ASCII)
     private const val VERSION = 1
     private const val NONCE_BYTES = 12
     private const val TAG_BITS = 128
