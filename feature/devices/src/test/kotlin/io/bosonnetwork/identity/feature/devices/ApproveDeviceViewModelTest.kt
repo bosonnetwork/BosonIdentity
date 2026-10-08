@@ -96,6 +96,7 @@ class ApproveDeviceViewModelTest {
         every { getString(R.string.dev_wrong_passphrase) } returns "wrong passphrase"
         every { getString(R.string.dev_approve_invalid_code) } returns "not a pairing code"
         every { getString(R.string.dev_scan_invalid_code) } returns "not a code the app uses"
+        every { getString(R.string.dev_scan_needs_node) } returns "join a node first"
         every { getString(R.string.dev_approve_admin_refused) } returns "admin refused"
         every { getString(R.string.dev_approve_prompt_title) } returns "Approve a new device"
         every { getString(R.string.dev_approve_prompt_subtitle, any(), any()) } answers {
@@ -129,14 +130,18 @@ class ApproveDeviceViewModelTest {
         dir.deleteRecursively()
     }
 
-    private suspend fun TestScope.viewModel(backupVerified: Boolean = true, general: Boolean = false): ApproveDeviceViewModel {
+    private suspend fun TestScope.viewModel(
+        backupVerified: Boolean = true,
+        general: Boolean = false,
+        homeNode: Boolean = true,
+    ): ApproveDeviceViewModel {
         val userId = vault.add(Signature.KeyPair.random(), null, backupVerified, keepUserKey = true, prompt = AuthPrompt("Confirm")).userId
-        vault.update(userId) { it.copy(homeNode = node, deviceId = Id.random().toString()) }
+        if (homeNode) vault.update(userId) { it.copy(homeNode = node, deviceId = Id.random().toString()) }
         val args = mapOf(ApproveDeviceViewModel.ARG_USER_ID to userId, ApproveDeviceViewModel.ARG_GENERAL to general)
         val vm = ApproveDeviceViewModel(SavedStateHandle(args), vault, nodes, context)
         vm.clock = { testScheduler.currentTime }
         viewModels += vm
-        vm.state.first { it.identity?.homeNode != null }
+        vm.state.first { it.identity != null && (!homeNode || it.identity?.homeNode != null) }
         return vm
     }
 
@@ -205,6 +210,26 @@ class ApproveDeviceViewModelTest {
         // The same code, scanned again when the user comes back, is handed over again.
         vm.onScanned("boson:signin:1:req123")
         assertEquals("req123", vm.state.value.signInRequestId)
+    }
+
+    @Test
+    fun `a node console's enrollment code is handed over, with or without a home node`() = runTest {
+        val enroll = "boson:enroll:1:" + Id.random() + ":" + Id.random() + ":https://node.example"
+        val vm = viewModel(general = true, homeNode = false)
+        vm.onScanned(enroll)
+        assertEquals(enroll, vm.state.value.enrollCode)
+        assertEquals(ApproveStep.SCAN, vm.state.value.step)
+        coVerify(exactly = 0) { nodes.deviceClient(any(), any()) }
+        vm.signInHandled()
+        assertNull(vm.state.value.enrollCode)
+
+        // Every other code is answered at the home node, which this identity has none of yet.
+        vm.onScanned("boson:signin:1:req123")
+        assertNull(vm.state.value.signInRequestId)
+        assertEquals("join a node first", vm.state.value.error)
+        vm.onScanned(code)
+        assertEquals(ApproveStep.SCAN, vm.state.value.step)
+        assertEquals("join a node first", vm.state.value.error)
     }
 
     @Test

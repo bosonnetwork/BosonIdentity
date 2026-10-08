@@ -42,7 +42,8 @@ fun Throwable.toAppError(): AppError = when (val e = unwrapped()) {
         400 -> AppError.InvalidInput(e.message, e)
         401 -> AppError.Unauthorized(e.message, e)
         403 -> AppError.Forbidden(e.message, e)
-        404 -> AppError.NotFound(e.message, e)
+        // Gone: a request that ended (an enrollment approved, denied or expired) is no more there to act on.
+        404, 410 -> AppError.NotFound(e.message, e)
         408 -> AppError.Timeout(e.message, e)
         409, 412 -> AppError.Conflict(e.message, e)
         428 -> AppError.PassphraseRequired(e.message, e)

@@ -122,7 +122,8 @@ import kotlinx.coroutines.delay
  * and, for the accounts marked as its administrators, the Dashboard: the one way into administration.
  * The node's root user is not one of them here: it is the node's safeguard, kept off phones and remote
  * access, and administers through the node itself. [onOpenAdmin] opens
- * it. [onScan] opens the app's scanner, for a web page's sign-in code or a new device's pairing code.
+ * it. [onScan] opens the app's scanner, for a web page's sign-in code, a new device's pairing code or a
+ * node console's enrollment code.
  * [navigationIcon] goes at the start of the top bar; the app puts its identity switcher there.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -147,8 +148,8 @@ fun IdentityScreen(
                 title = { Text(stringResource(R.string.id_title)) },
                 navigationIcon = navigationIcon,
                 actions = {
-                    // Both codes it reads are acted on at the home node, so it waits for one.
-                    if (identity?.homeNode != null) {
+                    // Shown with or without a home node: a node console's enrollment code needs none.
+                    if (identity != null) {
                         IconButton(onClick = { onScan(identity.userId) }) {
                             Icon(Icons.Filled.QrCodeScanner, contentDescription = stringResource(R.string.id_scan))
                         }

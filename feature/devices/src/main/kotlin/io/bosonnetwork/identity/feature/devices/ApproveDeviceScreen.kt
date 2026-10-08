@@ -99,7 +99,8 @@ import java.util.Locale
  * where and for what, and approving or denying it. Every approval reads as a sentence: who (the
  * identity), what (the device, and whether it gets the identity's key), where (the node). [onDone]
  * runs when the device joined; [onClose] when the user leaves otherwise; [onBackup] opens the key's
- * backup, which approving needs first.
+ * backup, which approving needs first. As the app's scanner, it hands a web page's sign-in code to
+ * [onSignIn] and a node console's enrollment code to [onEnroll].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,6 +109,7 @@ fun ApproveDeviceScreen(
     onClose: () -> Unit,
     onBackup: (userId: String) -> Unit,
     onSignIn: (requestId: String) -> Unit = {},
+    onEnroll: (code: String) -> Unit = {},
     viewModel: ApproveDeviceViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -115,6 +117,12 @@ fun ApproveDeviceScreen(
         state.signInRequestId?.let {
             viewModel.signInHandled()
             onSignIn(it)
+        }
+    }
+    LaunchedEffect(state.enrollCode) {
+        state.enrollCode?.let {
+            viewModel.signInHandled()
+            onEnroll(it)
         }
     }
     ObscuredTouchGuard()

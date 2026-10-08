@@ -22,6 +22,7 @@
 
 package io.bosonnetwork.identity
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -61,6 +62,8 @@ import io.bosonnetwork.identity.feature.devices.ApproveSignInScreen
 import io.bosonnetwork.identity.feature.devices.ApproveSignInViewModel
 import io.bosonnetwork.identity.feature.devices.ApproveDeviceViewModel
 import io.bosonnetwork.identity.feature.devices.DevicesScreen
+import io.bosonnetwork.identity.feature.devices.EnrollAdminScreen
+import io.bosonnetwork.identity.feature.devices.EnrollAdminViewModel
 import io.bosonnetwork.identity.feature.identity.IdentityScreen
 import io.bosonnetwork.identity.feature.onboarding.BackupScreen
 import io.bosonnetwork.identity.feature.onboarding.JoinNodeScreen
@@ -81,6 +84,7 @@ private object Routes {
     const val BACKUP = "backup/{${JoinNodeViewModel.ARG_USER_ID}}"
     const val APPROVE = "approve/{${ApproveDeviceViewModel.ARG_USER_ID}}?${ApproveDeviceViewModel.ARG_GENERAL}={${ApproveDeviceViewModel.ARG_GENERAL}}"
     const val SIGN_IN = "signin/{${ApproveDeviceViewModel.ARG_USER_ID}}/{${ApproveSignInViewModel.ARG_REQUEST_ID}}"
+    const val ENROLL = "enroll/{${ApproveDeviceViewModel.ARG_USER_ID}}?${EnrollAdminViewModel.ARG_CODE}={${EnrollAdminViewModel.ARG_CODE}}"
 
     fun join(userId: String, first: Boolean) = "join/$userId?first=$first"
     fun backup(userId: String) = "backup/$userId"
@@ -89,6 +93,8 @@ private object Routes {
     /** The app's scanner: the approve screen, reading any code (a web sign-in or a new device). */
     fun scan(userId: String) = "approve/$userId?${ApproveDeviceViewModel.ARG_GENERAL}=true"
     fun signIn(userId: String, requestId: String) = "signin/$userId/$requestId"
+    // The code holds ':' and '/': encoded, as one query value.
+    fun enroll(userId: String, code: String) = "enroll/$userId?${EnrollAdminViewModel.ARG_CODE}=${Uri.encode(code)}"
 
     /** The admin page, opened from the home node's Dashboard. */
     const val ADMIN = "admin"
@@ -191,6 +197,23 @@ fun AppNavigation(
                         val userId = it.arguments?.getString(ApproveDeviceViewModel.ARG_USER_ID).orEmpty()
                         nav.navigate(Routes.signIn(userId, requestId)) { popUpTo(Routes.APPROVE) { inclusive = true } }
                     },
+                    // A node console's enrollment code: its own screen replaces this one too.
+                    onEnroll = { code ->
+                        val userId = it.arguments?.getString(ApproveDeviceViewModel.ARG_USER_ID).orEmpty()
+                        nav.navigate(Routes.enroll(userId, code)) { popUpTo(Routes.APPROVE) { inclusive = true } }
+                    },
+                )
+            }
+            composable(
+                Routes.ENROLL,
+                arguments = listOf(
+                    navArgument(ApproveDeviceViewModel.ARG_USER_ID) { type = NavType.StringType },
+                    navArgument(EnrollAdminViewModel.ARG_CODE) { type = NavType.StringType },
+                ),
+            ) {
+                EnrollAdminScreen(
+                    onClose = { nav.popBackStack() },
+                    onBackup = { nav.navigate(Routes.backup(it)) },
                 )
             }
             composable(

@@ -28,7 +28,9 @@ import io.bosonnetwork.director.client.DirectorAdmin
 import io.bosonnetwork.director.client.DirectorClient
 import io.bosonnetwork.director.client.DirectorGuest
 import io.bosonnetwork.director.client.DirectorOAuth
+import io.bosonnetwork.director.client.EnrollmentCode
 import io.bosonnetwork.director.client.NodeStatus
+import io.bosonnetwork.director.client.PendingEnrollment
 import io.bosonnetwork.higgs.HiggsNode
 import io.bosonnetwork.identity.core.model.AppError
 import io.bosonnetwork.identity.core.model.IdentityInfo
@@ -145,6 +147,24 @@ class NodeConnections(private val vault: IdentityVault) {
     }
 
     /**
+     * Claims an administrator's enrollment request, scanned from a node's console, for the identity
+     * [userId], after the user confirmed with [prompt]: its user key and this app's device key each sign
+     * the claim, and neither is sent. The client talks to the code's Director, pinned to the code's node.
+     */
+    suspend fun claimEnrollment(userId: String, code: EnrollmentCode, prompt: AuthPrompt): PendingEnrollment =
+        vault.withUserKey(userId, prompt) { userKey ->
+            val deviceKey = vault.deviceKey(userId, prompt)
+            call {
+                guest(code.node()).claimEnrollment(code, userKey, deviceKey, ThisDevice.name, ThisDevice.APP_NAME).await()
+            }
+        }
+
+    /** Waits for the console to answer a claimed enrollment request; minutes, at most the request's lifetime. */
+    suspend fun finishEnrollment(enrollment: PendingEnrollment) {
+        call { guest(enrollment.code.node()).finishEnrollment(enrollment).await() }
+    }
+
+    /**
      * Runs [block] with the web gateway of [identity]'s home node, started and acting as the identity
      * through this app's device key, and stops it afterwards. The gateway is found in the node's status:
      * its peer id (which pins its certificate) and the endpoint it announces.
@@ -203,6 +223,8 @@ class NodeConnections(private val vault: IdentityVault) {
         }
         closing.forEach { it.close() }
     }
+
+    private fun EnrollmentCode.node() = NodeAddress(url, nodeId.toString())
 
     private fun builder(node: NodeAddress): DirectorClient.Builder =
         DirectorClient.builder().vertx(vertx).directorUrl(node.url).apply { node.nodeId?.let { nodeId(Id.of(it)) } }

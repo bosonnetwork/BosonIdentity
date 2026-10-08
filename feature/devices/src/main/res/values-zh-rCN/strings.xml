@@ -93,10 +93,10 @@
     <string name="dev_approve_denied">已拒绝请求</string>
     <!-- The app's scanner, opened from Identity's Scan button -->
     <string name="dev_scan_title">扫一扫</string>
-    <string name="dev_scan_body">扫描网页上用于“使用 Boson Identity 登录”的二维码，或新设备上用于加入你身份的二维码。也可以粘贴其文本。</string>
+    <string name="dev_scan_body">扫描网页上用于“使用 Boson Identity 登录”的二维码、新设备上用于加入你身份的二维码，或节点控制台上用于让你成为其管理员的二维码。也可以粘贴其文本。</string>
     <string name="dev_scan_paste_label">代码</string>
-    <string name="dev_scan_paste_hint">以 bosonsignin: 或 bosonpair: 开头</string>
-    <string name="dev_scan_invalid_code">Boson Identity 无法使用此代码。请扫描网页或新设备显示的二维码，或粘贴其文本。</string>
+    <string name="dev_scan_paste_hint">以 boson: 开头</string>
+    <string name="dev_scan_invalid_code">Boson Identity 无法使用此代码。请扫描网页、新设备或节点控制台显示的二维码，或粘贴其文本。</string>
     <string name="dev_approve_denied_body">该设备没有被添加到你的身份。</string>
     <string name="dev_approve_gone">此请求已过期或已被处理。</string>
     <string name="dev_approve_gone_body">请让新设备显示新的配对码。</string>
@@ -131,4 +131,29 @@
     <string name="dev_signin_admin_refused">只有此节点的管理员才能登录管理后台。</string>
     <string name="dev_signin_prompt_title">网页登录</string>
     <string name="dev_signin_prompt_subtitle">%2$s 上的%1$s将以你的身份登录</string>
+    <string name="dev_scan_needs_node">请先加入一个节点：此代码需要在你的主节点上处理。</string>
+    <string name="dev_enroll_title">管理节点</string>
+    <string name="dev_enroll_review_title">成为 %1$s 的管理员？</string>
+    <string name="dev_enroll_body_new">批准后，%1$s 将成为此身份的主节点，本手机成为它的设备之一，此身份成为该节点的管理员。</string>
+    <string name="dev_enroll_body_member">批准后，此身份将成为其主节点 %1$s 的管理员，本手机成为它的设备之一。</string>
+    <string name="dev_enroll_warning">只有当这是你自己刚刚在节点控制台上发起的操作时才继续。控制台随后会要求输入本手机显示的数字。</string>
+    <string name="dev_enroll_continue">继续</string>
+    <string name="dev_enroll_backup_first">用你的密钥管理节点之前，请先备份它。</string>
+    <string name="dev_enroll_number_title">在节点控制台上输入此数字</string>
+    <string name="dev_enroll_waiting">正在等待控制台</string>
+    <string name="dev_enroll_keep_open">请保持此屏幕打开，直到控制台批准。</string>
+    <string name="dev_enroll_done_title">你已成为 %1$s 的管理员</string>
+    <string name="dev_enroll_done_body">“身份”标签页上的“管理面板”可打开节点的管理。</string>
+    <string name="dev_enroll_denied_title">未获批准</string>
+    <string name="dev_enroll_denied_body">控制台拒绝了此请求，或输入了错误的数字。如需重试，请在控制台上重新开始。</string>
+    <string name="dev_enroll_taken_title">另一部手机抢先了</string>
+    <string name="dev_enroll_taken_body">另一部手机先于本手机认领了此代码。如果那不是你的手机，请在控制台上拒绝此请求，然后重新开始。</string>
+    <string name="dev_enroll_expired_title">此代码已失效</string>
+    <string name="dev_enroll_expired_body">它已过期，或已被使用。请在节点控制台上重新开始。</string>
+    <string name="dev_enroll_other_node_title">此身份属于另一个节点</string>
+    <string name="dev_enroll_other_node_body">一个身份只有一个主节点，此身份的主节点是 %1$s。要管理 %2$s，请使用尚无主节点的身份，或主节点就是它的身份。</string>
+    <string name="dev_enroll_error_title">未能完成</string>
+    <string name="dev_enroll_deactivated">此身份在该节点上的账户已停用。</string>
+    <string name="dev_enroll_prompt_title">管理节点</string>
+    <string name="dev_enroll_prompt_subtitle">此身份请求管理 %1$s</string>
 </resources>

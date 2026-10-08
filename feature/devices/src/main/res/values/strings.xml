@@ -93,10 +93,10 @@
     <string name="dev_approve_denied">Request denied</string>
     <!-- The app's scanner, opened from Identity's Scan button -->
     <string name="dev_scan_title">Scan a code</string>
-    <string name="dev_scan_body">Scan the code a web page shows to sign in with Boson Identity, or the code a new device shows to join your identity. Or paste its text.</string>
+    <string name="dev_scan_body">Scan the code a web page shows to sign in with Boson Identity, the code a new device shows to join your identity, or the code a node\'s console shows to make you its administrator. Or paste its text.</string>
     <string name="dev_scan_paste_label">Code</string>
-    <string name="dev_scan_paste_hint">Starts with bosonsignin: or bosonpair:</string>
-    <string name="dev_scan_invalid_code">Boson Identity can\'t use this code. Scan the code a web page or a new device shows, or paste its text.</string>
+    <string name="dev_scan_paste_hint">Starts with boson:</string>
+    <string name="dev_scan_invalid_code">Boson Identity can\'t use this code. Scan the code a web page, a new device or a node\'s console shows, or paste its text.</string>
     <string name="dev_approve_denied_body">The device was not added to your identity.</string>
     <string name="dev_approve_gone">This request expired or was already answered.</string>
     <string name="dev_approve_gone_body">Ask the new device to show a new code.</string>
@@ -131,4 +131,29 @@
     <string name="dev_signin_admin_refused">Only an administrator of this node can sign in to its admin dashboard.</string>
     <string name="dev_signin_prompt_title">Sign in on the web</string>
     <string name="dev_signin_prompt_subtitle">%1$s at %2$s will be signed in as you</string>
+    <string name="dev_scan_needs_node">Join a node first: this code is answered at your home node.</string>
+    <string name="dev_enroll_title">Administer a node</string>
+    <string name="dev_enroll_review_title">Become an administrator of %1$s?</string>
+    <string name="dev_enroll_body_new">On approval, %1$s becomes this identity\'s home node, this phone one of its devices, and the identity the node\'s administrator.</string>
+    <string name="dev_enroll_body_member">On approval, this identity becomes an administrator of its home node, %1$s, with this phone one of its devices.</string>
+    <string name="dev_enroll_warning">Only continue if you started this yourself, just now, on the node\'s console. The console then asks for the number this phone shows.</string>
+    <string name="dev_enroll_continue">Continue</string>
+    <string name="dev_enroll_backup_first">Back up your key before you use it to administer a node.</string>
+    <string name="dev_enroll_number_title">Type this number on the node\'s console</string>
+    <string name="dev_enroll_waiting">Waiting for the console</string>
+    <string name="dev_enroll_keep_open">Keep this screen open until the console approves.</string>
+    <string name="dev_enroll_done_title">You administer %1$s</string>
+    <string name="dev_enroll_done_body">The Dashboard, on the Identity tab, opens the node\'s administration.</string>
+    <string name="dev_enroll_denied_title">Not approved</string>
+    <string name="dev_enroll_denied_body">The console denied the request, or a wrong number was typed. To try again, start again on the console.</string>
+    <string name="dev_enroll_taken_title">Another phone got there first</string>
+    <string name="dev_enroll_taken_body">Another phone claimed this code before this one. If it wasn\'t yours, deny the request on the console, and start again.</string>
+    <string name="dev_enroll_expired_title">This code is gone</string>
+    <string name="dev_enroll_expired_body">It expired, or was already used. Start again on the node\'s console.</string>
+    <string name="dev_enroll_other_node_title">This identity lives on another node</string>
+    <string name="dev_enroll_other_node_body">An identity has one home node, and this one\'s is %1$s. To administer %2$s, use an identity that has no home node yet, or lives there.</string>
+    <string name="dev_enroll_error_title">Enrolling didn\'t work</string>
+    <string name="dev_enroll_deactivated">This identity\'s account on the node is deactivated.</string>
+    <string name="dev_enroll_prompt_title">Administer a node</string>
+    <string name="dev_enroll_prompt_subtitle">This identity asks to administer %1$s</string>
 </resources>

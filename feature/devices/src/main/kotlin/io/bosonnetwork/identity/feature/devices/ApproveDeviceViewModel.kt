@@ -29,6 +29,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.bosonnetwork.director.client.Device
+import io.bosonnetwork.director.client.EnrollmentCode
 import io.bosonnetwork.director.client.PairingCode
 import io.bosonnetwork.director.client.PendingDevice
 import io.bosonnetwork.director.client.SignInRequest
@@ -100,7 +101,8 @@ data class ApproveUiState(
     val identity: IdentityInfo? = null,
     /**
      * Opened as the app's scanner (Identity's Scan button) rather than for a new device: the scan step
-     * speaks of any code the app reads, a web page's sign-in code or a new device's pairing code.
+     * speaks of any code the app reads, a web page's sign-in code, a new device's pairing code or a node
+     * console's enrollment code.
      */
     val general: Boolean = false,
     val step: ApproveStep = ApproveStep.SCAN,
@@ -123,6 +125,8 @@ data class ApproveUiState(
     val error: String? = null,
     /** The scanned code was a web page's sign-in, not a device's: the screen hands it over. */
     val signInRequestId: String? = null,
+    /** The scanned code was a node console's enrollment code: the screen hands it over. */
+    val enrollCode: String? = null,
 ) {
     /** Approving is allowed: the backup is checked, the request is alive, and a key handover is understood. */
     val canApprove: Boolean
@@ -204,13 +208,25 @@ class ApproveDeviceViewModel @Inject constructor(
         code?.let { load(it) }
     }
 
-    /** The sign-in code was handed over; scanning goes on from here when the user comes back. */
+    /** The sign-in or enrollment code was handed over; scanning goes on from here when the user comes back. */
     fun signInHandled() {
         lastScanned = null
-        _state.update { it.copy(signInRequestId = null) }
+        _state.update { it.copy(signInRequestId = null, enrollCode = null) }
     }
 
     private fun open(text: String) {
+        // A node console's enrollment code names its own node: an identity needs no home node for it.
+        EnrollmentCode.parse(text).orElse(null)?.let { code ->
+            _state.update { it.copy(enrollCode = code.toString(), error = null) }
+            return
+        }
+        // Every other code is answered at the home node.
+        val identity = _state.value.identity
+        if (identity != null && identity.homeNode == null) {
+            lastScanned = null
+            _state.update { it.copy(error = context.getString(R.string.dev_scan_needs_node)) }
+            return
+        }
         // The same scanner reads a web page's "Sign in with Boson Identity" code.
         SignInRequest.parseCode(text).orElse(null)?.let { requestId ->
             _state.update { it.copy(signInRequestId = requestId, error = null) }
