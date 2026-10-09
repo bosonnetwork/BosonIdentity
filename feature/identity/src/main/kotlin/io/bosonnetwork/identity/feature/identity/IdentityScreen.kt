@@ -23,6 +23,10 @@
 package io.bosonnetwork.identity.feature.identity
 
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,6 +38,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -44,6 +49,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
@@ -138,6 +144,9 @@ fun IdentityScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showId by rememberSaveable { mutableStateOf(false) }
+    // The system photo picker: no permission to read the phone's pictures is needed.
+    val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia(), viewModel::onAvatarPicked)
+    val choosePhoto = { pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
     var showNode by rememberSaveable { mutableStateOf(false) }
     val identity = state.identity
 
@@ -181,6 +190,11 @@ fun IdentityScreen(
                     identity = identity,
                     state = state,
                     onShowId = { showId = true },
+                    // An account without an avatar has nothing to remove: straight to the picker.
+                    onAvatar = {
+                        val hasAvatar = (state.node as? NodeState.Ready)?.profile?.avatar != null
+                        if (hasAvatar) viewModel.openAvatarMenu() else if (state.canChangeAvatar) choosePhoto()
+                    },
                     onEdit = viewModel::startEdit,
                     onCard = viewModel::requestCard,
                     onRetryCard = viewModel::refresh,
@@ -245,19 +259,35 @@ fun IdentityScreen(
     state.card.confirm?.let { confirm ->
         CardConfirmDialog(confirm, onConfirm = viewModel::confirmCard, onCancel = viewModel::cancelCard)
     }
+    if (state.avatarMenu) {
+        AvatarMenu(
+            onChoose = {
+                viewModel.closeAvatarMenu()
+                choosePhoto()
+            },
+            onRemove = viewModel::removeAvatar,
+            onDismiss = viewModel::closeAvatarMenu,
+        )
+    }
+    state.avatarPick?.let { pick ->
+        AvatarConfirmDialog(pick, identity?.homeNode?.host().orEmpty(), onConfirm = viewModel::confirmAvatar, onCancel = viewModel::cancelAvatar)
+    }
+    state.avatarError?.let { AvatarErrorDialog(it, onDismiss = viewModel::dismissAvatarError) }
 }
 
 // ---- Profile -----------------------------------------------------------------------------------
 
 /**
- * Who the identity is: its identicon, name and id, what it says about itself, and whether the profile
- * is published as a public card. Editing (top-right) needs the home node, which keeps the profile.
+ * Who the identity is: its avatar (or identicon), name and id, what it says about itself, and whether the
+ * profile is published as a public card. Editing (top-right) and changing the avatar (tapping it, which a
+ * camera badge says) need the home node, which keeps the profile.
  */
 @Composable
 private fun ProfileCard(
     identity: IdentityInfo,
     state: IdentityUiState,
     onShowId: () -> Unit,
+    onAvatar: () -> Unit,
     onEdit: () -> Unit,
     onCard: (Boolean) -> Unit,
     onRetryCard: () -> Unit,
@@ -267,13 +297,7 @@ private fun ProfileCard(
     val name = profile?.name ?: identity.name
     SectionCard {
         Row(Modifier.padding(start = 16.dp, top = 12.dp, end = 4.dp), verticalAlignment = Alignment.Top) {
-            IdentityPicture(
-                identity.userId,
-                state.avatar,
-                Modifier.padding(top = 4.dp),
-                size = 64.dp,
-                contentDescription = stringResource(R.string.id_avatar),
-            )
+            EditableAvatar(identity.userId, state, editable = profile != null, onClick = onAvatar)
             Column(Modifier.padding(start = 16.dp, top = 6.dp).weight(1f)) {
                 Text(
                     name ?: stringResource(R.string.id_unnamed),
@@ -325,6 +349,37 @@ private fun ProfileCard(
         if (identity.homeNode != null) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             PublicCardRow(state.card, profileReady = profile != null, onCard = onCard, onRetry = onRetryCard)
+        }
+    }
+}
+
+/** The avatar; with a camera badge, and tappable, when it can be changed. Dimmed while it is changing. */
+@Composable
+private fun EditableAvatar(userId: String, state: IdentityUiState, editable: Boolean, onClick: () -> Unit) {
+    val label = stringResource(R.string.id_avatar_change)
+    Box(
+        Modifier
+            .padding(top = 4.dp)
+            .then(if (editable) Modifier.clickable(onClickLabel = label, role = Role.Button, onClick = onClick) else Modifier),
+    ) {
+        IdentityPicture(userId, state.avatar, size = 64.dp, contentDescription = stringResource(R.string.id_avatar))
+        if (state.avatarBusy) {
+            Box(
+                Modifier.size(64.dp).clip(RoundedCornerShape(64.dp / 5)).background(Color.Black.copy(alpha = 0.35f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+            }
+        } else if (editable) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                border = BorderStroke(2.dp, MaterialTheme.brand.card),
+                modifier = Modifier.align(Alignment.BottomEnd).offset(x = 6.dp, y = 6.dp).size(26.dp),
+            ) {
+                Icon(Icons.Filled.PhotoCamera, contentDescription = null, modifier = Modifier.padding(5.dp))
+            }
         }
     }
 }

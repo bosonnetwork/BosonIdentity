@@ -23,6 +23,8 @@
 package io.bosonnetwork.identity.feature.identity
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.net.Uri
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.viewModelScope
 import io.bosonnetwork.Id
@@ -150,8 +152,9 @@ class IdentityViewModelTest {
     }
 
     private val avatars = AvatarCache(File(dir, "avatars"))
+    private val avatarImages = mockk<AvatarImages>()
 
-    private fun viewModel() = IdentityViewModel(vault, active, nodes, cards, logos, avatars, adminAccess, context).also { viewModels += it }
+    private fun viewModel() = IdentityViewModel(vault, active, nodes, cards, logos, avatars, adminAccess, avatarImages, context).also { viewModels += it }
 
     // The profile as the client would decode it; its constructor is the one Jackson uses.
     private fun profile(
@@ -339,6 +342,117 @@ class IdentityViewModelTest {
         every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice"))
         vm.refresh()
         assertNull(vm.state.first { it.avatar == null }.avatar)
+    }
+
+    // ---- Changing the avatar -------------------------------------------------------------------
+
+    private val picked = mockk<Uri>()
+    private val jpeg = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 7)
+
+    private fun pickable() {
+        coEvery { avatarImages.prepare(picked) } returns PreparedAvatar(jpeg, mockk<Bitmap>())
+        every { client.updateAvatar(jpeg, "image/jpeg") } returns CompletableFuture.completedFuture(avatarUri)
+        every { client.avatar } returns CompletableFuture.completedFuture(Optional.of(Avatar.of("image/jpeg", jpeg, "\"v1\"", null)))
+    }
+
+    @Test
+    fun `a picked photo is shown to confirm, then uploaded with the user key and shown`() = runTest {
+        val userId = addIdentity()
+        pickable()
+        val vm = viewModel()
+        vm.ready()
+        assertTrue(vm.state.value.canChangeAvatar)
+
+        vm.onAvatarPicked(picked)
+        val pick = vm.state.first { it.avatarPick != null }.avatarPick!!
+        assertArrayEquals(jpeg, pick.image)
+        verify(exactly = 0) { client.updateAvatar(any<ByteArray>(), any()) }
+
+        vm.confirmAvatar()
+        val state = vm.state.first { it.avatarPick == null && it.avatar != null }
+        assertArrayEquals(jpeg, state.avatar)
+        assertEquals(avatarUri, (state.node as NodeState.Ready).profile.avatar)
+        coVerify { nodes.asUser<Any?>(userId, node, any(), any(), any()) }
+        assertEquals("\"v1\"", avatars.held(userId)?.eTag?.orElse(null))
+        // Not published: nothing to publish again.
+        coVerify(exactly = 0) { cards.publish(any(), any(), any<Signature.KeyPair>(), any()) }
+    }
+
+    @Test
+    fun `no photo picked changes nothing, and an unreadable one says so`() = runTest {
+        addIdentity()
+        coEvery { avatarImages.prepare(picked) } throws AppError.InvalidInput("can't read it")
+        val vm = viewModel()
+        vm.ready()
+        vm.onAvatarPicked(null)
+        assertNull(vm.state.value.avatarPick)
+        assertFalse(vm.state.value.avatarBusy)
+
+        vm.onAvatarPicked(picked)
+        assertEquals("can't read it", vm.state.first { it.avatarError != null }.avatarError)
+        vm.dismissAvatarError()
+        assertNull(vm.state.value.avatarError)
+    }
+
+    @Test
+    fun `a dismissed prompt goes back to the photo, a refused upload says why`() = runTest {
+        addIdentity()
+        pickable()
+        val vm = viewModel()
+        vm.ready()
+        vm.onAvatarPicked(picked)
+        vm.state.first { it.avatarPick != null }
+
+        coEvery { nodes.asUser<Any?>(any(), any(), any(), any(), any()) } throws AppError.AuthenticationCancelled("no")
+        vm.confirmAvatar()
+        var pick = vm.state.first { it.avatarPick?.busy == false }.avatarPick!!
+        assertNull(pick.error)
+
+        coEvery { nodes.asUser<Any?>(any(), any(), any(), any(), any()) } coAnswers {
+            arg<suspend (DirectorClient, Signature.KeyPair?) -> Any?>(4).invoke(client, null)
+        }
+        every { client.updateAvatar(jpeg, "image/jpeg") } returns CompletableFuture.failedFuture(DirectorException.fromResponse(413, "too big", null))
+        vm.confirmAvatar()
+        pick = vm.state.first { it.avatarPick?.error != null }.avatarPick!!
+        assertFalse(pick.busy)
+
+        vm.cancelAvatar()
+        assertNull(vm.state.value.avatarPick)
+    }
+
+    @Test
+    fun `a published card is published again when the avatar comes or goes, not when it changes`() = runTest {
+        addIdentity()
+        pickable()
+        coEvery { cards.status(any(), any()) } returns CardStatus.Published(3)
+        val content = mutableListOf<CardContent>()
+        coEvery { cards.publish(any(), capture(content), any<Signature.KeyPair>(), any()) } returns 4
+        every { client.removeAvatar() } returns CompletableFuture.completedFuture(null)
+        val vm = viewModel()
+        vm.ready()
+        vm.card()
+
+        // Comes: the card now names the avatar.
+        vm.onAvatarPicked(picked)
+        vm.state.first { it.avatarPick != null }
+        vm.confirmAvatar()
+        assertEquals(CardState.On(4), vm.state.first { it.avatarPick == null && it.avatar != null }.card.state)
+        assertEquals(avatarUri, content.single().avatar)
+
+        // Changes: the same address, so the card stays as it is.
+        vm.onAvatarPicked(picked)
+        vm.state.first { it.avatarPick != null }
+        vm.confirmAvatar()
+        vm.state.first { it.avatarPick == null }
+        assertEquals(1, content.size)
+
+        // Goes: the card no longer names one.
+        vm.removeAvatar()
+        val state = vm.state.first { it.avatar == null && !it.avatarBusy }
+        assertNull((state.node as NodeState.Ready).profile.avatar)
+        assertEquals(2, content.size)
+        assertNull(content.last().avatar)
+        verify { client.removeAvatar() }
     }
 
     @Test

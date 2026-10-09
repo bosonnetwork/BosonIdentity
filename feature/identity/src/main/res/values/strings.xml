@@ -78,4 +78,16 @@
 
     <string name="id_unlock_prompt_title">Unlock Boson Identity</string>
     <string name="id_unlock_prompt_subtitle">Confirm it\'s you</string>
+    <string name="id_ok">OK</string>
+    <string name="id_avatar_change">Change your avatar</string>
+    <string name="id_avatar_menu_title">Your avatar</string>
+    <string name="id_avatar_choose">Choose a photo</string>
+    <string name="id_avatar_remove">Remove the photo</string>
+    <string name="id_avatar_confirm_title">Use this photo?</string>
+    <string name="id_avatar_confirm_body">It shows wherever your identity does on %1$s, and on your public profile card if you publish one.</string>
+    <string name="id_avatar_use">Use photo</string>
+    <string name="id_avatar_error_title">Couldn\'t change the avatar</string>
+    <string name="id_avatar_unreadable">This picture can\'t be read. Choose another one.</string>
+    <string name="id_avatar_prompt_title">Change your avatar</string>
+    <string name="id_avatar_prompt_subtitle">Your avatar at %1$s will change</string>
 </resources>

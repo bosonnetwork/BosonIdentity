@@ -22,6 +22,25 @@
 
 package io.bosonnetwork.identity.feature.identity
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -153,5 +172,86 @@ internal fun CardConfirmDialog(confirm: CardConfirm, onConfirm: () -> Unit, onCa
             }
         },
         dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.id_cancel)) } },
+    )
+}
+
+// ---- The avatar --------------------------------------------------------------------------------
+
+/** What can be done with an avatar the account has: a new photo, or none. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun AvatarMenu(onChoose: () -> Unit, onRemove: () -> Unit, onDismiss: () -> Unit) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.brand.card,
+    ) {
+        Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+            Text(
+                stringResource(R.string.id_avatar_menu_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.id_avatar_choose)) },
+                leadingContent = { Icon(Icons.Outlined.PhotoLibrary, contentDescription = null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier = Modifier.clickable(onClick = onChoose),
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.id_avatar_remove), color = MaterialTheme.colorScheme.error) },
+                leadingContent = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier = Modifier.clickable(onClick = onRemove),
+            )
+        }
+    }
+}
+
+/** The picked picture as it will show, to confirm before it goes to the node. */
+@Composable
+internal fun AvatarConfirmDialog(pick: AvatarPick, host: String, onConfirm: () -> Unit, onCancel: () -> Unit) {
+    val preview = remember(pick.preview) { pick.preview.asImageBitmap() }
+    AlertDialog(
+        onDismissRequest = { if (!pick.busy) onCancel() },
+        containerColor = MaterialTheme.brand.card,
+        title = { Text(stringResource(R.string.id_avatar_confirm_title)) },
+        text = {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                // The shape the app shows avatars in.
+                Image(
+                    preview,
+                    contentDescription = stringResource(R.string.id_avatar),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(160.dp).clip(RoundedCornerShape(32.dp)),
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(stringResource(R.string.id_avatar_confirm_body, host), style = MaterialTheme.typography.bodyMedium)
+                pick.error?.let {
+                    Spacer(Modifier.height(8.dp))
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        },
+        confirmButton = {
+            if (pick.busy) {
+                CircularProgressIndicator(Modifier.size(24.dp))
+            } else {
+                TextButton(onClick = onConfirm) { Text(stringResource(R.string.id_avatar_use)) }
+            }
+        },
+        dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.id_cancel)) } },
+    )
+}
+
+/** Why the avatar couldn't be changed. */
+@Composable
+internal fun AvatarErrorDialog(message: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.brand.card,
+        title = { Text(stringResource(R.string.id_avatar_error_title)) },
+        text = { Text(message) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.id_ok)) } },
     )
 }

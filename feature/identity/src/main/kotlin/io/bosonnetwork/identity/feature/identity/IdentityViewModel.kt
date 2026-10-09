@@ -25,12 +25,15 @@ package io.bosonnetwork.identity.feature.identity
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.bosonnetwork.Id
+import io.bosonnetwork.director.client.Avatar
 import io.bosonnetwork.director.client.AvatarRefresh
+import io.bosonnetwork.director.client.DirectorClient
 import io.bosonnetwork.director.client.NodeStatus
 import io.bosonnetwork.director.client.SuperNodeCode
 import io.bosonnetwork.director.client.ProfileUpdate
@@ -138,6 +141,11 @@ data class ProfileEdit(
     val error: String? = null,
 )
 
+/** A picture picked for the avatar, prepared, and waiting for the user to confirm it. */
+class AvatarPick(val image: ByteArray, val preview: Bitmap, val busy: Boolean = false, val error: String? = null) {
+    fun copy(busy: Boolean = this.busy, error: String? = this.error) = AvatarPick(image, preview, busy, error)
+}
+
 data class IdentityUiState(
     val identity: IdentityInfo? = null,
     val node: NodeState = NodeState.None,
@@ -149,7 +157,19 @@ data class IdentityUiState(
     val card: CardUi = CardUi(),
     /** Set while the edit dialog is open. */
     val edit: ProfileEdit? = null,
+    /** The avatar's menu (choose a photo, remove it) is open. */
+    val avatarMenu: Boolean = false,
+    /** A picked picture waiting to be confirmed as the avatar. */
+    val avatarPick: AvatarPick? = null,
+    /** Preparing a picked picture, or removing the avatar. */
+    val avatarBusy: Boolean = false,
+    /** Why the avatar couldn't be changed, until dismissed. */
+    val avatarError: String? = null,
 ) {
+    /** The avatar can be changed: the home node, which keeps it, has answered. */
+    val canChangeAvatar: Boolean
+        get() = node is NodeState.Ready && !avatarBusy && avatarPick == null
+
     /** Whether the identity administers its home node, as far as the app knows: it gets the Dashboard. */
     val administers: Boolean
         get() = identity?.administers == true || (node as? NodeState.Ready)?.profile?.admin == true
@@ -169,6 +189,7 @@ class IdentityViewModel @Inject constructor(
     private val logos: NodeLogos,
     private val avatars: AvatarCache,
     private val adminAccess: AdminAccess,
+    private val avatarImages: AvatarImages,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -392,6 +413,124 @@ class IdentityViewModel @Inject constructor(
         )
     }
 
+    // ---- The avatar ----------------------------------------------------------------------------
+
+    /** The avatar of an account that has one was tapped: its menu opens (one without goes to the picker). */
+    fun openAvatarMenu() {
+        if (_state.value.canChangeAvatar) _state.update { it.copy(avatarMenu = true) }
+    }
+
+    fun closeAvatarMenu() = _state.update { it.copy(avatarMenu = false) }
+
+    fun dismissAvatarError() = _state.update { it.copy(avatarError = null) }
+
+    fun cancelAvatar() {
+        if (_state.value.avatarPick?.busy == true) working?.cancel()
+        _state.update { it.copy(avatarPick = null) }
+    }
+
+    /** A picture came back from the photo picker, or none ([uri] null): prepared, then shown to confirm. */
+    fun onAvatarPicked(uri: Uri?) {
+        _state.update { it.copy(avatarMenu = false) }
+        if (uri == null || !_state.value.canChangeAvatar) return
+        _state.update { it.copy(avatarBusy = true, avatarError = null) }
+        working = viewModelScope.launch {
+            try {
+                val prepared = avatarImages.prepare(uri)
+                _state.update { it.copy(avatarBusy = false, avatarPick = AvatarPick(prepared.image, prepared.preview)) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(avatarBusy = false, avatarError = e.userMessage(context)) }
+            }
+        }
+    }
+
+    /** Makes the confirmed picture the avatar, after the user confirms with their screen lock. */
+    fun confirmAvatar() {
+        val pick = _state.value.avatarPick ?: return
+        if (pick.busy) return
+        _state.update { it.copy(avatarPick = pick.copy(busy = true, error = null)) }
+        changeAvatar(pick.image) { message -> _state.update { it.copy(avatarPick = it.avatarPick?.copy(busy = false, error = message)) } }
+    }
+
+    /** Removes the avatar, after the user confirms with their screen lock; the identicon stands in again. */
+    fun removeAvatar() {
+        _state.update { it.copy(avatarMenu = false) }
+        if (!_state.value.canChangeAvatar) return
+        _state.update { it.copy(avatarBusy = true, avatarError = null) }
+        changeAvatar(null) { message -> _state.update { it.copy(avatarBusy = false, avatarError = message) } }
+    }
+
+    /**
+     * Uploads [image] as the avatar, or removes it ([image] null), with the user key, like every change
+     * of the profile. A published card names the avatar by its address at the node, which a new picture
+     * keeps: the card is published again only when the avatar comes or goes, under the same prompt.
+     */
+    private fun changeAvatar(image: ByteArray?, onFailure: (String?) -> Unit) {
+        val s = _state.value
+        val identity = s.identity ?: return
+        val node = identity.homeNode ?: return
+        val ready = s.node as? NodeState.Ready ?: return
+        val republish = s.card.state is CardState.On && (ready.profile.avatar == null) != (image == null)
+        working = viewModelScope.launch {
+            try {
+                val prompt = AuthPrompt(
+                    context.getString(R.string.id_avatar_prompt_title),
+                    context.getString(R.string.id_avatar_prompt_subtitle, node.host()),
+                )
+                var card: CardUi? = null
+                // The new avatar's address at the node, and the picture to keep for it.
+                suspend fun apply(client: DirectorClient): Pair<String?, Avatar?> {
+                    if (image == null) {
+                        call { client.removeAvatar().await() }
+                        return null to null
+                    }
+                    val uri = call { client.updateAvatar(image, JPEG).await() }
+                    // Read back with its validators, so the next refresh needn't download it again.
+                    val stored = try {
+                        call { client.avatar.await() }.orElse(null)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        null
+                    }
+                    return uri to (stored ?: Avatar.of(JPEG, image, null, null))
+                }
+                val (uri, avatar) = if (!republish) {
+                    nodes.asUser(identity.userId, node, prompt) { client, _ -> apply(client) }
+                } else {
+                    nodes.asUserWithKey(identity.userId, node, prompt) { client, userKey ->
+                        val changed = apply(client)
+                        val content = cardContent(identity, ready.profile.copy(avatar = changed.first), ready.node)
+                        if (content != null) {
+                            card = try {
+                                CardUi(state = CardState.On(cards.publish(identity, content, userKey, prompt)))
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                _state.value.card.copy(error = context.getString(R.string.id_card_update_failed, e.userMessage(context)))
+                            }
+                        }
+                        changed
+                    }
+                }
+                avatars.put(identity.userId, avatar)
+                _state.update {
+                    val profile = (it.node as? NodeState.Ready)?.let { r -> r.copy(profile = r.profile.copy(avatar = uri)) } ?: it.node
+                    it.copy(node = profile, avatarPick = null, avatarBusy = false, card = card ?: it.card)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: AppError.AuthenticationCancelled) {
+                // Dismissed: back to where the user was, with nothing to explain.
+                onFailure(null)
+            } catch (e: Exception) {
+                onFailure(e.userMessage(context))
+            }
+        }
+    }
+
     // ---- Editing the profile -------------------------------------------------------------------
 
     fun startEdit() {
@@ -524,3 +663,6 @@ fun nodeQrPayload(node: NodeAddress, nodeId: String): String =
 
 /** The node's host name, to name it in a sentence; its URL when that has none. */
 fun NodeAddress.host(): String = runCatching { URI(url).host }.getOrNull() ?: url
+
+// What avatars are uploaded as: AvatarImages makes every picked picture a JPEG.
+private const val JPEG = "image/jpeg"

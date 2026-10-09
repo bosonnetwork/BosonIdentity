@@ -78,4 +78,16 @@
 
     <string name="id_unlock_prompt_title">解锁 Boson Identity</string>
     <string name="id_unlock_prompt_subtitle">请确认是你本人</string>
+    <string name="id_ok">确定</string>
+    <string name="id_avatar_change">更换头像</string>
+    <string name="id_avatar_menu_title">你的头像</string>
+    <string name="id_avatar_choose">选择照片</string>
+    <string name="id_avatar_remove">移除照片</string>
+    <string name="id_avatar_confirm_title">使用这张照片？</string>
+    <string name="id_avatar_confirm_body">它会显示在 %1$s 上你的身份出现的地方，如果你发布了公开资料卡，也会显示在资料卡上。</string>
+    <string name="id_avatar_use">使用照片</string>
+    <string name="id_avatar_error_title">无法更换头像</string>
+    <string name="id_avatar_unreadable">无法读取这张图片。请选择另一张。</string>
+    <string name="id_avatar_prompt_title">更换头像</string>
+    <string name="id_avatar_prompt_subtitle">你在 %1$s 上的头像将会更改</string>
 </resources>
