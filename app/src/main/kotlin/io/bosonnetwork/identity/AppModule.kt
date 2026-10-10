@@ -36,11 +36,12 @@ import io.bosonnetwork.identity.core.backup.PasskeyBackup
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.AdminAccess
 import io.bosonnetwork.identity.core.boson.AdminSession
-import io.bosonnetwork.identity.core.boson.AvatarCache
+import io.bosonnetwork.identity.core.boson.AvatarStore
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.boson.NodeLogos
 import io.bosonnetwork.identity.core.boson.OAuthReturns
 import io.bosonnetwork.identity.core.boson.ProfileCards
+import io.bosonnetwork.identity.core.boson.ProfileSync
 import io.bosonnetwork.identity.core.vault.ActivityAuthenticator
 import io.bosonnetwork.identity.core.vault.IdentityVault
 import io.bosonnetwork.identity.core.vault.KeystoreProtector
@@ -95,10 +96,20 @@ object AppModule {
     @Singleton
     fun profileCards(vault: IdentityVault, nodes: NodeConnections): ProfileCards = ProfileCards(vault, nodes)
 
-    /** The identities' avatars, in the app's cache directory: the system may clear it, and they come again. */
+    /** The identities' avatars, part of their profiles: in the app's files, not its cache. */
     @Provides
     @Singleton
-    fun avatarCache(@ApplicationContext context: Context): AvatarCache = AvatarCache(File(context.cacheDir, "avatars"))
+    fun avatarStore(@ApplicationContext context: Context): AvatarStore {
+        // Kept in the cache before avatars became part of the local profile; synced again from the node.
+        File(context.cacheDir, "avatars").deleteRecursively()
+        return AvatarStore(File(context.filesDir, "avatars"))
+    }
+
+    /** The identities' profiles, kept here first and synced with their home nodes. */
+    @Provides
+    @Singleton
+    fun profileSync(vault: IdentityVault, nodes: NodeConnections, avatars: AvatarStore): ProfileSync =
+        ProfileSync(vault, nodes, avatars)
 
     /** Nodes' logos, fetched once per run. */
     @Provides

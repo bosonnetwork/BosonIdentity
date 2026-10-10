@@ -26,6 +26,8 @@ import io.bosonnetwork.Id
 import io.bosonnetwork.crypto.Signature
 import io.bosonnetwork.identity.core.model.AppError
 import io.bosonnetwork.identity.core.model.IdentityInfo
+import io.bosonnetwork.identity.core.model.LocalProfile
+import io.bosonnetwork.identity.core.model.ProfileFields
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -88,7 +90,7 @@ class IdentityVault(
         try {
             val sealedUser = if (keepUserKey) protector.seal(userAlias(userId), Protection.PER_USE, userSeed, prompt) else null
             val sealedDevice = protector.seal(deviceAlias(userId), Protection.SESSION, deviceSeed, prompt)
-            val info = IdentityInfo(userId = userId, name = name, backupVerified = backupVerified)
+            val info = IdentityInfo(userId = userId, profile = LocalProfile(ProfileFields(name = name)), backupVerified = backupVerified)
             save(entries.value + VaultEntry(info, sealedUser, sealedDevice))
             info
         } catch (e: Exception) {

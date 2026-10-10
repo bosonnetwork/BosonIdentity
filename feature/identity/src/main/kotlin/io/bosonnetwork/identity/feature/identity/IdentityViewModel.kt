@@ -31,20 +31,18 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.bosonnetwork.Id
-import io.bosonnetwork.director.client.Avatar
-import io.bosonnetwork.director.client.AvatarRefresh
-import io.bosonnetwork.director.client.DirectorClient
 import io.bosonnetwork.director.client.NodeStatus
 import io.bosonnetwork.director.client.SuperNodeCode
-import io.bosonnetwork.director.client.ProfileUpdate
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.AdminAccess
-import io.bosonnetwork.identity.core.boson.AvatarCache
+import io.bosonnetwork.identity.core.boson.AvatarStore
 import io.bosonnetwork.identity.core.boson.CardContent
 import io.bosonnetwork.identity.core.boson.CardStatus
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.boson.NodeLogos
 import io.bosonnetwork.identity.core.boson.ProfileCards
+import io.bosonnetwork.identity.core.boson.ProfileSync
+import io.bosonnetwork.identity.core.boson.SyncOutcome
 import io.bosonnetwork.identity.core.boson.call
 import io.bosonnetwork.identity.core.designsystem.component.userMessage
 import io.bosonnetwork.identity.core.model.AppError
@@ -125,6 +123,8 @@ data class CardUi(
     val busy: Boolean = false,
     val confirm: CardConfirm? = null,
     val error: String? = null,
+    /** The published card no longer says what the profile does: "Update" publishes it again. */
+    val outdated: Boolean = false,
 )
 
 /** The profile being edited, as typed. */
@@ -165,10 +165,12 @@ data class IdentityUiState(
     val avatarBusy: Boolean = false,
     /** Why the avatar couldn't be changed, until dismissed. */
     val avatarError: String? = null,
+    /** What the last sync of the profile wants the user to know, until dismissed. */
+    val syncNote: String? = null,
 ) {
-    /** The avatar can be changed: the home node, which keeps it, has answered. */
+    /** The avatar can be changed: it is part of the profile on this phone, with or without a home node. */
     val canChangeAvatar: Boolean
-        get() = node is NodeState.Ready && !avatarBusy && avatarPick == null
+        get() = identity != null && !avatarBusy && avatarPick == null
 
     /** Whether the identity administers its home node, as far as the app knows: it gets the Dashboard. */
     val administers: Boolean
@@ -176,9 +178,13 @@ data class IdentityUiState(
 }
 
 /**
- * The Identity tab: who the identity is (its profile at the home node, its public profile card) and
- * where it lives (the home node and its status). Reading goes through this app's device key; changing
- * the profile and publishing the card are acts of authority, confirmed with the user key.
+ * The Identity tab: who the identity is (its profile, kept on this phone first, and its public profile
+ * card) and where it lives (the home node and its status).
+ *
+ * The profile lives in the vault: it is shown and edited with or without a home node. With one, it is
+ * synced with the node (through this app's device key, see [ProfileSync]) when the tab opens, on Refresh,
+ * after every change, and before the card is published. Publishing the card is an act of authority,
+ * confirmed with the user key.
  */
 @HiltViewModel
 class IdentityViewModel @Inject constructor(
@@ -187,9 +193,10 @@ class IdentityViewModel @Inject constructor(
     private val nodes: NodeConnections,
     private val cards: ProfileCards,
     private val logos: NodeLogos,
-    private val avatars: AvatarCache,
+    private val avatars: AvatarStore,
     private val adminAccess: AdminAccess,
     private val avatarImages: AvatarImages,
+    private val profileSync: ProfileSync,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -201,7 +208,7 @@ class IdentityViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            // The identity picked in the switcher. A change of its name alone doesn't ask the node again.
+            // The identity picked in the switcher. A change of its profile alone doesn't ask the node again.
             activeIdentity.active.collect { identity ->
                 val previous = _state.value.identity
                 val switched = identity?.userId != previous?.userId
@@ -211,40 +218,58 @@ class IdentityViewModel @Inject constructor(
                     if (switched || moved) {
                         IdentityUiState(identity = identity, avatar = identity?.userId?.let { id -> avatars.avatars.value[id] })
                     } else {
-                        it.copy(identity = identity)
+                        it.copy(identity = identity, node = it.node.withProfile(identity))
                     }
                 }
                 if (switched || moved) refresh()
             }
         }
         viewModelScope.launch {
-            // The picture kept for the identity shows at once; the node is asked whether it is current.
+            // The picture kept for the identity shows at once.
             avatars.load()
             combine(activeIdentity.active, avatars.avatars) { identity, all -> identity?.userId?.let { all[it] } }
                 .collect { avatar -> _state.update { it.copy(avatar = avatar) } }
         }
     }
 
-    /** Asks the home node again; after a dismissed prompt, this is the "Unlock" action. */
+    // The node's view with the profile fields as the vault has them now.
+    private fun NodeState.withProfile(identity: IdentityInfo?): NodeState {
+        if (this !is NodeState.Ready || identity == null) return this
+        val fields = identity.profile.fields
+        return copy(profile = profile.copy(name = fields.name, bio = fields.bio, email = fields.email,
+            avatar = fields.avatar?.let { avatarUri(identity, node) }))
+    }
+
+    private fun avatarUri(identity: IdentityInfo, node: HomeNodeView): String? =
+        (node.nodeId ?: identity.homeNode?.nodeId)?.let { CardContent.avatarUri(it, identity.userId) }
+
+    private fun current(): IdentityInfo? =
+        _state.value.identity?.userId?.let { id -> vault.identities.value.firstOrNull { it.userId == id } }
+
+    /**
+     * Syncs the profile and asks the home node again (its status, the account, the card); after a
+     * dismissed prompt, this is the "Unlock" action. Without a home node there is nothing to ask.
+     */
     fun refresh() {
         val identity = _state.value.identity ?: return
         // An answer still on its way may be for the identity shown before.
         loading?.cancel()
         val homeNode = identity.homeNode
         if (homeNode == null) {
-            _state.update { it.copy(node = NodeState.None, refreshing = false, card = CardUi()) }
+            _state.update { it.copy(node = NodeState.None, refreshing = false, card = CardUi(), syncNote = null) }
             return
         }
         // What the node said last stays on screen while it is asked again.
         val quiet = _state.value.node is NodeState.Ready
         _state.update { if (quiet) it.copy(refreshing = true) else it.copy(node = NodeState.Loading) }
         loading = viewModelScope.launch {
-            val node = load(identity)
-            _state.update { it.copy(node = node, refreshing = false) }
+            val note = syncProfile(identity.userId, null)
+            val fresh = current() ?: identity
+            val node = load(fresh)
+            _state.update { it.copy(node = node, refreshing = false, syncNote = note) }
             if (node is NodeState.Ready) {
-                loadAvatar(identity, node.profile.avatar)
                 loadLogo(homeNode, node.node.logo)
-                loadCard(identity, node.node)
+                loadCard(fresh, node.node)
             }
         }
     }
@@ -253,6 +278,29 @@ class IdentityViewModel @Inject constructor(
         context.getString(R.string.id_unlock_prompt_title),
         context.getString(R.string.id_unlock_prompt_subtitle),
     )
+
+    /**
+     * Syncs the profile of [userId] with its home node, and says what the user should know, or null.
+     * A dismissed prompt or an unreachable node are left to [load], which reports them.
+     */
+    private suspend fun syncProfile(userId: String, passphrase: String?): String? =
+        try {
+            when (val outcome = profileSync.sync(userId, unlockPrompt(), passphrase)) {
+                is SyncOutcome.Merged -> context.getString(R.string.id_sync_merged)
+                SyncOutcome.NeedsPassphrase -> context.getString(R.string.id_sync_needs_passphrase)
+                else -> null
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: AppError.AuthenticationCancelled) {
+            null
+        } catch (e: AppError.Network) {
+            null
+        } catch (e: AppError.Timeout) {
+            null
+        } catch (e: Exception) {
+            context.getString(R.string.id_sync_failed, e.userMessage(context))
+        }
 
     private suspend fun load(identity: IdentityInfo): NodeState =
         try {
@@ -264,19 +312,20 @@ class IdentityViewModel @Inject constructor(
             } catch (e: AppError) {
                 null
             }
+            val node = homeNodeView(status)
+            val fields = identity.profile.fields
             val view = ProfileView(
-                name = profile.name.orElse(null)?.takeIf { it.isNotBlank() },
-                bio = profile.bio.orElse(null)?.takeIf { it.isNotBlank() },
-                email = profile.email.orElse(null)?.takeIf { it.isNotBlank() },
-                avatar = profile.avatar.orElse(null)?.takeIf { it.isNotBlank() },
+                name = fields.name,
+                bio = fields.bio,
+                email = fields.email,
+                avatar = fields.avatar?.let { avatarUri(identity, node) },
                 plan = profile.planName,
                 passphraseProtected = profile.isPassphraseProtected,
                 admin = profile.isAdmin,
             )
-            rememberName(identity, view.name)
             // An account marked as an administrator gets the Dashboard, with no prompt of its own.
             adminAccess.reportProfile(identity.userId, profile.isAdmin)
-            NodeState.Ready(view, homeNodeView(status))
+            NodeState.Ready(view, node)
         } catch (e: CancellationException) {
             throw e
         } catch (e: AppError.AuthenticationCancelled) {
@@ -295,33 +344,6 @@ class IdentityViewModel @Inject constructor(
             logo = status?.logo?.orElse(null),
         )
 
-    /**
-     * Shows the account's avatar. A copy already held is checked with the node, which sends the image
-     * again only if it changed. A picture is a nicety: when it can't be had, the identicon stays.
-     */
-    private suspend fun loadAvatar(identity: IdentityInfo, uri: String?) {
-        if (uri == null) {
-            avatars.put(identity.userId, null)
-            return
-        }
-        try {
-            val client = nodes.deviceClient(identity, unlockPrompt())
-            val held = avatars.held(identity.userId)
-            val avatar = if (held == null) {
-                call { client.avatar.await() }.orElse(null)
-            } else {
-                val refresh = call { client.refreshAvatar(held).await() }
-                if (refresh.status == AvatarRefresh.Status.UNCHANGED) return
-                refresh.avatar.orElse(null)
-            }
-            avatars.put(identity.userId, avatar)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            // Keeps what is shown.
-        }
-    }
-
     private suspend fun loadLogo(node: NodeAddress, logo: String?) {
         val bytes = logos.load(node, logo) ?: return
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return
@@ -337,10 +359,15 @@ class IdentityViewModel @Inject constructor(
         if (_state.value.card.state !is CardState.On && _state.value.card.state != CardState.Off) {
             _state.update { it.copy(card = it.card.copy(state = CardState.Checking)) }
         }
+        var outdated = false
         val card = try {
             when (val status = cards.status(identity, unlockPrompt())) {
                 CardStatus.NotPublished -> CardState.Off
-                is CardStatus.Published -> CardState.On(status.version)
+                is CardStatus.Published -> {
+                    // Changed elsewhere (another phone, another app, the portal), or here while unpublished.
+                    outdated = cardContent(identity, node)?.let { ProfileCards.outdated(status.content, it) } == true
+                    CardState.On(status.version)
+                }
             }
         } catch (e: CancellationException) {
             throw e
@@ -349,7 +376,7 @@ class IdentityViewModel @Inject constructor(
         } catch (e: Exception) {
             CardState.Failed(e.userMessage(context))
         }
-        _state.update { it.copy(card = it.card.copy(state = card)) }
+        _state.update { it.copy(card = it.card.copy(state = card, outdated = outdated)) }
     }
 
     // ---- The public profile card ---------------------------------------------------------------
@@ -369,28 +396,56 @@ class IdentityViewModel @Inject constructor(
 
     /** Publishes or stops publishing the card, as confirmed. Publishing asks for the user key. */
     fun confirmCard() {
+        val confirm = _state.value.card.confirm ?: return
+        _state.update { it.copy(card = it.card.copy(confirm = null)) }
+        when (confirm) {
+            CardConfirm.PUBLISH -> publishCard()
+            CardConfirm.STOP -> stopCard()
+        }
+    }
+
+    /** Publishes the card again from the profile as it is now: the "Update" of an out-of-date card. */
+    fun updateCard() {
+        if (_state.value.card.state is CardState.On) publishCard()
+    }
+
+    // Syncs the profile first, so that the card carries its latest revision, then publishes it.
+    private fun publishCard() {
         val s = _state.value
         val identity = s.identity ?: return
         val ready = s.node as? NodeState.Ready ?: return
-        val confirm = s.card.confirm ?: return
-        val content = cardContent(identity, ready.profile, ready.node) ?: return
-        _state.update { it.copy(card = it.card.copy(confirm = null, busy = true, error = null)) }
+        if (s.card.busy) return
+        _state.update { it.copy(card = it.card.copy(busy = true, error = null)) }
         working = viewModelScope.launch {
             try {
-                val card = when (confirm) {
-                    CardConfirm.PUBLISH -> {
-                        val prompt = AuthPrompt(
-                            context.getString(R.string.id_card_prompt_title),
-                            context.getString(R.string.id_card_prompt_subtitle),
-                        )
-                        CardState.On(cards.publish(identity, content, prompt))
-                    }
-                    CardConfirm.STOP -> {
-                        cards.unpublish(identity, unlockPrompt())
-                        CardState.Off
-                    }
-                }
-                _state.update { it.copy(card = CardUi(state = card)) }
+                syncProfile(identity.userId, null)
+                val fresh = current() ?: identity
+                val content = cardContent(fresh, ready.node) ?: return@launch
+                val prompt = AuthPrompt(
+                    context.getString(R.string.id_card_prompt_title),
+                    context.getString(R.string.id_card_prompt_subtitle),
+                )
+                val version = cards.publish(fresh, content, prompt)
+                _state.update { it.copy(card = CardUi(state = CardState.On(version)), node = it.node.withProfile(current())) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: AppError.AuthenticationCancelled) {
+                _state.update { it.copy(card = it.card.copy(busy = false)) }
+            } catch (e: Exception) {
+                _state.update { it.copy(card = it.card.copy(busy = false, error = e.userMessage(context))) }
+            } finally {
+                _state.update { if (it.card.busy) it.copy(card = it.card.copy(busy = false)) else it }
+            }
+        }
+    }
+
+    private fun stopCard() {
+        val identity = _state.value.identity ?: return
+        _state.update { it.copy(card = it.card.copy(busy = true, error = null)) }
+        working = viewModelScope.launch {
+            try {
+                cards.unpublish(identity, unlockPrompt())
+                _state.update { it.copy(card = CardUi(state = CardState.Off)) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: AppError.AuthenticationCancelled) {
@@ -401,21 +456,45 @@ class IdentityViewModel @Inject constructor(
         }
     }
 
-    // The card for [profile] at [node]; null while the node's id is unknown (its status unread).
-    private fun cardContent(identity: IdentityInfo, profile: ProfileView, node: HomeNodeView): CardContent? {
+    // The card for the identity's profile at [node]; null while the node's id is unknown (its status unread).
+    private fun cardContent(identity: IdentityInfo, node: HomeNodeView): CardContent? {
         val nodeId = node.nodeId ?: identity.homeNode?.nodeId ?: return null
-        return CardContent(
-            name = profile.name,
-            bio = profile.bio,
-            avatar = profile.avatar,
-            homeNode = nodeId,
-            messagingHomePeer = node.messagingPeer,
-        )
+        return CardContent.of(identity, nodeId, node.messagingPeer)
+    }
+
+    /**
+     * After the profile changed and synced: a published card that no longer says what the profile does is
+     * published again (the user key signs it); one that can't be is reported, the profile staying saved.
+     */
+    private suspend fun republishIfPublished(userId: String, before: CardContent?) {
+        val s = _state.value
+        if (s.card.state !is CardState.On) return
+        val ready = s.node as? NodeState.Ready ?: return
+        val identity = current() ?: return
+        val content = cardContent(identity, ready.node) ?: return
+        // The email isn't on the card, and a new picture keeps its address: such changes leave it as it is.
+        if (before != null && before.copy(revision = null) == content.copy(revision = null)) return
+        try {
+            val prompt = AuthPrompt(
+                context.getString(R.string.id_card_prompt_title),
+                context.getString(R.string.id_card_prompt_subtitle),
+            )
+            val version = cards.publish(identity, content, prompt)
+            _state.update { it.copy(card = CardUi(state = CardState.On(version))) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val message = if (e is AppError.AuthenticationCancelled) null else e.userMessage(context)
+            _state.update {
+                it.copy(card = it.card.copy(outdated = true,
+                    error = message?.let { m -> context.getString(R.string.id_card_update_failed, m) }))
+            }
+        }
     }
 
     // ---- The avatar ----------------------------------------------------------------------------
 
-    /** The avatar of an account that has one was tapped: its menu opens (one without goes to the picker). */
+    /** The avatar of an identity that has one was tapped: its menu opens (one without goes to the picker). */
     fun openAvatarMenu() {
         if (_state.value.canChangeAvatar) _state.update { it.copy(avatarMenu = true) }
     }
@@ -446,103 +525,93 @@ class IdentityViewModel @Inject constructor(
         }
     }
 
-    /** Makes the confirmed picture the avatar, after the user confirms with their screen lock. */
+    /** Makes the confirmed picture the avatar: kept on this phone, then synced and on the card. */
     fun confirmAvatar() {
         val pick = _state.value.avatarPick ?: return
         if (pick.busy) return
         _state.update { it.copy(avatarPick = pick.copy(busy = true, error = null)) }
-        changeAvatar(pick.image) { message -> _state.update { it.copy(avatarPick = it.avatarPick?.copy(busy = false, error = message)) } }
+        changeAvatar(pick.image)
     }
 
-    /** Removes the avatar, after the user confirms with their screen lock; the identicon stands in again. */
+    /** Removes the avatar; the identicon stands in again. */
     fun removeAvatar() {
         _state.update { it.copy(avatarMenu = false) }
         if (!_state.value.canChangeAvatar) return
         _state.update { it.copy(avatarBusy = true, avatarError = null) }
-        changeAvatar(null) { message -> _state.update { it.copy(avatarBusy = false, avatarError = message) } }
+        changeAvatar(null)
     }
 
-    /**
-     * Uploads [image] as the avatar, or removes it ([image] null), with the user key, like every change
-     * of the profile. A published card names the avatar by its address at the node, which a new picture
-     * keeps: the card is published again only when the avatar comes or goes, under the same prompt.
-     */
-    private fun changeAvatar(image: ByteArray?, onFailure: (String?) -> Unit) {
-        val s = _state.value
-        val identity = s.identity ?: return
-        val node = identity.homeNode ?: return
-        val ready = s.node as? NodeState.Ready ?: return
-        val republish = s.card.state is CardState.On && (ready.profile.avatar == null) != (image == null)
+    // Keeps [image] (or none) as the avatar on this phone, then syncs the profile and updates the card.
+    private fun changeAvatar(image: ByteArray?) {
+        val identity = _state.value.identity ?: return
         working = viewModelScope.launch {
             try {
-                val prompt = AuthPrompt(
-                    context.getString(R.string.id_avatar_prompt_title),
-                    context.getString(R.string.id_avatar_prompt_subtitle, node.host()),
-                )
-                var card: CardUi? = null
-                // The new avatar's address at the node, and the picture to keep for it.
-                suspend fun apply(client: DirectorClient): Pair<String?, Avatar?> {
-                    if (image == null) {
-                        call { client.removeAvatar().await() }
-                        return null to null
-                    }
-                    val uri = call { client.updateAvatar(image, JPEG).await() }
-                    // Read back with its validators, so the next refresh needn't download it again.
-                    val stored = try {
-                        call { client.avatar.await() }.orElse(null)
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        null
-                    }
-                    return uri to (stored ?: Avatar.of(JPEG, image, null, null))
-                }
-                val (uri, avatar) = if (!republish) {
-                    nodes.asUser(identity.userId, node, prompt) { client, _ -> apply(client) }
-                } else {
-                    nodes.asUserWithKey(identity.userId, node, prompt) { client, userKey ->
-                        val changed = apply(client)
-                        val content = cardContent(identity, ready.profile.copy(avatar = changed.first), ready.node)
-                        if (content != null) {
-                            card = try {
-                                CardUi(state = CardState.On(cards.publish(identity, content, userKey, prompt)))
-                            } catch (e: CancellationException) {
-                                throw e
-                            } catch (e: Exception) {
-                                _state.value.card.copy(error = context.getString(R.string.id_card_update_failed, e.userMessage(context)))
-                            }
-                        }
-                        changed
-                    }
-                }
-                avatars.put(identity.userId, avatar)
-                _state.update {
-                    val profile = (it.node as? NodeState.Ready)?.let { r -> r.copy(profile = r.profile.copy(avatar = uri)) } ?: it.node
-                    it.copy(node = profile, avatarPick = null, avatarBusy = false, card = card ?: it.card)
-                }
+                val before = cardBefore()
+                profileSync.setAvatar(identity.userId, image)
+                _state.update { it.copy(avatarPick = null, avatarBusy = false, node = it.node.withProfile(current())) }
+                afterChange(identity.userId, null, before)
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: AppError.AuthenticationCancelled) {
-                // Dismissed: back to where the user was, with nothing to explain.
-                onFailure(null)
             } catch (e: Exception) {
-                onFailure(e.userMessage(context))
+                // Kept on this phone already; the node refused it, for a reason the user should see.
+                _state.update { it.copy(avatarBusy = false, avatarPick = null, avatarError = e.userMessage(context)) }
             }
         }
     }
 
+    // After the profile changed on this phone: synced with the home node, if any, and the card updated.
+    // Returns the sync's outcome, or null when it could not run (no node, or the node unreachable).
+    private suspend fun afterChange(userId: String, passphrase: String?, before: CardContent?): SyncOutcome? {
+        if (current()?.homeNode == null) return null
+        val outcome = try {
+            profileSync.sync(userId, unlockPrompt(), passphrase)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: AppError) {
+            // The node out of reach (or the unlock dismissed): the change stays here, synced later. Any
+            // other refusal is for the user to see.
+            if (e !is AppError.Network && e !is AppError.Timeout && e !is AppError.ServerError &&
+                e !is AppError.ServiceUnavailable && e !is AppError.AuthenticationCancelled) throw e
+            _state.update { it.copy(syncNote = context.getString(R.string.id_sync_later)) }
+            return null
+        }
+        _state.update {
+            it.copy(
+                node = it.node.withProfile(current()),
+                syncNote = when (outcome) {
+                    is SyncOutcome.Merged -> context.getString(R.string.id_sync_merged)
+                    SyncOutcome.NeedsPassphrase -> context.getString(R.string.id_sync_needs_passphrase)
+                    else -> null
+                },
+            )
+        }
+        if (outcome != SyncOutcome.NeedsPassphrase) republishIfPublished(userId, before)
+        return outcome
+    }
+
+    fun dismissSyncNote() = _state.update { it.copy(syncNote = null) }
+
+    // What the card says before a change: the change republishes it only if that is different after.
+    private fun cardBefore(): CardContent? {
+        val ready = _state.value.node as? NodeState.Ready ?: return null
+        return current()?.let { cardContent(it, ready.node) }
+    }
+
     // ---- Editing the profile -------------------------------------------------------------------
 
+    /** Opens the editor: the profile is the one on this phone, editable with or without a home node. */
     fun startEdit() {
         val s = _state.value
-        val view = (s.node as? NodeState.Ready)?.profile ?: return
+        val identity = current() ?: s.identity ?: return
+        val fields = identity.profile.fields
         _state.update {
             it.copy(
                 edit = ProfileEdit(
-                    view.name.orEmpty(),
-                    view.bio.orEmpty(),
-                    view.email.orEmpty(),
-                    needsPassphrase = view.passphraseProtected,
+                    fields.name.orEmpty(),
+                    fields.bio.orEmpty(),
+                    fields.email.orEmpty(),
+                    needsPassphrase = (s.node as? NodeState.Ready)?.profile?.passphraseProtected == true &&
+                        identity.homeNode != null,
                     updatesCard = s.card.state is CardState.On,
                 ),
             )
@@ -560,16 +629,13 @@ class IdentityViewModel @Inject constructor(
     }
 
     /**
-     * Saves the changed fields, after the user confirms with their screen lock. When the node wants the
-     * account passphrase, the dialog asks for it, and saving again sends it. A published card is
-     * updated under the same prompt; if only that fails, the profile is still saved and the card says so.
+     * Saves the profile on this phone, then syncs it with the home node, if any. The account passphrase,
+     * when the account has one, goes with the sync; a wrong or missing one keeps the dialog open, the
+     * change already saved here. A published card is updated (the user key signs it).
      */
     fun save() {
         val s = _state.value
-        val identity = s.identity ?: return
-        val node = identity.homeNode ?: return
-        val ready = s.node as? NodeState.Ready ?: return
-        val view = ready.profile
+        val identity = current() ?: s.identity ?: return
         val edit = s.edit ?: return
         if (edit.busy) return
 
@@ -580,60 +646,36 @@ class IdentityViewModel @Inject constructor(
             updateEdit { it.copy(error = context.getString(R.string.id_edit_invalid_email)) }
             return
         }
-        val update = ProfileUpdate()
-        if (name != view.name) update.name(name)
-        if (bio != view.bio) update.bio(bio)
-        if (email != view.email) update.email(email)
-        if (update.isEmpty) {
+        val fields = identity.profile.fields
+        val changed = name != fields.name || bio != fields.bio || email != fields.email
+        // Unchanged and already synced: nothing to do. Unchanged but not synced: the save syncs it.
+        if (!changed && (identity.homeNode == null || !identity.profile.dirty)) {
             _state.update { it.copy(edit = null) }
             return
         }
         val passphrase = edit.passphrase.ifEmpty { null }
-        if (edit.needsPassphrase && passphrase == null) return
-
-        val saved = view.copy(name = name, bio = bio, email = email)
-        // Only what the card shows makes it worth publishing again.
-        val republish = (s.card.state as? CardState.On)?.takeIf { name != view.name || bio != view.bio }
-            ?.let { cardContent(identity, saved, ready.node) }
+        if (identity.homeNode != null && edit.needsPassphrase && passphrase == null) return
 
         updateEdit { it.copy(busy = true, error = null) }
         working = viewModelScope.launch {
             try {
-                val prompt = AuthPrompt(
-                    context.getString(R.string.id_edit_prompt_title),
-                    context.getString(R.string.id_edit_prompt_subtitle, node.host()),
-                )
-                var card: CardUi? = null
-                if (republish == null) {
-                    nodes.asUser(identity.userId, node, prompt) { client, _ ->
-                        call { client.updateProfile(update, passphrase).await() }
+                val before = cardBefore()
+                if (changed) profileSync.edit(identity.userId, name, bio, email)
+                _state.update { it.copy(node = it.node.withProfile(current())) }
+                when (afterChange(identity.userId, passphrase, before)) {
+                    SyncOutcome.NeedsPassphrase -> updateEdit {
+                        it.copy(busy = false, needsPassphrase = true, passphrase = "",
+                            error = if (passphrase != null) context.getString(R.string.id_wrong_passphrase)
+                            else AppError.PassphraseRequired().userMessage(context))
                     }
-                } else {
-                    nodes.asUserWithKey(identity.userId, node, prompt) { client, userKey ->
-                        call { client.updateProfile(update, passphrase).await() }
-                        card = try {
-                            CardUi(state = CardState.On(cards.publish(identity, republish, userKey, prompt)))
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (e: Exception) {
-                            _state.value.card.copy(error = context.getString(R.string.id_card_update_failed, e.userMessage(context)))
-                        }
-                    }
-                }
-                rememberName(identity, name)
-                _state.update {
-                    it.copy(node = ready.copy(profile = saved), edit = null, card = card ?: it.card)
+                    else -> _state.update { it.copy(edit = null) }
                 }
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: AppError.PassphraseRequired) {
-                updateEdit { it.copy(busy = false, needsPassphrase = true, passphrase = "", error = e.userMessage(context)) }
             } catch (e: AppError.Forbidden) {
                 // With a passphrase given, the node refuses only a wrong one.
                 val message = if (passphrase != null) context.getString(R.string.id_wrong_passphrase) else e.userMessage(context)
-                updateEdit { it.copy(busy = false, passphrase = "", error = message) }
-            } catch (e: AppError.AuthenticationCancelled) {
-                updateEdit { it.copy(busy = false) }
+                updateEdit { it.copy(busy = false, passphrase = "", needsPassphrase = true, error = message) }
             } catch (e: Exception) {
                 updateEdit { it.copy(busy = false, error = e.userMessage(context)) }
             }
@@ -642,11 +684,6 @@ class IdentityViewModel @Inject constructor(
 
     private fun updateEdit(transform: (ProfileEdit) -> ProfileEdit) =
         _state.update { s -> s.edit?.let { s.copy(edit = transform(it)) } ?: s }
-
-    // The switcher shows the identity by the name it has at its node.
-    private suspend fun rememberName(identity: IdentityInfo, name: String?) {
-        if (name != identity.name) vault.update(identity.userId) { it.copy(name = name) }
-    }
 
     private fun looksLikeEmail(text: String): Boolean {
         val at = text.indexOf('@')
@@ -663,6 +700,3 @@ fun nodeQrPayload(node: NodeAddress, nodeId: String): String =
 
 /** The node's host name, to name it in a sentence; its URL when that has none. */
 fun NodeAddress.host(): String = runCatching { URI(url).host }.getOrNull() ?: url
-
-// What avatars are uploaded as: AvatarImages makes every picked picture a JPEG.
-private const val JPEG = "image/jpeg"

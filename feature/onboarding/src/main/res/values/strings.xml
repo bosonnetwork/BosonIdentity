@@ -96,21 +96,25 @@
 
     <!-- Move from the old phone -->
     <string name="onb_move_title">Move from your old phone</string>
-    <string name="onb_move_body">First, choose your home node: scan its QR code, or type its address. Your old phone shows it on its Identity tab, under Home node.</string>
-    <string name="onb_move_connecting">Asking the node...</string>
-    <string name="onb_move_pair_title">Approve this phone on your old phone</string>
-    <string name="onb_move_pair_body">On your old phone, open Boson Identity, go to Devices, tap \"Approve a new device\" and scan this code. It asks for your identity\'s key: approve it there.</string>
-    <string name="onb_move_pair_qr">Pairing code for your old phone</string>
-    <string name="onb_move_pair_text">Or paste this code on the old phone:</string>
-    <string name="onb_move_pair_waiting">Waiting for your old phone. The code works for 3 minutes.</string>
-    <string name="onb_move_storing">Storing your identity on this phone...</string>
-    <string name="onb_move_store_failed_title">Your identity isn\'t stored yet</string>
-    <string name="onb_move_store_failed_body">Your old phone approved this one, but storing the key here didn\'t work. Try again, and confirm with your screen lock.</string>
-    <string name="onb_move_denied_title">Your old phone denied it</string>
-    <string name="onb_move_denied_body">This phone was not added to your identity. If that was a mistake, try again.</string>
-    <string name="onb_move_expired_title">The code expired</string>
-    <string name="onb_move_expired_body">Your old phone didn\'t approve this one in time. Try again to get a new code.</string>
+    <string name="onb_move_body">On your old phone, open Boson Identity, go to Settings and choose \"Move to a new phone\". Then scan the QR code it shows. No node is needed.</string>
     <string name="onb_move_try_again">Try again</string>
-    <string name="onb_move_no_key">Your old phone approved this one but didn\'t hand over your identity\'s key. Try again, and approve the new code.</string>
     <string name="onb_move_already_here">This identity is already on this phone.</string>
+    <string name="onb_move_not_a_code">That isn\'t the QR code of a move. On the old phone, choose \"Move to a new phone\" in Settings.</string>
+    <string name="onb_move_code_title">Type the code</string>
+    <string name="onb_move_code_body">Type the code your old phone showed before the QR code.</string>
+    <string name="onb_move_code_label">Code</string>
+    <string name="onb_move_code_invalid">A code has ten letters and digits, like 7KQ4-M9XD-2F.</string>
+    <string name="onb_move_code_wrong">That code doesn\'t open this QR code. Check it on your old phone.</string>
+    <string name="onb_move_open">Continue</string>
+    <string name="onb_move_scan_again">Scan again</string>
+    <string name="onb_move_opening">Opening your identity...</string>
+    <string name="onb_move_joining">Adding this phone to your home node...</string>
+    <string name="onb_move_passphrase_title">Your account\'s passphrase</string>
+    <string name="onb_move_passphrase_body">Your account on your home node has a passphrase. Adding this phone to it needs it.</string>
+    <string name="onb_move_passphrase_label">Passphrase</string>
+    <string name="onb_move_wrong_passphrase">That isn\'t your account\'s passphrase.</string>
+    <string name="onb_move_continue">Continue</string>
+    <string name="onb_move_join_failed_title">This phone isn\'t on your home node yet</string>
+    <string name="onb_move_join_failed_body">Your identity is on this phone, but your home node couldn\'t add it now. Try again, or later from the Identity tab.</string>
+    <string name="onb_move_join_later">Later</string>
 </resources>

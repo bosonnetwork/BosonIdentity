@@ -30,6 +30,8 @@ import io.bosonnetwork.crypto.Signature
 import io.bosonnetwork.director.client.EnrollmentCode
 import io.bosonnetwork.director.client.PendingEnrollment
 import io.bosonnetwork.identity.core.boson.NodeConnections
+import io.bosonnetwork.identity.core.boson.ProfileSync
+import io.bosonnetwork.identity.core.boson.SyncOutcome
 import io.bosonnetwork.identity.core.model.AppError
 import io.bosonnetwork.identity.core.model.NodeAddress
 import io.bosonnetwork.identity.core.vault.AuthPrompt
@@ -83,6 +85,7 @@ class EnrollAdminViewModelTest {
     private val dir: File = Files.createTempDirectory("enroll").toFile()
     private val vault = IdentityVault(VaultStore(File(dir, "vault")), NoKeystore())
     private val nodes = mockk<NodeConnections>()
+    private val profileSync = mockk<ProfileSync>()
     private val prompts = mutableListOf<AuthPrompt>()
     private val context = mockk<Context>(relaxed = true) {
         every { getString(R.string.dev_enroll_deactivated) } returns "deactivated"
@@ -96,6 +99,7 @@ class EnrollAdminViewModelTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         coEvery { nodes.claimEnrollment(any(), code, capture(prompts)) } returns pending(47)
         coEvery { nodes.finishEnrollment(any()) } coAnswers { answer.await() }
+        coEvery { profileSync.sync(any(), any(), any()) } returns SyncOutcome.Pushed
     }
 
     @After
@@ -110,7 +114,7 @@ class EnrollAdminViewModelTest {
         if (homeNode != null) vault.update(userId) { it.copy(homeNode = homeNode, deviceId = Id.random().toString()) }
         val vm = EnrollAdminViewModel(
             SavedStateHandle(mapOf(ApproveDeviceViewModel.ARG_USER_ID to userId, EnrollAdminViewModel.ARG_CODE to code.toString())),
-            vault, nodes, context,
+            vault, nodes, profileSync, context,
         )
         vm.clock = { testScheduler.currentTime }
         viewModels += vm
@@ -144,6 +148,8 @@ class EnrollAdminViewModelTest {
         assertEquals(codeNode, identity.homeNode)
         assertEquals(deviceId.toString(), identity.deviceId)
         assertTrue(identity.administers)
+        // The new account starts empty on the node: the profile on this phone fills it.
+        coVerify { profileSync.sync(userId, any(), any()) }
     }
 
     @Test

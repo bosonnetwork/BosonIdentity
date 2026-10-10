@@ -23,15 +23,16 @@
 package io.bosonnetwork.identity.feature.onboarding
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -40,16 +41,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.bosonnetwork.identity.core.qr.rememberQrBitmap
+import io.bosonnetwork.identity.core.designsystem.component.SecureScreen
+import io.bosonnetwork.identity.core.qr.QrScanner
 
 /**
- * Moving the identity here from the old phone: choosing the home node, then showing the pairing code
- * for the old phone to approve in Devices. [onDone] gets the identity's id once it is on this phone,
- * already one of its devices at the node; [onCancel] leaves.
+ * Moving the identity here from the old phone: scanning the QR code it shows, typing the code it showed
+ * before, then, with a home node, adding this phone to it. [onDone] gets the identity's id once it is on
+ * this phone; [onCancel] leaves.
  */
 @Composable
 fun MoveFromOldPhoneScreen(
@@ -59,63 +65,75 @@ fun MoveFromOldPhoneScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.finishedUserId) { state.finishedUserId?.let(onDone) }
-    BackHandler(enabled = state.step != MoveStep.ADDRESS && state.step != MoveStep.STORING) { viewModel.backToAddress() }
+    BackHandler(enabled = state.step == MoveStep.CODE) { viewModel.scanAgain() }
+    // The code typed here opens the identity's key: kept off screenshots like the key itself.
+    SecureScreen()
 
     StepColumn {
         when (state.step) {
-            MoveStep.ADDRESS -> {
+            MoveStep.SCAN -> {
                 StepTitle(stringResource(R.string.onb_move_title))
                 StepText(stringResource(R.string.onb_move_body))
-                NodeAddressFields(
-                    address = state.address,
-                    nodeId = state.nodeIdInput,
-                    busy = false,
-                    onAddressChange = viewModel::onAddressChange,
-                    onNodeIdChange = viewModel::onNodeIdChange,
-                    onScan = viewModel::scan,
-                    onCheck = viewModel::check,
-                )
+                QrScanner(onScanned = viewModel::onScanned, modifier = Modifier.fillMaxWidth().aspectRatio(1f))
                 TextButton(onClick = onCancel) { Text(stringResource(R.string.onb_back)) }
             }
 
-            MoveStep.SCAN -> NodeScanStep(onScanned = viewModel::onScanned, onCancel = viewModel::backToAddress)
+            MoveStep.CODE -> {
+                StepTitle(stringResource(R.string.onb_move_code_title))
+                StepText(stringResource(R.string.onb_move_code_body))
+                OutlinedTextField(
+                    value = state.code,
+                    onValueChange = viewModel::onCodeChange,
+                    label = { Text(stringResource(R.string.onb_move_code_label)) },
+                    placeholder = { Text("XXXX-XXXX-XX") },
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Monospace),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Characters,
+                        autoCorrectEnabled = false,
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(onDone = { viewModel.open() }),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = viewModel::open, enabled = state.code.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.onb_move_open))
+                }
+                TextButton(onClick = viewModel::scanAgain) { Text(stringResource(R.string.onb_move_scan_again)) }
+            }
 
-            MoveStep.CONNECTING, MoveStep.STORING -> {
+            MoveStep.OPENING, MoveStep.JOINING -> {
                 CircularProgressIndicator()
                 Spacer(Modifier.height(16.dp))
-                StepText(stringResource(if (state.step == MoveStep.CONNECTING) R.string.onb_move_connecting else R.string.onb_move_storing))
+                StepText(stringResource(if (state.step == MoveStep.OPENING) R.string.onb_move_opening else R.string.onb_move_joining))
             }
 
-            MoveStep.PAIRING -> {
-                val code = state.pairingCode.orEmpty()
-                StepTitle(stringResource(R.string.onb_move_pair_title))
-                StepText(stringResource(R.string.onb_move_pair_body))
-                rememberQrBitmap(code)?.let {
-                    Image(it, contentDescription = stringResource(R.string.onb_move_pair_qr), modifier = Modifier.size(260.dp))
-                }
-                Spacer(Modifier.height(12.dp))
-                StepText(stringResource(R.string.onb_move_pair_text))
-                SelectionContainer {
-                    Text(code, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
-                }
+            MoveStep.PASSPHRASE -> {
+                StepTitle(stringResource(R.string.onb_move_passphrase_title))
+                StepText(stringResource(R.string.onb_move_passphrase_body))
+                OutlinedTextField(
+                    value = state.passphrase,
+                    onValueChange = viewModel::onPassphraseChange,
+                    label = { Text(stringResource(R.string.onb_move_passphrase_label)) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Spacer(Modifier.height(16.dp))
-                CircularProgressIndicator()
-                Spacer(Modifier.height(8.dp))
-                StepText(stringResource(R.string.onb_move_pair_waiting))
-                TextButton(onClick = viewModel::backToAddress) { Text(stringResource(R.string.onb_cancel)) }
+                Button(onClick = viewModel::retryJoin, enabled = state.passphrase.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.onb_move_continue))
+                }
+                TextButton(onClick = viewModel::joinLater) { Text(stringResource(R.string.onb_move_join_later)) }
             }
 
-            MoveStep.STORE_FAILED -> {
-                StepTitle(stringResource(R.string.onb_move_store_failed_title))
-                StepText(stringResource(R.string.onb_move_store_failed_body))
-                Button(onClick = viewModel::tryAgain, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.onb_move_try_again)) }
-            }
-
-            MoveStep.DENIED, MoveStep.EXPIRED -> {
-                StepTitle(stringResource(if (state.step == MoveStep.DENIED) R.string.onb_move_denied_title else R.string.onb_move_expired_title))
-                StepText(stringResource(if (state.step == MoveStep.DENIED) R.string.onb_move_denied_body else R.string.onb_move_expired_body))
-                Button(onClick = viewModel::tryAgain, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.onb_move_try_again)) }
-                TextButton(onClick = viewModel::backToAddress) { Text(stringResource(R.string.onb_join_other_node)) }
+            MoveStep.JOIN_FAILED -> {
+                StepTitle(stringResource(R.string.onb_move_join_failed_title))
+                StepText(stringResource(R.string.onb_move_join_failed_body))
+                Button(onClick = viewModel::retryJoin, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.onb_move_try_again)) }
+                TextButton(onClick = viewModel::joinLater) { Text(stringResource(R.string.onb_move_join_later)) }
             }
         }
         state.error?.let {

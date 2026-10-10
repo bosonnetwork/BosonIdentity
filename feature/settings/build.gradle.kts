@@ -34,6 +34,7 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:vault"))
     implementation(project(":core:boson"))
+    implementation(project(":core:qr"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

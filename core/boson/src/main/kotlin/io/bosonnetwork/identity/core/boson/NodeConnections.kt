@@ -38,6 +38,10 @@ import io.bosonnetwork.identity.core.model.NodeAddress
 import io.bosonnetwork.identity.core.vault.AuthPrompt
 import io.bosonnetwork.identity.core.vault.IdentityVault
 import io.vertx.core.Vertx
+import io.vertx.core.VertxOptions
+import io.vertx.core.file.FileSystemOptions
+import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.sync.Mutex
@@ -237,8 +241,27 @@ class NodeConnections(private val vault: IdentityVault) {
         fun newVertx(): Vertx {
             System.setProperty("vertx.disableDnsResolver", "true")
             seedVertxVersion()
-            return Vertx.vertx()
+            return Vertx.vertx(VertxOptions().setFileSystemOptions(fileSystemOptions()))
         }
+
+        /**
+         * Vert.x's file cache (where it copies classpath files it is asked to read), named exactly
+         * `<tmpdir>/vertx-cache`; on Android the tmpdir is the app's cache directory. Vert.x deletes it
+         * only on close or JVM shutdown, which Android never runs, and names it `vertx-cache-<uuid>` by
+         * default (`-2`, `-3`... when the exact name is taken): each start left one behind. The ones a
+         * previous run left are deleted here, once per process, before this run creates its own.
+         */
+        private fun fileSystemOptions(): FileSystemOptions {
+            if (cacheCleaned.compareAndSet(false, true)) {
+                val base = File(FileSystemOptions.DEFAULT_FILE_CACHING_DIR)
+                base.parentFile
+                    ?.listFiles { file -> file.name == base.name || file.name.startsWith(base.name + "-") }
+                    ?.forEach { runCatching { it.deleteRecursively() } }
+            }
+            return FileSystemOptions().setFileCacheDirAsExactPath(true)
+        }
+
+        private val cacheCleaned = AtomicBoolean(false)
 
         /**
          * Gives Vert.x its version string before anything asks for it. Vert.x reads it from

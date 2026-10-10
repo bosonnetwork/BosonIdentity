@@ -21,7 +21,7 @@
     <!-- Profile -->
     <string name="id_edit">Edit profile</string>
     <string name="id_avatar">Your avatar</string>
-    <string name="id_profile_no_node">Your profile is kept by your home node. Join one to add a name and a bio.</string>
+    <string name="id_profile_no_node">Your profile is kept on this phone. Join a node to share it and keep it on your other devices.</string>
     <string name="id_profile_empty">Add a name and a short bio, so people recognize you.</string>
     <string name="id_name">Name</string>
     <string name="id_bio">Bio</string>
@@ -90,4 +90,11 @@
     <string name="id_avatar_unreadable">This picture can\'t be read. Choose another one.</string>
     <string name="id_avatar_prompt_title">Change your avatar</string>
     <string name="id_avatar_prompt_subtitle">Your avatar at %1$s will change</string>
+    <string name="id_sync_merged">Your profile was also changed elsewhere. Both changes are kept; where they differed, the other change was kept.</string>
+    <string name="id_sync_needs_passphrase">Your profile changes are saved on this phone. Your node needs your account passphrase to take them: edit the profile and enter it.</string>
+    <string name="id_sync_failed">Your profile couldn\'t be synced with your node: %1$s</string>
+    <string name="id_sync_later">Saved on this phone. It goes to your node when the node can be reached.</string>
+    <string name="id_card_outdated">Out of date: it doesn\'t show your current profile.</string>
+    <string name="id_card_update">Update</string>
+    <string name="id_dismiss">Dismiss</string>
 </resources>

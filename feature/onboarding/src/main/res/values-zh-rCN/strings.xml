@@ -89,21 +89,25 @@
 
     <!-- 从旧手机迁移 -->
     <string name="onb_move_title">从旧手机迁移</string>
-    <string name="onb_move_body">首先选择你的主节点：扫描它的二维码，或输入它的地址。旧手机的“身份”页面中，“主节点”下会显示它。</string>
-    <string name="onb_move_connecting">正在询问节点…</string>
-    <string name="onb_move_pair_title">在旧手机上批准这部手机</string>
-    <string name="onb_move_pair_body">在旧手机上打开 Boson Identity，进入“设备”，点按“批准新设备”并扫描此二维码。它会请求你的身份密钥：请在旧手机上批准。</string>
-    <string name="onb_move_pair_qr">供旧手机扫描的配对码</string>
-    <string name="onb_move_pair_text">或在旧手机上粘贴此配对码：</string>
-    <string name="onb_move_pair_waiting">正在等待旧手机。配对码 3 分钟内有效。</string>
-    <string name="onb_move_storing">正在将你的身份保存到这部手机…</string>
-    <string name="onb_move_store_failed_title">你的身份尚未保存</string>
-    <string name="onb_move_store_failed_body">旧手机已批准这部手机，但密钥未能保存到这里。请重试，并用屏幕锁确认。</string>
-    <string name="onb_move_denied_title">旧手机拒绝了请求</string>
-    <string name="onb_move_denied_body">这部手机没有被添加到你的身份。如果这是误操作，请重试。</string>
-    <string name="onb_move_expired_title">配对码已过期</string>
-    <string name="onb_move_expired_body">旧手机没有及时批准这部手机。请重试以获取新的配对码。</string>
+    <string name="onb_move_body">在旧手机上打开 Boson Identity，进入“设置”，选择“迁移到新手机”。然后扫描它显示的二维码。迁移不需要节点。</string>
     <string name="onb_move_try_again">重试</string>
-    <string name="onb_move_no_key">旧手机批准了这部手机，但没有交出你的身份密钥。请重试，并批准新的配对码。</string>
     <string name="onb_move_already_here">此身份已在这部手机上。</string>
+    <string name="onb_move_not_a_code">这不是迁移用的二维码。请在旧手机的“设置”中选择“迁移到新手机”。</string>
+    <string name="onb_move_code_title">输入代码</string>
+    <string name="onb_move_code_body">输入旧手机在显示二维码之前显示的代码。</string>
+    <string name="onb_move_code_label">代码</string>
+    <string name="onb_move_code_invalid">代码由十个字母和数字组成，例如 7KQ4-M9XD-2F。</string>
+    <string name="onb_move_code_wrong">这个代码无法打开此二维码。请在旧手机上核对。</string>
+    <string name="onb_move_open">继续</string>
+    <string name="onb_move_scan_again">重新扫描</string>
+    <string name="onb_move_opening">正在打开你的身份...</string>
+    <string name="onb_move_joining">正在将本手机添加到你的主节点...</string>
+    <string name="onb_move_passphrase_title">你的账户口令</string>
+    <string name="onb_move_passphrase_body">你在主节点上的账户设有口令。将本手机添加到账户需要它。</string>
+    <string name="onb_move_passphrase_label">口令</string>
+    <string name="onb_move_wrong_passphrase">这不是你的账户口令。</string>
+    <string name="onb_move_continue">继续</string>
+    <string name="onb_move_join_failed_title">本手机尚未加入你的主节点</string>
+    <string name="onb_move_join_failed_body">你的身份已在本手机上，但主节点暂时无法添加它。请重试，或稍后在“身份”标签页中操作。</string>
+    <string name="onb_move_join_later">稍后</string>
 </resources>

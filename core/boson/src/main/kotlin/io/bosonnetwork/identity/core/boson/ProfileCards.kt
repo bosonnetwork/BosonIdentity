@@ -27,6 +27,7 @@ import io.bosonnetwork.UserProfile
 import io.bosonnetwork.Value
 import io.bosonnetwork.crypto.CryptoIdentity
 import io.bosonnetwork.crypto.Signature
+import io.bosonnetwork.identifier.Card
 import io.bosonnetwork.director.client.NodeStatus
 import io.bosonnetwork.director.client.Profile
 import io.bosonnetwork.identity.core.model.IdentityInfo
@@ -50,8 +51,29 @@ data class CardContent(
     val avatar: String?,
     val homeNode: String,
     val messagingHomePeer: String?,
+    /** The profile revision the card is made from; null when not known. */
+    val revision: Long? = null,
 ) {
     companion object {
+        /**
+         * The card for [identity]'s profile as this phone keeps it, at its home node with [nodeId] and
+         * [messagingHomePeer]. The avatar is named by the address the home node serves it at.
+         */
+        fun of(identity: IdentityInfo, nodeId: String, messagingHomePeer: String?): CardContent {
+            val fields = identity.profile.fields
+            return CardContent(
+                name = fields.name,
+                bio = fields.bio,
+                avatar = fields.avatar?.let { avatarUri(nodeId, identity.userId) },
+                homeNode = nodeId,
+                messagingHomePeer = messagingHomePeer,
+                revision = identity.profile.revision,
+            )
+        }
+
+        /** Where the home node [nodeId] serves [userId]'s avatar, as it names it in the profile. */
+        fun avatarUri(nodeId: String, userId: String): String = "bnr://$nodeId/api/v1/client/avatar/$userId"
+
         /** The card for [userId]'s [profile] at the node with [nodeId] and [status]. */
         fun of(userId: String, profile: Profile, nodeId: String, status: NodeStatus?): CardContent =
             CardContent(
@@ -68,8 +90,11 @@ data class CardContent(
 sealed interface CardStatus {
     data object NotPublished : CardStatus
 
-    /** Published, at [version]; the next publication takes the one after it. */
-    data class Published(val version: Int) : CardStatus
+    /**
+     * Published, at [version]; the next publication takes the one after it. [content] is what the card
+     * says, null when it can't be read.
+     */
+    data class Published(val version: Int, val content: CardContent? = null) : CardStatus
 }
 
 /**
@@ -87,7 +112,7 @@ class ProfileCards(private val vault: IdentityVault, private val nodes: NodeConn
     suspend fun status(identity: IdentityInfo, prompt: AuthPrompt): CardStatus =
         nodes.gateway(identity, prompt) { gateway ->
             val stored = gateway.getValue(Id.of(identity.userId)).await().orElse(null)
-            if (stored == null) CardStatus.NotPublished else CardStatus.Published(stored.sequenceNumber)
+            if (stored == null) CardStatus.NotPublished else CardStatus.Published(stored.sequenceNumber, read(stored.data))
         }
 
     /** Publishes [content], after the user confirmed with [prompt]; returns the version published. */
@@ -101,10 +126,19 @@ class ProfileCards(private val vault: IdentityVault, private val nodes: NodeConn
     suspend fun publish(identity: IdentityInfo, content: CardContent, userKey: Signature.KeyPair, prompt: AuthPrompt): Int =
         nodes.gateway(identity, prompt) { gateway ->
             val id = Id.of(identity.userId)
-            // The DHT keeps only a newer version than it has, which may have come from elsewhere.
+            // The DHT keeps only a newer version than it has, which may have come from another phone, and a
+            // resolver may still remember one after it expired: the next version is past all of them, and
+            // past the last one this phone published.
             val stored = gateway.getValue(id).await().orElse(null)?.sequenceNumber
-            val found = if (stored == null) gateway.findValue(id).await().orElse(null)?.sequenceNumber else null
-            val version = nextVersion(stored ?: found)
+            val found = try {
+                gateway.findValue(id).await().orElse(null)?.sequenceNumber
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+            val kept = vault.identities.value.firstOrNull { it.userId == identity.userId }?.cardVersion
+            val version = nextVersion(listOfNotNull(stored, found, kept, identity.cardVersion).maxOrNull())
             val owner = CryptoIdentity(userKey)
             val card = UserProfile.builder(owner)
                 .name(content.name)
@@ -124,6 +158,7 @@ class ProfileCards(private val vault: IdentityVault, private val nodes: NodeConn
                 .build()
             // Stored persistently: the gateway announces it again before it expires.
             gateway.storeValue(value, true).await()
+            vault.update(identity.userId) { it.copy(cardVersion = version, cardRevision = content.revision) }
             version
         }
 
@@ -133,9 +168,33 @@ class ProfileCards(private val vault: IdentityVault, private val nodes: NodeConn
      */
     suspend fun unpublish(identity: IdentityInfo, prompt: AuthPrompt) {
         nodes.gateway(identity, prompt) { gateway -> gateway.removeValue(Id.of(identity.userId)).await() }
+        // The version stays: a later card must still be newer than the one other nodes may remember.
+        vault.update(identity.userId) { it.copy(cardRevision = null) }
+    }
+
+    // What a stored card says; null when it doesn't parse.
+    private fun read(data: ByteArray?): CardContent? = if (data == null) null else try {
+        val profile = UserProfile.fromCard(Card.parse(data))
+        CardContent(
+            name = profile.name.orElse(null),
+            bio = profile.bio.orElse(null),
+            avatar = profile.avatar.orElse(null),
+            homeNode = profile.homeNode.orElse(null)?.toString() ?: "",
+            messagingHomePeer = profile.messagingHomePeer.orElse(null)?.toString(),
+        )
+    } catch (e: Exception) {
+        null
     }
 
     companion object {
+        /**
+         * Whether a published card says something else than [current] would: its name, bio, avatar, home
+         * node or messaging peer differ (the revision does not count). Null [published] (unreadable) is
+         * not called out of date.
+         */
+        fun outdated(published: CardContent?, current: CardContent): Boolean =
+            published != null && published.copy(revision = null) != current.copy(revision = null)
+
         /** The version after [current], the published one (null when none is). */
         fun nextVersion(current: Int?): Int = if (current == null) 0 else current + 1
     }

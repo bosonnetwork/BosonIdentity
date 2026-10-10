@@ -23,6 +23,8 @@
 package io.bosonnetwork.identity.core.vault
 
 import io.bosonnetwork.identity.core.model.IdentityInfo
+import io.bosonnetwork.identity.core.model.LocalProfile
+import io.bosonnetwork.identity.core.model.ProfileFields
 import io.bosonnetwork.identity.core.model.NodeAddress
 import java.io.File
 import java.io.FileOutputStream
@@ -88,25 +90,59 @@ class VaultStore(private val dir: File) {
         val info = entry.info
         return JSONObject()
             .put("userId", info.userId)
-            .putOpt("name", info.name)
+            .put("profile", encodeProfile(info.profile))
             .put("backupVerified", info.backupVerified)
             .putOpt("homeNode", info.homeNode?.let { JSONObject().put("url", it.url).putOpt("nodeId", it.nodeId) })
             .putOpt("deviceId", info.deviceId)
             .put("administers", info.administers)
+            .putOpt("cardVersion", info.cardVersion)
+            .putOpt("cardRevision", info.cardRevision)
             .putOpt("userKey", entry.userKey?.let(::encodeSealed))
             .put("deviceKey", encodeSealed(entry.deviceKey))
     }
+
+    private fun encodeProfile(profile: LocalProfile): JSONObject =
+        encodeFields(profile.fields)
+            .putOpt("revision", profile.revision)
+            .putOpt("synced", profile.synced?.let(::encodeFields))
+
+    private fun encodeFields(fields: ProfileFields): JSONObject =
+        JSONObject()
+            .putOpt("name", fields.name)
+            .putOpt("bio", fields.bio)
+            .putOpt("email", fields.email)
+            .putOpt("avatar", fields.avatar)
+
+    private fun decodeProfile(json: JSONObject?, legacyName: String?): LocalProfile {
+        // Vaults from before the local profile kept only the name, as the home node had it: never synced.
+        if (json == null) return LocalProfile(ProfileFields(name = legacyName))
+        return LocalProfile(
+            fields = decodeFields(json),
+            revision = if (json.has("revision") && !json.isNull("revision")) json.getLong("revision") else null,
+            synced = json.optJSONObject("synced")?.let(::decodeFields),
+        )
+    }
+
+    private fun decodeFields(json: JSONObject): ProfileFields =
+        ProfileFields(
+            name = json.optStringOrNull("name"),
+            bio = json.optStringOrNull("bio"),
+            email = json.optStringOrNull("email"),
+            avatar = json.optStringOrNull("avatar"),
+        )
 
     private fun decode(json: JSONObject): VaultEntry {
         val home = json.optJSONObject("homeNode")
         val info = IdentityInfo(
             userId = json.getString("userId"),
-            name = json.optStringOrNull("name"),
+            profile = decodeProfile(json.optJSONObject("profile"), json.optStringOrNull("name")),
             backupVerified = json.optBoolean("backupVerified"),
             homeNode = home?.let { NodeAddress(it.getString("url"), it.optStringOrNull("nodeId")) },
             deviceId = json.optStringOrNull("deviceId"),
             // Absent from vaults written before admin mode existed.
             administers = json.optBoolean("administers", false),
+            cardVersion = if (json.has("cardVersion") && !json.isNull("cardVersion")) json.getInt("cardVersion") else null,
+            cardRevision = if (json.has("cardRevision") && !json.isNull("cardRevision")) json.getLong("cardRevision") else null,
         )
         return VaultEntry(
             info,
@@ -121,7 +157,7 @@ class VaultStore(private val dir: File) {
     private fun decodeSealed(json: JSONObject): Sealed =
         Sealed(unbase64.decode(json.getString("iv")), unbase64.decode(json.getString("data")))
 
-    private fun JSONObject.optStringOrNull(name: String): String? = if (isNull(name)) null else optString(name)
+    private fun JSONObject.optStringOrNull(name: String): String? = if (!has(name) || isNull(name)) null else optString(name)
 
     private companion object {
         const val FILE_NAME = "vault.json"

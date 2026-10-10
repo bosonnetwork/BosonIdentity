@@ -23,6 +23,8 @@
 package io.bosonnetwork.identity.core.vault
 
 import io.bosonnetwork.identity.core.model.IdentityInfo
+import io.bosonnetwork.identity.core.model.LocalProfile
+import io.bosonnetwork.identity.core.model.ProfileFields
 import io.bosonnetwork.identity.core.model.NodeAddress
 import java.io.File
 import java.nio.file.Files
@@ -47,7 +49,7 @@ class VaultStoreTest {
     fun `whether an identity administers its node is kept`() {
         val info = IdentityInfo(
             userId = "user",
-            name = "Root",
+            profile = LocalProfile(ProfileFields(name = "Root")),
             backupVerified = true,
             homeNode = NodeAddress("https://node.example", "node"),
             deviceId = "device",
@@ -73,5 +75,37 @@ class VaultStoreTest {
         val info = VaultStore(dir).read().single().info
         assertEquals("user", info.userId)
         assertFalse(info.administers)
+    }
+
+    @Test
+    fun `the local profile, its sync base and the card record are kept`() {
+        val synced = ProfileFields(name = "Ann", bio = "Hi", avatar = "abc")
+        val info = IdentityInfo(
+            userId = "user",
+            profile = LocalProfile(ProfileFields(name = "Anna", bio = "Hi", email = "ann@example.com", avatar = "abc"), 7, synced),
+            cardVersion = 4,
+            cardRevision = 7,
+        )
+        VaultStore(dir).write(listOf(VaultEntry(info, sealed, sealed)))
+
+        val read = VaultStore(dir).read().single().info
+        assertEquals(info, read)
+        assertEquals("Anna", read.name)
+        assertTrue(read.profile.dirty)
+    }
+
+    @Test
+    fun `a vault written before the local profile keeps its name, not yet synced`() {
+        File(dir, "vault.json").writeText(
+            """
+            {"version":1,"identities":[{"userId":"user","name":"Root","backupVerified":true,
+              "deviceKey":{"iv":"AAAAAAAAAAAAAAAA","data":"AQID"}}]}
+            """.trimIndent(),
+        )
+        val info = VaultStore(dir).read().single().info
+        assertEquals("Root", info.name)
+        assertEquals(null, info.profile.revision)
+        assertTrue(info.profile.dirty)
+        assertEquals(null, info.cardVersion)
     }
 }

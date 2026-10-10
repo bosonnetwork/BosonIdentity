@@ -29,7 +29,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.bosonnetwork.Id
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
-import io.bosonnetwork.identity.core.boson.AvatarCache
+import io.bosonnetwork.identity.core.boson.AvatarStore
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.boson.call
 import io.bosonnetwork.identity.core.designsystem.component.userMessage
@@ -77,7 +77,7 @@ class SettingsViewModel @Inject constructor(
     private val vault: IdentityVault,
     private val activeIdentity: ActiveIdentity,
     private val nodes: NodeConnections,
-    private val avatars: AvatarCache,
+    private val avatars: AvatarStore,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 

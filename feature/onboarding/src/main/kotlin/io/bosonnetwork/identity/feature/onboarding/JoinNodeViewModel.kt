@@ -31,6 +31,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.bosonnetwork.Id
 import io.bosonnetwork.director.client.UserRegistration
 import io.bosonnetwork.identity.core.boson.NodeConnections
+import io.bosonnetwork.identity.core.boson.ProfileSync
 import io.bosonnetwork.identity.core.boson.ThisDevice
 import io.bosonnetwork.identity.core.boson.call
 import io.bosonnetwork.identity.core.designsystem.component.userMessage
@@ -89,6 +90,7 @@ class JoinNodeViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val vault: IdentityVault,
     private val nodes: NodeConnections,
+    private val profileSync: ProfileSync,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -96,6 +98,15 @@ class JoinNodeViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(JoinNodeUiState())
     val state: StateFlow<JoinNodeUiState> = _state.asStateFlow()
+
+    init {
+        // The name field starts from the profile on this phone, which the new account is made from.
+        viewModelScope.launch {
+            vault.load()
+            val name = vault.identities.value.firstOrNull { it.userId == userId }?.name.orEmpty()
+            _state.update { if (it.name.isEmpty()) it.copy(name = name) else it }
+        }
+    }
 
     fun onAddressChange(value: String) = _state.update { it.copy(address = value, error = null) }
     fun onNodeIdChange(value: String) = _state.update { it.copy(nodeIdInput = value, error = null) }
@@ -178,14 +189,31 @@ class JoinNodeViewModel @Inject constructor(
                         }
                     } else {
                         if (!s.acceptsNewAccounts) throw NoNewAccounts()
+                        // The account starts from the profile on this phone; the avatar follows with the sync.
+                        val fields = vault.identities.value.firstOrNull { it.userId == userId }?.profile?.fields
                         val registration = UserRegistration()
                             .name(s.name.trim().ifEmpty { null })
+                            .bio(fields?.bio)
+                            .email(fields?.email)
                             .initialDevice(ThisDevice.name, ThisDevice.APP_NAME)
                         call { client.registerUser(registration).await() }
                     }
                     Id.of(key.publicKey().bytes()).toString()
                 }
                 vault.update(userId) { it.copy(homeNode = node, deviceId = deviceId) }
+                // A name typed here is the profile's name; then the profile is synced: the node's wins for
+                // a member, this phone's fills what the node has empty, the avatar included.
+                val typed = s.name.trim().ifEmpty { null }
+                vault.identities.value.firstOrNull { it.userId == userId }?.profile?.fields?.let { f ->
+                    if (typed != null && typed != f.name) profileSync.edit(userId, typed, f.bio, f.email)
+                }
+                try {
+                    profileSync.sync(userId, prompt, s.passphrase.ifEmpty { null })
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // Joined all the same: the Identity tab syncs again.
+                }
                 _state.update { it.copy(busy = false, joined = true) }
             } catch (e: CancellationException) {
                 throw e

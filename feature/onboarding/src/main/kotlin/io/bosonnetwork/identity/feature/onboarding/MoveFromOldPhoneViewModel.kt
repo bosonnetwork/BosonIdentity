@@ -29,8 +29,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.bosonnetwork.Id
 import io.bosonnetwork.crypto.Signature
-import io.bosonnetwork.director.client.exceptions.RegistrationDeniedException
 import io.bosonnetwork.identity.core.boson.NodeConnections
+import io.bosonnetwork.identity.core.boson.ProfileSync
 import io.bosonnetwork.identity.core.boson.ThisDevice
 import io.bosonnetwork.identity.core.boson.call
 import io.bosonnetwork.identity.core.designsystem.component.userMessage
@@ -38,237 +38,207 @@ import io.bosonnetwork.identity.core.model.AppError
 import io.bosonnetwork.identity.core.model.NodeAddress
 import io.bosonnetwork.identity.core.vault.AuthPrompt
 import io.bosonnetwork.identity.core.vault.IdentityVault
+import io.bosonnetwork.identity.core.vault.MoveCode
+import io.bosonnetwork.identity.core.vault.MovePayload
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class MoveStep {
-    /** Typing the home node's address, or choosing to scan its QR code. */
-    ADDRESS,
-
-    /** Scanning the home node's QR code. */
+    /** Scanning the QR code the old phone shows. */
     SCAN,
 
-    /** Asking the node, and filing the request to join. */
-    CONNECTING,
+    /** Typing the code the old phone showed. */
+    CODE,
 
-    /** The pairing code is shown; waiting for the old phone to approve it. */
-    PAIRING,
+    /** Opening the QR code with the code, then keeping the identity here. */
+    OPENING,
 
-    /** Approved: storing the identity on this phone. */
-    STORING,
+    /** Adding this phone to the identity's home node. */
+    JOINING,
 
-    /** The old phone approved, but this phone couldn't store the identity; storing is tried again. */
-    STORE_FAILED,
+    /** The account has a passphrase, which adding this phone needs. */
+    PASSPHRASE,
 
-    /** The old phone denied the request. */
-    DENIED,
-
-    /** The request expired before the old phone answered, or the node lost it. */
-    EXPIRED,
+    /** The home node couldn't add this phone; it can be tried again, or later. */
+    JOIN_FAILED,
 }
 
 data class MoveUiState(
-    val step: MoveStep = MoveStep.ADDRESS,
-    val address: String = "",
-    val nodeIdInput: String = "",
-    /** The home node, with the id it reported. */
+    val step: MoveStep = MoveStep.SCAN,
+    /** The code as typed. */
+    val code: String = "",
+    val passphrase: String = "",
+    /** The home node the identity moved with, while this phone joins it. */
     val node: NodeAddress? = null,
-    /** The pairing code to show the old phone, as a QR code. */
-    val pairingCode: String? = null,
     val error: String? = null,
-    /** Set when the identity is on this phone, joined to its node: moving is over. */
+    /** Set when the identity is on this phone: [userId] is its id. */
     val finishedUserId: String? = null,
 )
 
 /**
- * Moving the identity from the old phone to this one. This phone asks the home node to join the
- * identity as a new device that wants the identity's key, and shows the pairing code; the old phone
- * scans it and approves in Devices, sealing the key to the code, so the node relays it without being
- * able to read it. This phone then stores the key it received, with the device key the node now
- * knows, so it needs no joining step: it already is one of the identity's devices.
+ * Moving the identity here from the old phone, which shows a QR code and, before it, a code
+ * ([MoveCode]): no node is needed for the move itself. The QR code is scanned, the code typed, and the
+ * identity (its key, its home node, its profile) is kept here under this phone's screen lock. With a
+ * home node, this phone is then added to it as one of the identity's devices, by the user key it now
+ * holds, and the profile synced; without one, the identity is here, its profile as the old phone had it.
  */
 @HiltViewModel
 class MoveFromOldPhoneViewModel @Inject constructor(
     private val vault: IdentityVault,
     private val nodes: NodeConnections,
+    private val profileSync: ProfileSync,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MoveUiState())
     val state: StateFlow<MoveUiState> = _state.asStateFlow()
 
-    private var job: Job? = null
+    // The scanned QR code, until it is opened; the scanner repeats it every frame.
+    private var scanned: String? = null
 
-    // This phone's new device key, in memory only until it is stored; a new one for each request.
-    private var deviceKey: Signature.KeyPair? = null
-
-    // The identity's key once the old phone handed it over, kept until it is stored.
-    private var userKey: Signature.KeyPair? = null
-
-    // The scanner repeats the same payload every frame; act on the first one only.
-    private var lastScanned: String? = null
-
-    fun onAddressChange(value: String) = _state.update { it.copy(address = value, error = null) }
-    fun onNodeIdChange(value: String) = _state.update { it.copy(nodeIdInput = value, error = null) }
-
-    fun scan() = _state.update { it.copy(step = MoveStep.SCAN, error = null) }
-
-    /** Back to the node's address, dropping a request under way. */
-    fun backToAddress() {
-        job?.cancel()
-        forgetKeys()
-        lastScanned = null
-        _state.update { it.copy(step = MoveStep.ADDRESS, node = null, pairingCode = null) }
-    }
+    // The identity being joined to its node, after it was kept here.
+    private var userId: String? = null
 
     fun onScanned(text: String) {
-        if (_state.value.step != MoveStep.SCAN || text == lastScanned) return
-        lastScanned = text
-        val scanned = scannedNode(text)
-        if (scanned == null) {
-            _state.update { it.copy(step = MoveStep.ADDRESS, error = context.getString(R.string.onb_join_invalid_qr)) }
+        if (_state.value.step != MoveStep.SCAN || text == scanned) return
+        if (!MoveCode.isMoveCode(text)) {
+            _state.update { it.copy(error = context.getString(R.string.onb_move_not_a_code)) }
             return
         }
-        _state.update { it.copy(address = scanned.url, nodeIdInput = scanned.nodeId, step = MoveStep.ADDRESS) }
-        check()
+        scanned = text
+        _state.update { it.copy(step = MoveStep.CODE, error = null) }
     }
 
-    /** Asks the node typed who it is, then files the request to join the identity there. */
-    fun check() {
+    fun onCodeChange(value: String) = _state.update { it.copy(code = value, error = null) }
+    fun onPassphraseChange(value: String) = _state.update { it.copy(passphrase = value, error = null) }
+
+    /** Back to the scanner, for another QR code. */
+    fun scanAgain() {
+        scanned = null
+        _state.update { MoveUiState() }
+    }
+
+    /** Opens the QR code with the typed code, then keeps the identity here. */
+    fun open() {
+        val text = scanned ?: return
         val s = _state.value
-        if (s.step != MoveStep.ADDRESS) return
-        val typed = when (val checked = typedNode(s.address, s.nodeIdInput)) {
-            is TypedNode.Invalid -> {
-                _state.update { it.copy(error = context.getString(checked.message)) }
-                return
-            }
-            is TypedNode.Valid -> checked.node
-        }
-        // The key will be sealed behind the screen lock: without one, there's no point asking the old phone.
-        if (!vault.canProtectKeys()) {
-            _state.update { it.copy(error = context.getString(R.string.onb_protect_no_lock)) }
+        if (s.step != MoveStep.CODE) return
+        if (MoveCode.normalize(s.code) == null) {
+            _state.update { it.copy(error = context.getString(R.string.onb_move_code_invalid)) }
             return
         }
-        _state.update { it.copy(step = MoveStep.CONNECTING, error = null) }
-        job = viewModelScope.launch {
-            try {
-                val node = nodes.identify(typed)
-                _state.update { it.copy(node = node) }
-                pair(node)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _state.update { it.copy(step = MoveStep.ADDRESS, error = e.userMessage(context)) }
+        _state.update { it.copy(step = MoveStep.OPENING, error = null) }
+        viewModelScope.launch {
+            val payload = try {
+                // Deriving the key from the code takes a moment, and memory: off the main thread.
+                withContext(Dispatchers.Default) { MoveCode.open(text, s.code) }
+            } catch (e: MoveCode.WrongCode) {
+                _state.update { it.copy(step = MoveStep.CODE, error = context.getString(R.string.onb_move_code_wrong)) }
+                return@launch
+            } catch (e: MoveCode.NotAMoveCode) {
+                scanned = null
+                _state.update { it.copy(step = MoveStep.SCAN, code = "", error = context.getString(R.string.onb_move_not_a_code)) }
+                return@launch
             }
+            keep(payload)
         }
     }
 
-    /** Files a new request after a denied or expired one, or stores the identity again after a failure. */
-    fun tryAgain() {
-        val s = _state.value
-        val node = s.node ?: return
-        when (s.step) {
-            MoveStep.STORE_FAILED -> {
-                _state.update { it.copy(step = MoveStep.STORING, error = null) }
-                job = viewModelScope.launch { store(node) }
-            }
-            MoveStep.DENIED, MoveStep.EXPIRED -> {
-                _state.update { it.copy(step = MoveStep.CONNECTING, pairingCode = null, error = null) }
-                job = viewModelScope.launch { pair(node) }
-            }
-            else -> Unit
-        }
-    }
-
-    // Asks to join the identity at [node] with a fresh device key, shows the pairing code, and waits
-    // for the old phone's answer.
-    private suspend fun pair(node: NodeAddress) {
-        forgetKeys()
-        val key = Signature.KeyPair.random()
-        deviceKey = key
-        try {
-            val guest = nodes.guest(node)
-            val registration = call {
-                guest.requestDeviceRegistration(key, ThisDevice.name, ThisDevice.APP_NAME, true).await()
-            }
-            _state.update { it.copy(step = MoveStep.PAIRING, pairingCode = registration.pairingCode.toString()) }
-            // The node holds this call until the old phone answers, or the request expires.
-            val approval = call { guest.finishDeviceRegistration(registration).await() }
-            val handedOver = approval.userKey.orElse(null)
-            if (handedOver == null || Id.of(handedOver.publicKey().bytes()) != approval.userId) {
-                handedOver?.destroy()
-                _state.update { it.copy(step = MoveStep.EXPIRED, pairingCode = null, error = context.getString(R.string.onb_move_no_key)) }
-                return
-            }
-            userKey = handedOver
-            _state.update { it.copy(step = MoveStep.STORING, pairingCode = null) }
-            store(node)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: AppError.Conflict) {
-            // A denied request is answered 412, which reads as a conflict; any other conflict is shown.
-            if (e.cause is RegistrationDeniedException) {
-                _state.update { it.copy(step = MoveStep.DENIED, pairingCode = null) }
-            } else {
-                _state.update { it.copy(step = MoveStep.EXPIRED, pairingCode = null, error = e.userMessage(context)) }
-            }
-        } catch (e: AppError.Timeout) {
-            _state.update { it.copy(step = MoveStep.EXPIRED, pairingCode = null) }
-        } catch (e: AppError.NotFound) {
-            _state.update { it.copy(step = MoveStep.EXPIRED, pairingCode = null) }
-        } catch (e: Exception) {
-            _state.update { it.copy(step = MoveStep.EXPIRED, pairingCode = null, error = e.userMessage(context)) }
-        }
-    }
-
-    // Seals the identity's key and this phone's device key in the vault, and records the home node and
-    // this phone's device there: the node already registered it when the old phone approved.
-    private suspend fun store(node: NodeAddress) {
-        val user = userKey ?: return
-        val device = deviceKey ?: return
+    // Seals the key here, with the profile; then joins the home node, if there is one.
+    private suspend fun keep(payload: MovePayload) {
+        val userKey = Signature.KeyPair.fromPrivateKey(payload.privateKey)
+        payload.privateKey.fill(0)
         try {
             val info = vault.add(
-                userKey = user,
-                name = null,
-                // This phone hasn't seen the backup checked; the identity asks for it again here.
-                backupVerified = false,
+                userKey = userKey,
+                name = payload.profile.fields.name,
+                backupVerified = payload.backupVerified,
                 keepUserKey = true,
                 prompt = AuthPrompt(
                     context.getString(R.string.onb_protect_prompt_title),
                     context.getString(R.string.onb_protect_prompt_subtitle),
                 ),
-                deviceKey = device,
             )
-            val deviceId = Id.of(device.publicKey().bytes()).toString()
-            vault.update(info.userId) { it.copy(homeNode = node, deviceId = deviceId) }
-            forgetKeys()
-            _state.update { it.copy(finishedUserId = info.userId) }
+            val fields = payload.profile.fields
+            profileSync.edit(info.userId, fields.name, fields.bio, fields.email)
+            userId = info.userId
+            val node = payload.homeNode
+            if (node == null) {
+                _state.update { it.copy(finishedUserId = info.userId) }
+            } else {
+                _state.update { it.copy(node = node) }
+                join(info.userId, node, null)
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (e: AppError.Conflict) {
-            // Already on this phone: nothing to store, and nothing to keep in memory.
-            forgetKeys()
-            _state.update { it.copy(step = MoveStep.ADDRESS, node = null, error = context.getString(R.string.onb_move_already_here)) }
+            scanned = null
+            _state.update { MoveUiState(error = context.getString(R.string.onb_move_already_here)) }
+        } catch (e: AppError.AuthenticationCancelled) {
+            _state.update { it.copy(step = MoveStep.CODE) }
         } catch (e: Exception) {
-            _state.update { it.copy(step = MoveStep.STORE_FAILED, error = e.userMessage(context)) }
+            _state.update { it.copy(step = MoveStep.CODE, error = e.userMessage(context)) }
+        } finally {
+            userKey.destroy()
         }
     }
 
-    private fun forgetKeys() {
-        userKey?.destroy()
-        userKey = null
-        deviceKey?.destroy()
-        deviceKey = null
+    /** Adds this phone to the home node again, after it failed or asked for the passphrase. */
+    fun retryJoin() {
+        val id = userId ?: return
+        val node = _state.value.node ?: return
+        val passphrase = _state.value.passphrase.ifEmpty { null }
+        viewModelScope.launch { join(id, node, passphrase) }
     }
 
-    override fun onCleared() {
-        forgetKeys()
+    /** Leaves the joining for later: the identity is here; the Identity tab offers to join its node. */
+    fun joinLater() {
+        _state.value.let { s -> userId?.let { id -> _state.update { s.copy(finishedUserId = id) } } }
+    }
+
+    // Registers this phone with the identity's home node, by the user key, then syncs the profile.
+    private suspend fun join(userId: String, node: NodeAddress, passphrase: String?) {
+        _state.update { it.copy(step = MoveStep.JOINING, error = null) }
+        try {
+            val prompt = AuthPrompt(
+                context.getString(R.string.onb_join_prompt_title),
+                context.getString(R.string.onb_join_prompt_subtitle, node.url),
+            )
+            val known = nodes.identify(node)
+            val deviceId = nodes.asUser(userId, known, prompt, withDeviceKey = true) { client, deviceKey ->
+                val key = checkNotNull(deviceKey)
+                try {
+                    call { client.registerDevice(key, ThisDevice.name, ThisDevice.APP_NAME, passphrase).await() }
+                } catch (e: AppError.Conflict) {
+                    // Already one of the identity's devices.
+                }
+                Id.of(key.publicKey().bytes()).toString()
+            }
+            vault.update(userId) { it.copy(homeNode = known, deviceId = deviceId) }
+            try {
+                profileSync.sync(userId, prompt, passphrase)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Here and joined: the Identity tab syncs again.
+            }
+            _state.update { it.copy(passphrase = "", finishedUserId = userId) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: AppError.PassphraseRequired) {
+            _state.update { it.copy(step = MoveStep.PASSPHRASE, passphrase = "") }
+        } catch (e: AppError.Forbidden) {
+            _state.update { it.copy(step = MoveStep.PASSPHRASE, passphrase = "", error = context.getString(R.string.onb_move_wrong_passphrase)) }
+        } catch (e: Exception) {
+            _state.update { it.copy(step = MoveStep.JOIN_FAILED, error = e.userMessage(context)) }
+        }
     }
 }

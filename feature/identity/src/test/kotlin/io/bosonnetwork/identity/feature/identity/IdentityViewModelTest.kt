@@ -31,6 +31,7 @@ import io.bosonnetwork.Id
 import io.bosonnetwork.crypto.Signature
 import io.bosonnetwork.director.client.Avatar
 import io.bosonnetwork.director.client.AvatarRefresh
+import io.bosonnetwork.director.client.AvatarChange
 import io.bosonnetwork.director.client.DirectorClient
 import io.bosonnetwork.director.client.NodeStatus
 import io.bosonnetwork.director.client.Profile
@@ -39,12 +40,13 @@ import io.bosonnetwork.director.client.ProfileUpdate
 import io.bosonnetwork.director.client.exceptions.DirectorException
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
 import io.bosonnetwork.identity.core.boson.AdminAccess
-import io.bosonnetwork.identity.core.boson.AvatarCache
+import io.bosonnetwork.identity.core.boson.AvatarStore
 import io.bosonnetwork.identity.core.boson.CardContent
 import io.bosonnetwork.identity.core.boson.CardStatus
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.boson.NodeLogos
 import io.bosonnetwork.identity.core.boson.ProfileCards
+import io.bosonnetwork.identity.core.boson.ProfileSync
 import io.bosonnetwork.identity.core.model.AppError
 import io.bosonnetwork.identity.core.model.IdentityInfo
 import io.bosonnetwork.identity.core.model.NodeAddress
@@ -119,6 +121,7 @@ class IdentityViewModelTest {
     private val context = mockk<Context>(relaxed = true) {
         every { getString(R.string.id_wrong_passphrase) } returns "wrong passphrase"
         every { getString(R.string.id_backup_first) } returns "back up first"
+        every { getString(R.string.id_sync_later) } returns "saved, later"
         every { getString(R.string.id_card_update_failed, any()) } answers { "card not updated: ${(args[1] as Array<*>)[0]}" }
         every { getString(io.bosonnetwork.identity.core.designsystem.R.string.ds_error_passphrase_required) } returns "passphrase needed"
         every { getString(io.bosonnetwork.identity.core.designsystem.R.string.ds_error_network) } returns "no network"
@@ -151,10 +154,13 @@ class IdentityViewModelTest {
         dir.deleteRecursively()
     }
 
-    private val avatars = AvatarCache(File(dir, "avatars"))
+    private val avatars = AvatarStore(File(dir, "avatars"))
     private val avatarImages = mockk<AvatarImages>()
 
-    private fun viewModel() = IdentityViewModel(vault, active, nodes, cards, logos, avatars, adminAccess, avatarImages, context).also { viewModels += it }
+    private val profileSync by lazy { ProfileSync(vault, nodes, avatars) }
+
+    private fun viewModel() =
+        IdentityViewModel(vault, active, nodes, cards, logos, avatars, adminAccess, avatarImages, profileSync, context).also { viewModels += it }
 
     // The profile as the client would decode it; its constructor is the one Jackson uses.
     private fun profile(
@@ -164,11 +170,13 @@ class IdentityViewModelTest {
         passphrase: Boolean = false,
         admin: Boolean = false,
         avatar: String? = null,
+        revision: Long = 1,
     ): Profile =
         Profile::class.java.getDeclaredConstructor(
             Id::class.java, Boolean::class.java, String::class.java, String::class.java, String::class.java, String::class.java,
             Long::class.java, Long::class.java, String::class.java, Boolean::class.java,
         ).apply { isAccessible = true }.newInstance(Id.random(), admin, name, avatar, email, bio, 0L, 0L, "Free", passphrase)
+            .also { p -> Profile::class.java.getDeclaredField("profileRevision").apply { isAccessible = true }.setLong(p, revision) }
 
     private fun status(gateway: Boolean, name: String? = "Example node", running: Boolean = true): NodeStatus {
         val service = mockk<NodeStatus.Service>()
@@ -198,7 +206,7 @@ class IdentityViewModelTest {
     private fun ProfileUpdate.sent(): Map<*, *> =
         ProfileUpdate::class.java.getDeclaredMethod("fields").apply { isAccessible = true }.invoke(this) as Map<*, *>
 
-    private fun failed(status: Int, retryAfter: String? = null): CompletableFuture<Void> =
+    private fun <T> failed(status: Int, retryAfter: String? = null): CompletableFuture<T> =
         CompletableFuture.failedFuture(DirectorException.fromResponse(status, "refused", retryAfter))
 
     // ---- The identity and its node ------------------------------------------------------------
@@ -299,47 +307,29 @@ class IdentityViewModelTest {
 
     // ---- The avatar ----------------------------------------------------------------------------
 
-    private val avatarUri = "bnr://$nodeId/api/v1/client/avatar/someone"
+    private val avatarUri get() = CardContent.avatarUri(nodeId.toString(), currentUser)
+    private var currentUser = ""
 
     @Test
-    fun `the avatar is downloaded and shown, then only checked again`() = runTest {
-        addIdentity()
-        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice", avatar = avatarUri))
-        val held = Avatar.of("image/png", byteArrayOf(1, 2, 3), "\"v1\"", null)
-        every { client.avatar } returns CompletableFuture.completedFuture(Optional.of(held))
-        every { client.refreshAvatar(held) } returns CompletableFuture.completedFuture(
-            mockk<AvatarRefresh> { every { status } returns AvatarRefresh.Status.UNCHANGED },
-        )
+    fun `the node's avatar is downloaded once, then only when the profile moves`() = runTest {
+        currentUser = addIdentity()
+        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice", avatar = "bnr://x", revision = 1))
+        every { client.avatar } returns CompletableFuture.completedFuture(Optional.of(Avatar.of("image/png", byteArrayOf(1, 2, 3), "\"v1\"", null)))
         val vm = viewModel()
         assertArrayEquals(byteArrayOf(1, 2, 3), vm.state.first { it.avatar != null }.avatar)
 
         vm.refresh()
         vm.state.first { it.node is NodeState.Ready && !it.refreshing }
         verify(exactly = 1) { client.avatar }
-        verify(exactly = 1) { client.refreshAvatar(held) }
-        assertArrayEquals(byteArrayOf(1, 2, 3), vm.state.value.avatar)
-    }
 
-    @Test
-    fun `a changed avatar replaces the one shown, a removed one goes`() = runTest {
-        addIdentity()
-        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice", avatar = avatarUri))
-        val held = Avatar.of("image/png", byteArrayOf(1), "\"v1\"", null)
-        val changed = Avatar.of("image/png", byteArrayOf(9), "\"v2\"", null)
-        every { client.avatar } returns CompletableFuture.completedFuture(Optional.of(held))
-        every { client.refreshAvatar(held) } returns CompletableFuture.completedFuture(
-            mockk<AvatarRefresh> {
-                every { status } returns AvatarRefresh.Status.CHANGED
-                every { avatar } returns Optional.of(changed)
-            },
-        )
-        val vm = viewModel()
-        vm.state.first { it.avatar != null }
+        // Changed on the node: a new revision, and a new picture.
+        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice", avatar = "bnr://x", revision = 2))
+        every { client.avatar } returns CompletableFuture.completedFuture(Optional.of(Avatar.of("image/png", byteArrayOf(9), "\"v2\"", null)))
         vm.refresh()
         assertArrayEquals(byteArrayOf(9), vm.state.first { it.avatar?.contentEquals(byteArrayOf(9)) == true }.avatar)
 
-        // The account no longer has one.
-        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice"))
+        // Removed on the node.
+        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice", revision = 3))
         vm.refresh()
         assertNull(vm.state.first { it.avatar == null }.avatar)
     }
@@ -349,15 +339,23 @@ class IdentityViewModelTest {
     private val picked = mockk<Uri>()
     private val jpeg = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 7)
 
-    private fun pickable() {
-        coEvery { avatarImages.prepare(picked) } returns PreparedAvatar(jpeg, mockk<Bitmap>())
-        every { client.updateAvatar(jpeg, "image/jpeg") } returns CompletableFuture.completedFuture(avatarUri)
-        every { client.avatar } returns CompletableFuture.completedFuture(Optional.of(Avatar.of("image/jpeg", jpeg, "\"v1\"", null)))
+    private fun pickable(revision: Long = 2, image: ByteArray = jpeg) {
+        coEvery { avatarImages.prepare(picked) } returns PreparedAvatar(image, mockk<Bitmap>())
+        every { client.changeAvatar(image, "image/jpeg", any()) } answers {
+            // The node has it now, at the revision it answers with.
+            every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice", avatar = "bnr://x", revision = revision))
+            CompletableFuture.completedFuture(avatarChange(revision))
+        }
     }
 
+    private fun avatarChange(revision: Long): AvatarChange =
+        AvatarChange::class.java.getDeclaredConstructor(String::class.java, Long::class.java)
+            .apply { isAccessible = true }.newInstance("bnr://x", revision)
+
     @Test
-    fun `a picked photo is shown to confirm, then uploaded with the user key and shown`() = runTest {
+    fun `a picked photo is shown to confirm, kept here, then sent to the node and shown`() = runTest {
         val userId = addIdentity()
+        currentUser = userId
         pickable()
         val vm = viewModel()
         vm.ready()
@@ -366,16 +364,33 @@ class IdentityViewModelTest {
         vm.onAvatarPicked(picked)
         val pick = vm.state.first { it.avatarPick != null }.avatarPick!!
         assertArrayEquals(jpeg, pick.image)
-        verify(exactly = 0) { client.updateAvatar(any<ByteArray>(), any()) }
+        verify(exactly = 0) { client.changeAvatar(any(), any(), any()) }
 
         vm.confirmAvatar()
-        val state = vm.state.first { it.avatarPick == null && it.avatar != null }
+        // Shown at once, from this phone; then on the node.
+        vault.identities.first { !it.single().profile.dirty }
+        val state = vm.state.first { it.avatarPick == null && it.avatar != null && !it.avatarBusy }
         assertArrayEquals(jpeg, state.avatar)
         assertEquals(avatarUri, (state.node as NodeState.Ready).profile.avatar)
-        coVerify { nodes.asUser<Any?>(userId, node, any(), any(), any()) }
-        assertEquals("\"v1\"", avatars.held(userId)?.eTag?.orElse(null))
-        // Not published: nothing to publish again.
-        coVerify(exactly = 0) { cards.publish(any(), any(), any<Signature.KeyPair>(), any()) }
+        verify { client.changeAvatar(jpeg, "image/jpeg", 1L) }
+        // Through this phone's key: no prompt for the user key, and no card to publish.
+        coVerify(exactly = 0) { nodes.asUser<Any?>(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { cards.publish(any(), any(), any<AuthPrompt>()) }
+    }
+
+    @Test
+    fun `an identity without a home node keeps its avatar on this phone`() = runTest {
+        val userId = addIdentity(homeNode = null)
+        coEvery { avatarImages.prepare(picked) } returns PreparedAvatar(jpeg, mockk<Bitmap>())
+        val vm = viewModel()
+        vm.state.first { it.identity != null }
+        assertTrue(vm.state.value.canChangeAvatar)
+        vm.onAvatarPicked(picked)
+        vm.state.first { it.avatarPick != null }
+        vm.confirmAvatar()
+        assertArrayEquals(jpeg, vm.state.first { it.avatar != null && it.avatarPick == null }.avatar)
+        assertEquals(AvatarStore.digest(jpeg), vault.identities.value.single { it.userId == userId }.profile.fields.avatar)
+        coVerify(exactly = 0) { nodes.deviceClient(any(), any()) }
     }
 
     @Test
@@ -395,7 +410,7 @@ class IdentityViewModelTest {
     }
 
     @Test
-    fun `a dismissed prompt goes back to the photo, a refused upload says why`() = runTest {
+    fun `an unreachable node leaves the photo here for later, a refusing one says why`() = runTest {
         addIdentity()
         pickable()
         val vm = viewModel()
@@ -403,31 +418,29 @@ class IdentityViewModelTest {
         vm.onAvatarPicked(picked)
         vm.state.first { it.avatarPick != null }
 
-        coEvery { nodes.asUser<Any?>(any(), any(), any(), any(), any()) } throws AppError.AuthenticationCancelled("no")
+        every { client.changeAvatar(jpeg, "image/jpeg", any()) } returns
+            CompletableFuture.failedFuture(DirectorException("no answer", java.io.IOException("refused")))
         vm.confirmAvatar()
-        var pick = vm.state.first { it.avatarPick?.busy == false }.avatarPick!!
-        assertNull(pick.error)
+        val later = vm.state.first { it.syncNote != null }
+        assertNull(later.avatarPick)
+        assertArrayEquals(jpeg, later.avatar)
+        assertTrue(vault.identities.value.single().profile.dirty)
 
-        coEvery { nodes.asUser<Any?>(any(), any(), any(), any(), any()) } coAnswers {
-            arg<suspend (DirectorClient, Signature.KeyPair?) -> Any?>(4).invoke(client, null)
-        }
-        every { client.updateAvatar(jpeg, "image/jpeg") } returns CompletableFuture.failedFuture(DirectorException.fromResponse(413, "too big", null))
+        every { client.changeAvatar(jpeg, "image/jpeg", any()) } returns
+            CompletableFuture.failedFuture(DirectorException.fromResponse(413, "too big", null))
+        vm.onAvatarPicked(picked)
+        vm.state.first { it.avatarPick != null }
         vm.confirmAvatar()
-        pick = vm.state.first { it.avatarPick?.error != null }.avatarPick!!
-        assertFalse(pick.busy)
-
-        vm.cancelAvatar()
-        assertNull(vm.state.value.avatarPick)
+        assertTrue(vm.state.first { it.avatarError != null }.avatarError!!.isNotEmpty())
     }
 
     @Test
     fun `a published card is published again when the avatar comes or goes, not when it changes`() = runTest {
-        addIdentity()
+        currentUser = addIdentity()
         pickable()
         coEvery { cards.status(any(), any()) } returns CardStatus.Published(3)
         val content = mutableListOf<CardContent>()
-        coEvery { cards.publish(any(), capture(content), any<Signature.KeyPair>(), any()) } returns 4
-        every { client.removeAvatar() } returns CompletableFuture.completedFuture(null)
+        coEvery { cards.publish(any(), capture(content), any<AuthPrompt>()) } returns 4
         val vm = viewModel()
         vm.ready()
         vm.card()
@@ -436,23 +449,28 @@ class IdentityViewModelTest {
         vm.onAvatarPicked(picked)
         vm.state.first { it.avatarPick != null }
         vm.confirmAvatar()
-        assertEquals(CardState.On(4), vm.state.first { it.avatarPick == null && it.avatar != null }.card.state)
+        assertEquals(CardState.On(4), vm.state.first { it.card.state == CardState.On(4) }.card.state)
         assertEquals(avatarUri, content.single().avatar)
 
-        // Changes: the same address, so the card stays as it is.
+        // Changes: another picture at the same address, so the card stays as it is.
+        val other = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 8)
+        pickable(revision = 3, image = other)
         vm.onAvatarPicked(picked)
         vm.state.first { it.avatarPick != null }
         vm.confirmAvatar()
-        vm.state.first { it.avatarPick == null }
+        vault.identities.first { it.single().profile.revision == 3L }
+        verify { client.changeAvatar(other, "image/jpeg", 2L) }
         assertEquals(1, content.size)
 
         // Goes: the card no longer names one.
+        every { client.removeAvatar(3L) } answers {
+            every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice", revision = 4))
+            CompletableFuture.completedFuture(4L)
+        }
         vm.removeAvatar()
-        val state = vm.state.first { it.avatar == null && !it.avatarBusy }
+        val state = vm.state.first { it.avatar == null && !it.avatarBusy && content.size == 2 }
         assertNull((state.node as NodeState.Ready).profile.avatar)
-        assertEquals(2, content.size)
         assertNull(content.last().avatar)
-        verify { client.removeAvatar() }
     }
 
     @Test
@@ -468,7 +486,7 @@ class IdentityViewModelTest {
     @Test
     fun `an avatar that can't be had leaves the identicon`() = runTest {
         addIdentity()
-        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice", avatar = avatarUri))
+        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice", avatar = "bnr://x"))
         every { client.avatar } returns CompletableFuture.failedFuture(DirectorException.fromResponse(500, "oops", null))
         val vm = viewModel()
         assertEquals("Alice", vm.ready().profile.name)
@@ -476,10 +494,10 @@ class IdentityViewModelTest {
     }
 
     @Test
-    fun `the card names the avatar by the URI the node gives it`() = runTest {
-        addIdentity()
-        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice", avatar = avatarUri))
-        every { client.avatar } returns CompletableFuture.completedFuture(Optional.empty())
+    fun `the card names the avatar by the address the home node serves it at`() = runTest {
+        currentUser = addIdentity()
+        every { client.profile } returns CompletableFuture.completedFuture(profile(name = "Alice", avatar = "bnr://x"))
+        every { client.avatar } returns CompletableFuture.completedFuture(Optional.of(Avatar.of("image/png", byteArrayOf(5), null, null)))
         val content = slot<CardContent>()
         coEvery { cards.publish(any(), capture(content), any<AuthPrompt>()) } returns 0
         val vm = viewModel()
@@ -528,6 +546,33 @@ class IdentityViewModelTest {
     }
 
     @Test
+    fun `a card that says something else than the profile is out of date, and Update publishes it again`() = runTest {
+        addIdentity()
+        // Published from another phone, before the name changed there.
+        val old = CardContent("Al", null, null, nodeId.toString(), null)
+        coEvery { cards.status(any(), any()) } returns CardStatus.Published(6, old)
+        val content = slot<CardContent>()
+        coEvery { cards.publish(any(), capture(content), any<AuthPrompt>()) } returns 7
+        val vm = viewModel()
+        vm.card()
+        assertTrue(vm.state.first { it.card.state is CardState.On }.card.outdated)
+
+        vm.updateCard()
+        val card = vm.state.first { it.card.state == CardState.On(7) }.card
+        assertFalse(card.outdated)
+        assertEquals("Alice", content.captured.name)
+    }
+
+    @Test
+    fun `a card that says what the profile does is not out of date`() = runTest {
+        addIdentity()
+        coEvery { cards.status(any(), any()) } returns CardStatus.Published(6, CardContent("Alice", null, null, nodeId.toString(), null))
+        val vm = viewModel()
+        vm.card()
+        assertFalse(vm.state.value.card.outdated)
+    }
+
+    @Test
     fun `publishing needs a checked backup`() = runTest {
         addIdentity(backupVerified = false)
         val vm = viewModel()
@@ -567,10 +612,10 @@ class IdentityViewModelTest {
     // ---- Editing the profile -------------------------------------------------------------------
 
     @Test
-    fun `saving sends only the changed fields, with the user key`() = runTest {
-        val userId = addIdentity()
+    fun `saving keeps the profile here, then sends the changed fields through this phone's key`() = runTest {
+        addIdentity()
         val update = slot<ProfileUpdate>()
-        every { client.updateProfile(capture(update), any()) } returns CompletableFuture.completedFuture(null)
+        every { client.updateProfile(capture(update), any()) } returns CompletableFuture.completedFuture(2L)
         val vm = viewModel()
         vm.ready()
 
@@ -580,22 +625,56 @@ class IdentityViewModelTest {
         vm.save()
         val state = vm.state.first { it.edit == null }
         assertEquals(mapOf("name" to "Alicia", "bio" to "Hello"), update.captured.sent())
-        coVerify { nodes.asUser<Any?>(userId, node, any(), false, any()) }
         val view = (state.node as NodeState.Ready).profile
         assertEquals("Alicia", view.name)
         assertEquals("Hello", view.bio)
-        assertEquals("Alicia", vault.identities.first { it.single().name == "Alicia" }.single().name)
-        // No card published: nothing to sign beyond the call.
-        coVerify(exactly = 0) { nodes.asUserWithKey<Any?>(any(), any(), any(), any()) }
+        val kept = vault.identities.first { it.single().name == "Alicia" }.single()
+        assertEquals(2L, kept.profile.revision)
+        assertFalse(kept.profile.dirty)
+        // No card published: nothing to sign, so no prompt for the user key.
+        coVerify(exactly = 0) { nodes.asUser<Any?>(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { cards.publish(any(), any(), any<AuthPrompt>()) }
     }
 
     @Test
-    fun `a published card is updated with the profile, under the same prompt`() = runTest {
+    fun `an identity without a home node edits its profile on this phone`() = runTest {
+        val userId = addIdentity(homeNode = null)
+        val vm = viewModel()
+        vm.state.first { it.identity != null }
+        vm.startEdit()
+        assertFalse(vm.state.value.edit!!.needsPassphrase)
+        vm.onNameChange("Local Alice")
+        vm.onEmailChange("alice@example.com")
+        vm.save()
+        vm.state.first { it.edit == null }
+        val kept = vault.identities.value.single { it.userId == userId }
+        assertEquals("Local Alice", kept.name)
+        assertEquals("alice@example.com", kept.profile.fields.email)
+        coVerify(exactly = 0) { nodes.deviceClient(any(), any()) }
+    }
+
+    @Test
+    fun `a node that can't be reached leaves the change here, to sync later`() = runTest {
+        addIdentity()
+        val vm = viewModel()
+        vm.ready()
+        every { client.profile } returns CompletableFuture.failedFuture(DirectorException("no answer", java.io.IOException("refused")))
+        vm.startEdit()
+        vm.onNameChange("Alicia")
+        vm.save()
+        val state = vm.state.first { it.edit == null }
+        assertEquals("saved, later", state.syncNote)
+        assertEquals("Alicia", vault.identities.value.single().name)
+        assertTrue(vault.identities.value.single().profile.dirty)
+    }
+
+    @Test
+    fun `a published card is updated with the profile`() = runTest {
         addIdentity()
         coEvery { cards.status(any(), any()) } returns CardStatus.Published(4)
-        every { client.updateProfile(any(), any()) } returns CompletableFuture.completedFuture(null)
+        every { client.updateProfile(any(), any()) } returns CompletableFuture.completedFuture(2L)
         val content = slot<CardContent>()
-        coEvery { cards.publish(any(), capture(content), userKey, any()) } returns 5
+        coEvery { cards.publish(any(), capture(content), any<AuthPrompt>()) } returns 5
         val vm = viewModel()
         vm.card()
 
@@ -606,15 +685,14 @@ class IdentityViewModelTest {
         val state = vm.state.first { it.edit == null }
         assertEquals(CardState.On(5), state.card.state)
         assertEquals("Alicia", content.captured.name)
-        coVerify(exactly = 0) { nodes.asUser<Any?>(any(), any(), any(), any(), any()) }
     }
 
     @Test
     fun `the profile is saved even when its card can't be updated`() = runTest {
         addIdentity()
         coEvery { cards.status(any(), any()) } returns CardStatus.Published(4)
-        every { client.updateProfile(any(), any()) } returns CompletableFuture.completedFuture(null)
-        coEvery { cards.publish(any(), any(), userKey, any()) } throws AppError.Network("down")
+        every { client.updateProfile(any(), any()) } returns CompletableFuture.completedFuture(2L)
+        coEvery { cards.publish(any(), any(), any<AuthPrompt>()) } throws AppError.Network("down")
         val vm = viewModel()
         vm.card()
 
@@ -631,14 +709,14 @@ class IdentityViewModelTest {
     fun `an email change alone doesn't publish the card again`() = runTest {
         addIdentity()
         coEvery { cards.status(any(), any()) } returns CardStatus.Published(4)
-        every { client.updateProfile(any(), any()) } returns CompletableFuture.completedFuture(null)
+        every { client.updateProfile(any(), any()) } returns CompletableFuture.completedFuture(2L)
         val vm = viewModel()
         vm.card()
         vm.startEdit()
         vm.onEmailChange("a@example.com")
         vm.save()
         vm.state.first { it.edit == null }
-        coVerify(exactly = 0) { cards.publish(any(), any(), any<Signature.KeyPair>(), any()) }
+        coVerify(exactly = 0) { cards.publish(any(), any(), any<AuthPrompt>()) }
     }
 
     @Test
@@ -649,7 +727,7 @@ class IdentityViewModelTest {
         vm.startEdit()
         vm.save()
         assertNull(vm.state.value.edit)
-        coVerify(exactly = 0) { nodes.asUser<Any?>(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { client.updateProfile(any(), any()) }
     }
 
     @Test
@@ -661,7 +739,7 @@ class IdentityViewModelTest {
         vm.onEmailChange("not an email")
         vm.save()
         assertTrue(vm.state.value.edit?.error != null)
-        coVerify(exactly = 0) { nodes.asUser<Any?>(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { client.updateProfile(any(), any()) }
     }
 
     @Test
@@ -670,7 +748,7 @@ class IdentityViewModelTest {
         val passphrases = mutableListOf<String?>()
         every { client.updateProfile(any(), any()) } answers {
             passphrases += secondArg<String?>()
-            if (secondArg<String?>() == null) failed(428) else CompletableFuture.completedFuture(null)
+            if (secondArg<String?>() == null) failed(428) else CompletableFuture.completedFuture(2L)
         }
         val vm = viewModel()
         vm.ready()
@@ -699,7 +777,7 @@ class IdentityViewModelTest {
         // Without the passphrase the account needs, nothing is sent.
         vm.onNameChange("Alicia")
         vm.save()
-        coVerify(exactly = 0) { nodes.asUser<Any?>(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { client.updateProfile(any(), any()) }
 
         vm.onPassphraseChange("guess")
         vm.save()

@@ -46,22 +46,66 @@ data class NodeAddress(val url: String, val nodeId: String? = null) {
 }
 
 /**
+ * What an identity says about itself; every field is optional. The email is the user's, kept with the
+ * profile and synced to the home node, but never published in the public card.
+ *
+ * @property avatar the SHA-256 (hex) of the avatar image, which the avatar store keeps; null for none.
+ *   Comparing digests tells whether two profiles show the same picture.
+ */
+data class ProfileFields(
+    val name: String? = null,
+    val bio: String? = null,
+    val email: String? = null,
+    val avatar: String? = null,
+)
+
+/**
+ * The identity's profile as this phone keeps it: the vault is where it lives first, the home node keeps
+ * a synced copy.
+ *
+ * @property fields the profile as it is on this phone
+ * @property revision the home node's profile revision last synced; null without a home node, or before
+ *   the first sync
+ * @property synced the fields as the home node had them at [revision]: the base a merge compares both
+ *   sides with; null before the first sync
+ */
+data class LocalProfile(
+    val fields: ProfileFields = ProfileFields(),
+    val revision: Long? = null,
+    val synced: ProfileFields? = null,
+) {
+    /** Whether this phone changed the profile since the last sync (always, before the first one). */
+    val dirty: Boolean
+        get() = synced == null || fields != synced
+}
+
+/**
  * What the app knows about one identity, kept beside its keys in the vault. Nothing here is secret.
  *
  * @property userId the identity's id (base58 of the user key's public key)
- * @property name the name the user gave it, or null
+ * @property profile the identity's profile, kept here first and synced with the home node
  * @property backupVerified whether the user proved they saved the key; until then the identity
  *   authorizes nothing
  * @property homeNode the node the identity is registered with as a user, or null before registration
  * @property deviceId this app's own device id under the identity, once registered with the home node
  * @property administers whether the identity proved it administers its home node, by opening admin
  *   mode there; remembered so the Dashboard stays while the node's profile can't be read
+ * @property cardVersion the version of the public card last published from this phone; kept after the
+ *   card is withdrawn, so versions never go back
+ * @property cardRevision the profile revision the published card was made from; null when the card is
+ *   not published from this phone. A profile at a newer revision means the card is out of date.
  */
 data class IdentityInfo(
     val userId: String,
-    val name: String? = null,
+    val profile: LocalProfile = LocalProfile(),
     val backupVerified: Boolean = false,
     val homeNode: NodeAddress? = null,
     val deviceId: String? = null,
     val administers: Boolean = false,
-)
+    val cardVersion: Int? = null,
+    val cardRevision: Long? = null,
+) {
+    /** The name the identity goes by, or null. */
+    val name: String?
+        get() = profile.fields.name
+}

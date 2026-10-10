@@ -24,6 +24,7 @@ package io.bosonnetwork.identity.core.boson
 
 import io.bosonnetwork.director.client.Avatar
 import java.io.File
+import java.security.MessageDigest
 import java.util.Properties
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,13 +35,14 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
- * The avatars of the identities on this phone, kept in [dir] (the app's cache: the system may clear
- * it, and the avatars are downloaded again). Every place that shows an identity reads [avatars], so the
- * top bar, the switcher and the profile show the same picture, at once on the next start. Each one is
- * kept with the validators it was downloaded with, so the node can say it is still current without
- * sending the image again.
+ * The avatars of the identities on this phone, kept in [dir], in the app's own files: an avatar is part
+ * of the identity's profile, which lives on this phone first, so it is data, not a cache. Every place
+ * that shows an identity reads [avatars], so the top bar, the switcher and the profile show the same
+ * picture. One synced from the home node is kept with the validators it was downloaded with, so the node
+ * can say it is still current without sending the image again. The profile names an avatar by its
+ * [digest].
  */
-class AvatarCache(private val dir: File) {
+class AvatarStore(private val dir: File) {
     private val mutex = Mutex()
     private var loaded = false
     private val held = mutableMapOf<String, Avatar>()
@@ -107,14 +109,18 @@ class AvatarCache(private val dir: File) {
         _avatars.value = held.mapValues { it.value.data }
     }
 
-    private companion object {
-        const val IMAGE = ".img"
-        const val META = ".properties"
-        const val KEY_TYPE = "type"
-        const val KEY_ETAG = "etag"
-        const val KEY_MODIFIED = "modified"
+    companion object {
+        /** The SHA-256 of an avatar image, in hex: how the profile names it. */
+        fun digest(image: ByteArray): String =
+            MessageDigest.getInstance("SHA-256").digest(image).joinToString("") { "%02x".format(it) }
+
+        private const val IMAGE = ".img"
+        private const val META = ".properties"
+        private const val KEY_TYPE = "type"
+        private const val KEY_ETAG = "etag"
+        private const val KEY_MODIFIED = "modified"
 
         // Base58: the only names written here, so a file name can't reach outside the directory.
-        val SAFE_ID = Regex("[1-9A-HJ-NP-Za-km-z]{32,64}")
+        private val SAFE_ID = Regex("[1-9A-HJ-NP-Za-km-z]{32,64}")
     }
 }

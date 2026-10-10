@@ -30,7 +30,7 @@ import io.bosonnetwork.crypto.Signature
 import io.bosonnetwork.director.client.DirectorClient
 import io.bosonnetwork.director.client.exceptions.DirectorException
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
-import io.bosonnetwork.identity.core.boson.AvatarCache
+import io.bosonnetwork.identity.core.boson.AvatarStore
 import io.bosonnetwork.identity.core.boson.NodeConnections
 import io.bosonnetwork.identity.core.model.NodeAddress
 import io.bosonnetwork.identity.core.vault.AuthPrompt
@@ -116,7 +116,7 @@ class SettingsViewModelTest {
         dir.deleteRecursively()
     }
 
-    private val avatars = AvatarCache(File(dir, "avatars"))
+    private val avatars = AvatarStore(File(dir, "avatars"))
 
     private fun viewModel() = SettingsViewModel(vault, active, nodes, avatars, context).also { viewModels += it }
 

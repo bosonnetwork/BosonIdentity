@@ -21,7 +21,7 @@
     <!-- Profile -->
     <string name="id_edit">编辑资料</string>
     <string name="id_avatar">你的头像</string>
-    <string name="id_profile_no_node">你的个人资料保存在主节点上。加入一个节点后即可添加名称和简介。</string>
+    <string name="id_profile_no_node">你的个人资料保存在本手机上。加入一个节点即可分享它，并在你的其他设备上保留。</string>
     <string name="id_profile_empty">添加名称和简短介绍，让别人认出你。</string>
     <string name="id_name">名称</string>
     <string name="id_bio">简介</string>
@@ -90,4 +90,11 @@
     <string name="id_avatar_unreadable">无法读取这张图片。请选择另一张。</string>
     <string name="id_avatar_prompt_title">更换头像</string>
     <string name="id_avatar_prompt_subtitle">你在 %1$s 上的头像将会更改</string>
+    <string name="id_sync_merged">你的个人资料在其他地方也被修改过。两边的修改都已保留；有冲突的地方保留了另一边的修改。</string>
+    <string name="id_sync_needs_passphrase">你的个人资料修改已保存在本手机上。节点需要你的账户口令才能接收：请编辑个人资料并输入口令。</string>
+    <string name="id_sync_failed">无法与节点同步你的个人资料：%1$s</string>
+    <string name="id_sync_later">已保存在本手机上。节点可以连接时会同步过去。</string>
+    <string name="id_card_outdated">已过期：它没有显示你当前的个人资料。</string>
+    <string name="id_card_update">更新</string>
+    <string name="id_dismiss">关闭</string>
 </resources>

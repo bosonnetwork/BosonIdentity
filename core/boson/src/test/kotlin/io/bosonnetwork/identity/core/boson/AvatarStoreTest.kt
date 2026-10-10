@@ -33,7 +33,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class AvatarCacheTest {
+class AvatarStoreTest {
     private val dir = Files.createTempDirectory("avatars").toFile()
     private val userId = Id.random().toString()
 
@@ -44,9 +44,9 @@ class AvatarCacheTest {
 
     @Test
     fun `an avatar is kept with its validators, and found again by a new instance`() = runBlocking {
-        AvatarCache(dir).put(userId, Avatar.of("image/png", byteArrayOf(1, 2), "\"v1\"", "Tue, 06 Oct 2026 10:00:00 GMT"))
+        AvatarStore(dir).put(userId, Avatar.of("image/png", byteArrayOf(1, 2), "\"v1\"", "Tue, 06 Oct 2026 10:00:00 GMT"))
 
-        val again = AvatarCache(dir)
+        val again = AvatarStore(dir)
         again.load()
         assertArrayEquals(byteArrayOf(1, 2), again.avatars.value[userId])
         val held = again.held(userId)!!
@@ -58,15 +58,15 @@ class AvatarCacheTest {
 
     @Test
     fun `forgetting an avatar removes it, on disk too`() = runBlocking {
-        val cache = AvatarCache(dir)
+        val cache = AvatarStore(dir)
         cache.put(userId, Avatar.of("image/png", byteArrayOf(1), null, null))
         cache.put(userId, null)
         assertNull(cache.avatars.value[userId])
-        assertNull(AvatarCache(dir).held(userId))
+        assertNull(AvatarStore(dir).held(userId))
     }
 
     @Test(expected = IllegalArgumentException::class)
     fun `only user ids name files`() {
-        runBlocking { AvatarCache(dir).put("../escape", Avatar.of("image/png", byteArrayOf(1), null, null)) }
+        runBlocking { AvatarStore(dir).put("../escape", Avatar.of("image/png", byteArrayOf(1), null, null)) }
     }
 }

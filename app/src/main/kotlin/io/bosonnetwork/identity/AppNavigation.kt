@@ -52,7 +52,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import io.bosonnetwork.identity.core.boson.ActiveIdentity
-import io.bosonnetwork.identity.core.boson.AvatarCache
+import io.bosonnetwork.identity.core.boson.AvatarStore
 import io.bosonnetwork.identity.core.model.AppLanguage
 import io.bosonnetwork.identity.core.model.ThemeMode
 import io.bosonnetwork.identity.core.vault.IdentityVault
@@ -73,6 +73,8 @@ import io.bosonnetwork.identity.feature.onboarding.OnboardingScreen
 import io.bosonnetwork.identity.feature.security.SecurityScreen
 import io.bosonnetwork.identity.feature.security.SecurityViewModel
 import io.bosonnetwork.identity.feature.security.worst
+import io.bosonnetwork.identity.feature.settings.MoveOutScreen
+import io.bosonnetwork.identity.feature.settings.MoveOutViewModel
 import io.bosonnetwork.identity.feature.settings.SettingsScreen
 import kotlinx.coroutines.launch
 
@@ -80,6 +82,8 @@ private object Routes {
     const val WELCOME = "welcome"
     const val HOME = "home"
     const val MOVE = "move"
+    const val MOVE_OUT = "move-out/{${MoveOutViewModel.ARG_USER_ID}}"
+    fun moveOut(userId: String) = "move-out/$userId"
     const val JOIN = "join/{${JoinNodeViewModel.ARG_USER_ID}}?first={first}"
     const val BACKUP = "backup/{${JoinNodeViewModel.ARG_USER_ID}}"
     const val APPROVE = "approve/{${ApproveDeviceViewModel.ARG_USER_ID}}?${ApproveDeviceViewModel.ARG_GENERAL}={${ApproveDeviceViewModel.ARG_GENERAL}}"
@@ -101,6 +105,9 @@ private object Routes {
 
     /** Set on the tabs' entry when a device was approved, so the device list is asked for again. */
     const val DEVICES_CHANGED = "devices_changed"
+
+    /** Set on the home entry when the identity moved and the user chose to remove it from this phone. */
+    const val REMOVE_AFTER_MOVE = "remove_after_move"
 }
 
 /**
@@ -114,7 +121,7 @@ private object Routes {
 fun AppNavigation(
     vault: IdentityVault,
     activeIdentity: ActiveIdentity,
-    avatarCache: AvatarCache,
+    avatarCache: AvatarStore,
     theme: ThemeMode,
     onThemeChange: (ThemeMode) -> Unit,
     language: AppLanguage,
@@ -228,6 +235,18 @@ fun AppNavigation(
                     onBackup = { nav.navigate(Routes.backup(it)) },
                 )
             }
+            composable(
+                Routes.MOVE_OUT,
+                arguments = listOf(navArgument(MoveOutViewModel.ARG_USER_ID) { type = NavType.StringType }),
+            ) {
+                MoveOutScreen(
+                    onClose = { nav.popBackStack() },
+                    onRemove = {
+                        nav.getBackStackEntry(Routes.HOME).savedStateHandle[Routes.REMOVE_AFTER_MOVE] = true
+                        nav.popBackStack()
+                    },
+                )
+            }
             composable(Routes.ADMIN) {
                 // Leaving the page (this arrow, or the system's Back) ends admin mode.
                 AdminScreen(onBack = { nav.popBackStack() })
@@ -314,12 +333,17 @@ private fun homeTabs(nav: NavController, settings: Settings): List<HomeTab> = li
         )
     },
     HomeTab(Tabs.SETTINGS, R.string.app_nav_settings, Icons.Filled.Settings) { identityButton ->
+        val home = remember(nav) { nav.getBackStackEntry(Routes.HOME) }
+        val removeAfterMove by home.savedStateHandle.getStateFlow(Routes.REMOVE_AFTER_MOVE, false).collectAsStateWithLifecycle()
         SettingsScreen(
             theme = settings.theme,
             onThemeChange = settings.onThemeChange,
             language = settings.language,
             onLanguageChange = settings.onLanguageChange,
             onNoIdentityLeft = { nav.navigate(Routes.WELCOME) { popUpTo(0) { inclusive = true } } },
+            onMove = { nav.navigate(Routes.moveOut(it)) },
+            removeRequested = removeAfterMove,
+            onRemoveRequestSeen = { home.savedStateHandle[Routes.REMOVE_AFTER_MOVE] = false },
             navigationIcon = identityButton,
         )
     },

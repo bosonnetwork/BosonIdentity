@@ -102,13 +102,15 @@ fun SettingsScreen(
     language: AppLanguage,
     onLanguageChange: (AppLanguage) -> Unit,
     onNoIdentityLeft: () -> Unit,
+    onMove: (userId: String) -> Unit = {},
+    removeRequested: Boolean = false,
+    onRemoveRequestSeen: () -> Unit = {},
     navigationIcon: @Composable () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var choosingTheme by rememberSaveable { mutableStateOf(false) }
     var choosingLanguage by rememberSaveable { mutableStateOf(false) }
-    var moving by rememberSaveable { mutableStateOf(false) }
     val identity = state.identity
     // Asked about one identity: once it is gone (or another is picked), the question is closed, so it
     // never carries over to the identity shown next.
@@ -153,7 +155,7 @@ fun SettingsScreen(
                         Icons.Outlined.PhonelinkSetup,
                         stringResource(R.string.set_move),
                         stringResource(R.string.set_move_detail),
-                        onClick = { moving = true },
+                        onClick = { onMove(identity.userId) },
                     )
                     ActionRow(
                         Icons.Outlined.DeleteOutline,
@@ -203,8 +205,12 @@ fun SettingsScreen(
             onDismiss = { choosingLanguage = false },
         )
     }
-    if (moving) {
-        MoveDialog(host = identity?.homeNode?.let { hostOf(it.url) }, onDismiss = { moving = false })
+    // Moved to a new phone: removing it from this one is offered, and confirmed here as always.
+    LaunchedEffect(removeRequested) {
+        if (removeRequested) {
+            onRemoveRequestSeen()
+            confirmRemove = true
+        }
     }
     if ((confirmRemove || state.removal != null) && identity != null) {
         RemoveDialog(
@@ -314,24 +320,6 @@ private fun <T> ChoiceDialog(
     )
 }
 
-/** How to bring the identity to another phone, step by step. */
-@Composable
-private fun MoveDialog(host: String?, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.brand.card,
-        title = { Text(stringResource(R.string.set_move)) },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.set_move_step1))
-                Text(host?.let { stringResource(R.string.set_move_step2_node, it) } ?: stringResource(R.string.set_move_step2))
-                Text(stringResource(R.string.set_move_step3))
-                Text(stringResource(R.string.set_move_note), style = MaterialTheme.typography.bodySmall)
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.set_done)) } },
-    )
-}
 
 /**
  * Removing the identity from this phone takes typing the first characters of its id, and says

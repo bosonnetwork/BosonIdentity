@@ -30,6 +30,7 @@ import io.bosonnetwork.higgs.HiggsNode
 import io.bosonnetwork.identifier.Card
 import io.bosonnetwork.identity.core.model.IdentityInfo
 import io.bosonnetwork.identity.core.vault.AuthPrompt
+import io.bosonnetwork.identity.core.vault.IdentityVault
 import io.mockk.coEvery
 import io.mockk.slot
 import io.mockk.verify
@@ -43,6 +44,8 @@ import io.mockk.every
 import io.mockk.mockk
 import java.util.Optional
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -57,7 +60,7 @@ class ProfileCardsTest {
     }
 
     @Test
-    fun `publishing stores the card signed by the user key, persistently, at the next version`() = runBlocking {
+    fun `publishing stores the card signed by the user key, persistently, past every version known`() = runBlocking {
         val userKey = Signature.KeyPair.random()
         val identity = IdentityInfo(Id.of(userKey.publicKey().bytes()).toString(), homeNode = NodeAddress("https://node.example"))
         val stored = slot<Value>()
@@ -65,27 +68,70 @@ class ProfileCardsTest {
             every { getValue(any()) } returns CompletableFuture.completedFuture(
                 Optional.of(Value.signedBuilder().key(userKey).sequenceNumber(4).data(byteArrayOf(1)).build()),
             )
+            // Another phone published a newer one, which the gateway here doesn't have.
+            every { findValue(any<Id>()) } returns CompletableFuture.completedFuture(
+                Optional.of(Value.signedBuilder().key(userKey).sequenceNumber(6).data(byteArrayOf(1)).build()),
+            )
             every { storeValue(capture(stored), true) } returns CompletableFuture.completedFuture(null)
         }
         val nodes = mockk<NodeConnections> {
             coEvery { gateway<Int>(any(), any(), any()) } coAnswers { arg<suspend (HiggsNode) -> Int>(2).invoke(gateway) }
         }
-        val content = CardContent("Alice", "Hi", "bnr://$nodeId/api/v1/client/avatar/${identity.userId}", nodeId, null)
+        val recorded = mutableListOf<IdentityInfo>()
+        val vault = mockk<IdentityVault> {
+            every { identities } returns MutableStateFlow(listOf(identity))
+            coEvery { update(identity.userId, any()) } answers {
+                secondArg<(IdentityInfo) -> IdentityInfo>().invoke(identity).also { recorded += it }
+            }
+        }
+        val content = CardContent("Alice", "Hi", "bnr://$nodeId/api/v1/client/avatar/${identity.userId}", nodeId, null, revision = 9)
 
-        val version = ProfileCards(mockk(), nodes).publish(identity, content, userKey, AuthPrompt("Publish"))
+        val version = ProfileCards(vault, nodes).publish(identity, content, userKey, AuthPrompt("Publish"))
 
-        assertEquals(5, version)
+        assertEquals(7, version)
+        assertEquals(7, recorded.single().cardVersion)
+        assertEquals(9L, recorded.single().cardRevision)
         val value = stored.captured
         assertTrue(value.isValid)
         assertEquals(identity.userId, value.publicKey.toString())
-        assertEquals(5, value.sequenceNumber)
+        assertEquals(7, value.sequenceNumber)
         val card = Card.parse(value.data)
         assertTrue(card.isGenuine)
         val profile = UserProfile.fromCard(card)
         assertEquals("Alice", profile.name.orElse(null))
         assertEquals(nodeId, profile.homeNode.orElse(null)?.toString())
         assertEquals(content.avatar, profile.avatar.orElse(null))
-        verify(exactly = 0) { gateway.findValue(any<Id>()) }
+    }
+
+    @Test
+    fun `a version this phone published is never gone back on, though the network forgot it`() = runBlocking {
+        val userKey = Signature.KeyPair.random()
+        val identity = IdentityInfo(Id.of(userKey.publicKey().bytes()).toString(), homeNode = NodeAddress("https://node.example"),
+            cardVersion = 12)
+        val stored = slot<Value>()
+        val gateway = mockk<HiggsNode> {
+            every { getValue(any()) } returns CompletableFuture.completedFuture(Optional.empty())
+            every { findValue(any<Id>()) } returns CompletableFuture.completedFuture(Optional.empty())
+            every { storeValue(capture(stored), true) } returns CompletableFuture.completedFuture(null)
+        }
+        val nodes = mockk<NodeConnections> {
+            coEvery { gateway<Int>(any(), any(), any()) } coAnswers { arg<suspend (HiggsNode) -> Int>(2).invoke(gateway) }
+        }
+        val vault = mockk<IdentityVault> {
+            every { identities } returns MutableStateFlow(listOf(identity))
+            coEvery { update(identity.userId, any()) } answers { secondArg<(IdentityInfo) -> IdentityInfo>().invoke(identity) }
+        }
+        val content = CardContent("Alice", null, null, nodeId, null)
+        assertEquals(13, ProfileCards(vault, nodes).publish(identity, content, userKey, AuthPrompt("Publish")))
+        assertEquals(13, stored.captured.sequenceNumber)
+    }
+
+    @Test
+    fun `a card is out of date when it says something else than the profile`() {
+        val current = CardContent("Alice", "Hi", null, nodeId, null, revision = 4)
+        assertFalse(ProfileCards.outdated(current.copy(revision = 2), current))
+        assertTrue(ProfileCards.outdated(current.copy(name = "Ann", revision = null), current))
+        assertFalse(ProfileCards.outdated(null, current))
     }
 
     @Test

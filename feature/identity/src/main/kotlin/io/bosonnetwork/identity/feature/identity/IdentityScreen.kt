@@ -80,6 +80,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -197,7 +198,9 @@ fun IdentityScreen(
                     },
                     onEdit = viewModel::startEdit,
                     onCard = viewModel::requestCard,
+                    onUpdateCard = viewModel::updateCard,
                     onRetryCard = viewModel::refresh,
+                    onDismissNote = viewModel::dismissSyncNote,
                 )
                 HomeNodeSection(
                     identity = identity,
@@ -279,8 +282,8 @@ fun IdentityScreen(
 
 /**
  * Who the identity is: its avatar (or identicon), name and id, what it says about itself, and whether the
- * profile is published as a public card. Editing (top-right) and changing the avatar (tapping it, which a
- * camera badge says) need the home node, which keeps the profile.
+ * profile is published as a public card. The profile is the one on this phone: editing (top-right) and
+ * changing the avatar (tapping it, which a camera badge says) work with or without a home node.
  */
 @Composable
 private fun ProfileCard(
@@ -290,14 +293,16 @@ private fun ProfileCard(
     onAvatar: () -> Unit,
     onEdit: () -> Unit,
     onCard: (Boolean) -> Unit,
+    onUpdateCard: () -> Unit,
     onRetryCard: () -> Unit,
+    onDismissNote: () -> Unit,
 ) {
     val ready = state.node as? NodeState.Ready
-    val profile = ready?.profile
-    val name = profile?.name ?: identity.name
+    val fields = identity.profile.fields
+    val name = fields.name
     SectionCard {
         Row(Modifier.padding(start = 16.dp, top = 12.dp, end = 4.dp), verticalAlignment = Alignment.Top) {
-            EditableAvatar(identity.userId, state, editable = profile != null, onClick = onAvatar)
+            EditableAvatar(identity.userId, state, editable = true, onClick = onAvatar)
             Column(Modifier.padding(start = 16.dp, top = 6.dp).weight(1f)) {
                 Text(
                     name ?: stringResource(R.string.id_unnamed),
@@ -309,12 +314,8 @@ private fun ProfileCard(
                 Spacer(Modifier.height(2.dp))
                 IdChip(identity.userId, onClick = onShowId)
             }
-            if (profile != null) {
-                IconButton(onClick = onEdit) {
-                    Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.id_edit))
-                }
-            } else {
-                Spacer(Modifier.size(12.dp))
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.id_edit))
             }
         }
         Column(
@@ -322,12 +323,11 @@ private fun ProfileCard(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             when {
-                identity.homeNode == null -> Hint(stringResource(R.string.id_profile_no_node))
-                profile == null -> Unit
-                profile.bio == null && profile.email == null && profile.name == null -> Hint(stringResource(R.string.id_profile_empty))
+                fields.bio == null && fields.email == null && fields.name == null ->
+                    Hint(stringResource(if (identity.homeNode == null) R.string.id_profile_no_node else R.string.id_profile_empty))
                 else -> {
-                    profile.bio?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                    profile.email?.let { email ->
+                    fields.bio?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                    fields.email?.let { email ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Outlined.Email,
@@ -345,10 +345,22 @@ private fun ProfileCard(
                     }
                 }
             }
+            state.syncNote?.let { note -> SyncNote(note, onDismissNote) }
         }
         if (identity.homeNode != null) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            PublicCardRow(state.card, profileReady = profile != null, onCard = onCard, onRetry = onRetryCard)
+            PublicCardRow(state.card, profileReady = ready != null, onCard = onCard, onUpdate = onUpdateCard, onRetry = onRetryCard)
+        }
+    }
+}
+
+/** What the last sync of the profile wants the user to know, with a way to put it away. */
+@Composable
+private fun SyncNote(text: String, onDismiss: () -> Unit) {
+    Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.small) {
+        Row(Modifier.fillMaxWidth().padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(text, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f).padding(vertical = 8.dp))
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.id_dismiss)) }
         }
     }
 }
@@ -410,7 +422,7 @@ private fun Hint(text: String) {
 
 /** The public profile card's switch, with what it means in its current state. */
 @Composable
-private fun PublicCardRow(card: CardUi, profileReady: Boolean, onCard: (Boolean) -> Unit, onRetry: () -> Unit) {
+private fun PublicCardRow(card: CardUi, profileReady: Boolean, onCard: (Boolean) -> Unit, onUpdate: () -> Unit, onRetry: () -> Unit) {
     val on = card.state is CardState.On
     val usable = profileReady && !card.busy && (card.state == CardState.Off || on)
     val detail = when (val s = card.state) {
@@ -429,6 +441,16 @@ private fun PublicCardRow(card: CardUi, profileReady: Boolean, onCard: (Boolean)
         supportingContent = {
             Column {
                 Text(detail)
+                if (on && card.outdated && !card.busy) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            stringResource(R.string.id_card_outdated),
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        TextButton(onClick = onUpdate) { Text(stringResource(R.string.id_card_update)) }
+                    }
+                }
                 card.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         },

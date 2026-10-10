@@ -31,6 +31,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.bosonnetwork.director.client.EnrollmentCode
 import io.bosonnetwork.director.client.PendingEnrollment
 import io.bosonnetwork.identity.core.boson.NodeConnections
+import io.bosonnetwork.identity.core.boson.ProfileSync
 import io.bosonnetwork.identity.core.designsystem.component.userMessage
 import io.bosonnetwork.identity.core.model.AppError
 import io.bosonnetwork.identity.core.model.IdentityInfo
@@ -107,6 +108,7 @@ class EnrollAdminViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val vault: IdentityVault,
     private val nodes: NodeConnections,
+    private val profileSync: ProfileSync,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -219,6 +221,15 @@ class EnrollAdminViewModel @Inject constructor(
         val node = NodeAddress(code.url, code.nodeId.toString())
         vault.update(userId) {
             it.copy(homeNode = it.homeNode ?: node, deviceId = claimed.deviceId.toString(), administers = true)
+        }
+        // The Director makes a new account empty: the profile on this phone fills it. A member's profile
+        // syncs as always. Done all the same if the sync can't run now: the Identity tab syncs again.
+        try {
+            profileSync.sync(userId, AuthPrompt(context.getString(R.string.dev_unlock_prompt_title), context.getString(R.string.dev_unlock_prompt_subtitle)))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Synced later.
         }
         _state.update { it.copy(step = EnrollStep.DONE) }
     }
