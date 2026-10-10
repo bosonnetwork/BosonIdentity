@@ -22,6 +22,7 @@
     <string name="onb_backup_show_qr">Show as a QR code</string>
     <string name="onb_backup_qr_description">Your private key as a QR code</string>
     <string name="onb_backup_show_text">Show as text</string>
+    <string name="onb_backup_row_description">Groups %1$d to %2$d: %3$s</string>
     <string name="onb_backup_copy">Copy</string>
     <string name="onb_backup_copied">Copied. The clipboard is cleared in %1$d seconds.</string>
     <string name="onb_backup_warning">Anyone with this key can act as you. Never send it to anyone, and never type it into a website.</string>
@@ -33,8 +34,8 @@
 
     <!-- Verify -->
     <string name="onb_verify_title">Check your backup</string>
-    <string name="onb_verify_body">From the copy you saved, type the characters at these two places. This proves the copy is complete.</string>
-    <string name="onb_verify_group">Characters %1$d to %2$d</string>
+    <string name="onb_verify_body">From the copy you saved, type these two groups of four characters. Each row of the key starts with the number of its first group.</string>
+    <string name="onb_verify_group">Group %1$d</string>
     <string name="onb_verify_failed">That doesn\'t match. Check your copy, or look at the key again.</string>
     <string name="onb_verify_check">Check</string>
     <string name="onb_verify_show_again">Show the key again</string>

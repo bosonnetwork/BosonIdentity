@@ -32,6 +32,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
@@ -68,13 +69,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import io.bosonnetwork.identity.core.designsystem.component.SecureScreen
-import io.bosonnetwork.identity.core.designsystem.component.groupedId
 import io.bosonnetwork.identity.core.qr.rememberQrBitmap
 import io.bosonnetwork.identity.core.vault.KeyBackup
 import kotlinx.coroutines.delay
@@ -163,12 +169,7 @@ fun KeyBackupContent(keyBase58: String, keyFileText: () -> String?, onContinue: 
             }
             "text" -> {
                 Spacer(Modifier.height(16.dp))
-                Text(
-                    groupedId(keyBase58),
-                    fontFamily = FontFamily.Monospace,
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                )
+                KeyGrid(keyBase58)
                 TextButton(onClick = {
                     copySensitive(context, keyBase58)
                     copied = true
@@ -203,7 +204,52 @@ fun KeyBackupContent(keyBase58: String, keyFileText: () -> String?, onContinue: 
 }
 
 /**
- * Checking the backup: two groups of the key, by their character positions. Nobody has to retype all
+ * The key in numbered rows of five groups, as the key file and the check of the backup count them: each
+ * row starts with the number of its first group. The font shrinks to keep a row on one line, on a narrow
+ * screen or with a large font size. TalkBack reads a row at a time, spelled out.
+ */
+@Composable
+private fun KeyGrid(keyBase58: String) {
+    val rows = remember(keyBase58) { KeyBackup.rows(keyBase58) }
+    val lines = remember(keyBase58) { KeyBackup.gridLines(keyBase58) }
+    val numberWidth = rows.last().number.toString().length
+    val numberColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val style = MaterialTheme.typography.bodyLarge
+    val measurer = rememberTextMeasurer()
+    BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        val widest = lines.maxBy { it.length }
+        val available = constraints.maxWidth
+        // The system scales small text more than large, so a smaller size is measured again until it fits.
+        var size = style.fontSize
+        for (attempt in 1..4) {
+            val width = measurer.measure(widest, style.copy(fontFamily = FontFamily.Monospace, fontSize = size), softWrap = false).size.width
+            if (width <= available) break
+            size *= available * 0.98f / width
+        }
+        Column {
+            rows.forEachIndexed { i, row ->
+                val spoken = row.groups.joinToString(", ") { it.toList().joinToString(" ") }
+                val description = stringResource(
+                    R.string.onb_backup_row_description, row.number, row.number + row.groups.size - 1, spoken,
+                )
+                Text(
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(color = numberColor)) { append(lines[i].take(numberWidth)) }
+                        append(lines[i].drop(numberWidth))
+                    },
+                    style = style,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = size,
+                    softWrap = false,
+                    modifier = Modifier.semantics { contentDescription = description },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Checking the backup: two groups of the key, by their numbers. Nobody has to retype all
  * of it, but nobody gets through without a copy either.
  */
 @Composable
@@ -220,11 +266,9 @@ fun KeyVerifyContent(
     StepColumn {
         StepTitle(stringResource(R.string.onb_verify_title))
         StepText(stringResource(R.string.onb_verify_body))
-        val r1 = challenge.range(challenge.first, keyBase58)
-        val r2 = challenge.range(challenge.second, keyBase58)
-        GroupField(stringResource(R.string.onb_verify_group, r1.first, r1.last), first) { first = it }
+        GroupField(stringResource(R.string.onb_verify_group, challenge.number(challenge.first)), first) { first = it }
         Spacer(Modifier.height(8.dp))
-        GroupField(stringResource(R.string.onb_verify_group, r2.first, r2.last), second) { second = it }
+        GroupField(stringResource(R.string.onb_verify_group, challenge.number(challenge.second)), second) { second = it }
         if (failed) {
             Text(
                 stringResource(R.string.onb_verify_failed),

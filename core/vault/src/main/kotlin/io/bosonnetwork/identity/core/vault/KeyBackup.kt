@@ -38,20 +38,45 @@ object KeyBackup {
     /** The key's characters are shown, read and checked in groups of this size. */
     const val GROUP_SIZE = 4
 
-    /** The key file, exactly as the user portal writes it, so either can read the other's. */
+    /** How many groups a row of the key shows. */
+    const val ROW_SIZE = 5
+
+    /** A row of the key: the number of its first group (1-based), and its groups. */
+    data class Row(val number: Int, val groups: List<String>)
+
+    /** The key in rows of [ROW_SIZE] groups, numbered 1, 6, 11, ... by their first group. */
+    fun rows(base58: String): List<Row> =
+        groups(base58).chunked(ROW_SIZE).mapIndexed { i, groups -> Row(i * ROW_SIZE + 1, groups) }
+
+    /** The rows as text: the number right-aligned, two spaces, then the groups. */
+    fun gridLines(base58: String): List<String> {
+        val rows = rows(base58)
+        val width = rows.last().number.toString().length
+        return rows.map { it.number.toString().padStart(width) + "  " + it.groups.joinToString(" ") }
+    }
+
+    /**
+     * The key file, exactly as the user portal writes it, so either can read the other's: the key on its
+     * `privateKey:` line (the only line either reads), and below it the same key in numbered groups, as
+     * the app shows it, for checking or copying it by hand.
+     */
     fun keyFileText(privateKeyBase58: String, userId: String): String =
         "Boson User Identity Key\n\nprivateKey: $privateKeyBase58\npublicKey:  $userId\n\n" +
+            "The private key in numbered groups of four, to check or copy by hand:\n\n" +
+            gridLines(privateKeyBase58).joinToString("") { "$it\n" } + "\n" +
             "Keep your private key secret. Anyone with this value can act as you.\n"
 
     /**
-     * Reads a key from what the user pasted, scanned or opened: a key file (its `privateKey:` line),
-     * or the key itself as Base58 or hex (`0x` optional). Returns the validated 64-byte private key.
+     * Reads a key from what the user pasted, scanned, opened or typed: a key file (its `privateKey:`
+     * line), or the key itself as Base58 or hex (`0x` optional). Spaces and line breaks are ignored, and
+     * so are the row numbers of the key as the app shows it (see [withoutRowNumbers]). Returns the
+     * validated 64-byte private key.
      *
      * @throws IllegalArgumentException if it is not a usable Ed25519 private key
      */
     fun parse(text: String): ByteArray {
         val line = text.lineSequence().map { it.trim() }.firstOrNull { it.startsWith("privateKey:") }
-        val value = (line?.removePrefix("privateKey:") ?: text).trim()
+        val value = withoutRowNumbers(line?.removePrefix("privateKey:") ?: text).joinToString("")
         require(value.isNotEmpty()) { "Empty key" }
         val bytes = decode(value)
         require(bytes.size == Signature.PrivateKey.BYTES) {
@@ -84,6 +109,26 @@ object KeyBackup {
         }
     }
 
+    /**
+     * The words of a typed key, without the numbers of its rows if it was copied from the grid: a word is
+     * taken for a row number only where the grid puts one, before the first group of each row, and only
+     * if it is that row's number. A group is never that short, except the key's last, so no part of the
+     * key is dropped, though the digits 1 to 9 are Base58 too.
+     */
+    private fun withoutRowNumbers(text: String): List<String> {
+        val words = text.split(Regex("\\s+")).filter { it.isNotEmpty() }
+        val kept = ArrayList<String>(words.size)
+        var groups = 0
+        for ((i, word) in words.withIndex()) {
+            val atRowStart = groups % ROW_SIZE == 0 && i < words.size - 1
+            if (atRowStart && word.length < GROUP_SIZE && word == (groups + 1).toString())
+                continue
+            kept.add(word)
+            groups++
+        }
+        return kept
+    }
+
     /** The Base58 text of a 64-byte private key. */
     fun encode(privateKey64: ByteArray): String = Base58.encode(privateKey64)
 
@@ -95,11 +140,8 @@ object KeyBackup {
      * at random, by their 0-based position.
      */
     data class Challenge(val first: Int, val second: Int) {
-        /** The 1-based character range of a group, as shown to the user ("characters 13 to 16"). */
-        fun range(group: Int, base58: String): IntRange {
-            val start = group * GROUP_SIZE
-            return (start + 1)..minOf(start + GROUP_SIZE, base58.length)
-        }
+        /** The number the user sees for a group ("Group 7"), as the rows of the key count them. */
+        fun number(group: Int): Int = group + 1
     }
 
     /** Picks two different full groups of [base58] to ask for. */

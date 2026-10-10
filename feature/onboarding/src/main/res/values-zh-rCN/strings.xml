@@ -19,6 +19,7 @@
     <string name="onb_backup_show_qr">显示为二维码</string>
     <string name="onb_backup_qr_description">你的私钥二维码</string>
     <string name="onb_backup_show_text">显示为文本</string>
+    <string name="onb_backup_row_description">第 %1$d 至 %2$d 组：%3$s</string>
     <string name="onb_backup_copy">复制</string>
     <string name="onb_backup_copied">已复制。剪贴板将在 %1$d 秒后清空。</string>
     <string name="onb_backup_warning">任何拥有这把密钥的人都能以你的身份行事。切勿发送给任何人，也切勿输入到任何网站。</string>
@@ -29,8 +30,8 @@
     <string name="onb_backup_prompt_subtitle">将显示你的私钥，以便你进行备份</string>
 
     <string name="onb_verify_title">检查你的备份</string>
-    <string name="onb_verify_body">请根据你保存的副本，输入以下两处位置的字符。这能证明副本是完整的。</string>
-    <string name="onb_verify_group">第 %1$d 至 %2$d 个字符</string>
+    <string name="onb_verify_body">请根据你保存的副本，输入下面这两组字符，每组 4 个。密钥每一行开头的数字，是这一行第一组的编号。</string>
+    <string name="onb_verify_group">第 %1$d 组</string>
     <string name="onb_verify_failed">不匹配。请检查你的副本，或再看一次密钥。</string>
     <string name="onb_verify_check">检查</string>
     <string name="onb_verify_show_again">再次显示密钥</string>

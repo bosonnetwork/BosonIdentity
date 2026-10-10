@@ -28,7 +28,6 @@ import kotlin.random.Random
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -42,7 +41,39 @@ class KeyBackupTest {
     fun `the key file reads back, in the portal's own format`() {
         val text = KeyBackup.keyFileText(base58, userId)
         assertTrue(text.startsWith("Boson User Identity Key\n\nprivateKey: $base58\npublicKey:  $userId\n"))
+        assertTrue(KeyBackup.gridLines(base58).all { "$it\n" in text })
         assertArrayEquals(private64, KeyBackup.parse(text))
+    }
+
+    @Test
+    fun `the key's rows hold five groups each and are numbered by their first group`() {
+        val rows = KeyBackup.rows(base58)
+        assertEquals((0 until rows.size).map { it * 5 + 1 }, rows.map { it.number })
+        assertTrue(rows.dropLast(1).all { it.groups.size == 5 })
+        assertEquals(base58, rows.flatMap { it.groups }.joinToString(""))
+        val lines = KeyBackup.gridLines(base58)
+        assertTrue(lines.first().startsWith(" 1  ${rows.first().groups.first()} "))
+        assertTrue(lines.last().startsWith("${rows.last().number}  "))
+    }
+
+    @Test
+    fun `a key typed from its rows reads, with or without their numbers`() {
+        val lines = KeyBackup.gridLines(base58)
+        assertArrayEquals(private64, KeyBackup.parse(lines.joinToString("\n")))
+        assertArrayEquals(private64, KeyBackup.parse(lines.joinToString(" ")))
+        assertArrayEquals(private64, KeyBackup.parse(KeyBackup.groups(base58).joinToString(" ")))
+        assertArrayEquals(private64, KeyBackup.parse(KeyBackup.rows(base58).joinToString("\n") { it.groups.joinToString("") }))
+    }
+
+    @Test
+    fun `a row number is dropped only where the rows put one`() {
+        // "6" before the 6th group is the second row's number; "4" before the 4th is part of the key, which
+        // then no longer reads.
+        val words = KeyBackup.groups(base58).toMutableList()
+        words.add(5, "6")
+        assertArrayEquals(private64, KeyBackup.parse(words.joinToString(" ")))
+        words.add(3, "4")
+        assertFalse(runCatching { KeyBackup.parse(words.joinToString(" ")) }.isSuccess)
     }
 
     @Test
@@ -90,9 +121,10 @@ class KeyBackupTest {
     }
 
     @Test
-    fun `ranges are 1-based and inclusive`() {
+    fun `groups are numbered from 1, as the rows show them`() {
         val c = KeyBackup.Challenge(3, 15)
-        assertEquals(13..16, c.range(3, base58))
-        assertNotEquals(c.range(3, base58), c.range(15, base58))
+        assertEquals(4, c.number(c.first))
+        assertEquals(16, c.number(c.second))
+        assertEquals(KeyBackup.groups(base58)[5], KeyBackup.rows(base58)[1].groups.first())
     }
 }
