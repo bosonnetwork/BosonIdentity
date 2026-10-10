@@ -219,4 +219,13 @@
     <string name="sec_pkb_no_prf">此通行密钥提供方无法保护备份。请试试 Google 密码管理工具。</string>
     <string name="sec_pkb_prompt_title">用通行密钥备份</string>
     <string name="sec_pkb_prompt_subtitle">你的密钥副本将由新的通行密钥锁定</string>
+    <plurals name="sec_pill_log_new">
+        <item quantity="other">%d 条新记录</item>
+    </plurals>
+    <string name="sec_issue_log">安全日志有新记录</string>
+    <string name="sec_issue_log_detail">请确认是你本人的操作：如果有你没有添加的设备或没有进行的登录，说明有其他人能访问你的账户。</string>
+    <string name="sec_log_new">新</string>
+    <string name="sec_log_mark_reviewed">标记为已查看</string>
+    <string name="sec_log_admin_enrolled_root">节点所有者将你设为此节点的管理员</string>
+    <string name="sec_log_admin_enrolled_by">%1$s 将你设为此节点的管理员</string>
 </resources>

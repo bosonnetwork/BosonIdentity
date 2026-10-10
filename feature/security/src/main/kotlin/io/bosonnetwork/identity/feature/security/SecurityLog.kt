@@ -38,6 +38,9 @@ enum class LogKind {
     ACCOUNT_UNLINKED,
     SIGNED_IN,
 
+    /** Made an administrator of the node, by enrollment: [LogEntry.subject] is `root` or the administrator's id. */
+    ADMIN_ENROLLED,
+
     /** A kind this version doesn't know; the entry shows the node's own word for it. */
     OTHER,
 }
@@ -112,6 +115,13 @@ fun logEntry(event: SecurityEvent): LogEntry {
             address = address,
         )
         "signed-in" -> LogEntry(LogKind.SIGNED_IN, subject = method.ifEmpty { null }, at = at, address = address)
+        // "by root", or "by administrator <id>".
+        "admin-enrolled" -> LogEntry(
+            LogKind.ADMIN_ENROLLED,
+            subject = method.removePrefix("by ").removePrefix("administrator ").trim().ifEmpty { null },
+            at = at,
+            address = address,
+        )
         else -> LogEntry(LogKind.OTHER, subject = event.kind, at = at, address = address)
     }
 }

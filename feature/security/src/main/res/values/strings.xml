@@ -222,4 +222,14 @@
     <string name="sec_pkb_no_prf">This passkey provider can\'t protect a backup. Try Google Password Manager.</string>
     <string name="sec_pkb_prompt_title">Back up with a passkey</string>
     <string name="sec_pkb_prompt_subtitle">A copy of your key will be locked by the new passkey</string>
+    <plurals name="sec_pill_log_new">
+        <item quantity="one">%d new</item>
+        <item quantity="other">%d new</item>
+    </plurals>
+    <string name="sec_issue_log">New in your security log</string>
+    <string name="sec_issue_log_detail">Check that it was you: a device added or a sign-in you didn\'t make means someone else has access.</string>
+    <string name="sec_log_new">New</string>
+    <string name="sec_log_mark_reviewed">Mark as reviewed</string>
+    <string name="sec_log_admin_enrolled_root">Made an administrator of this node by its owner</string>
+    <string name="sec_log_admin_enrolled_by">Made an administrator of this node by %1$s</string>
 </resources>

@@ -211,6 +211,22 @@ class SecurityViewModel @Inject constructor(
         loading = viewModelScope.launch {
             val loaded = load(identity)
             _state.update { it.copy(overview = loaded, refreshing = false) }
+            // The first time the log is read on this phone, what is there counts as reviewed: only what
+            // happens from now on is new.
+            val log = (loaded as? OverviewState.Ready)?.overview?.log
+            if (log != null && identity.logReviewedAt == null) {
+                vault.update(identity.userId) { it.copy(logReviewedAt = log.maxOfOrNull { e -> e.at } ?: 0L) }
+            }
+        }
+    }
+
+    /** The user reviewed the security log: its events are no longer new. Nothing changes on the node. */
+    fun markLogReviewed() {
+        val identity = _state.value.identity ?: return
+        val log = ((_state.value.overview as? OverviewState.Ready)?.overview?.log).orEmpty()
+        val newest = log.maxOfOrNull { it.at } ?: return
+        viewModelScope.launch {
+            vault.update(identity.userId) { it.copy(logReviewedAt = maxOf(newest, it.logReviewedAt ?: 0L)) }
         }
     }
 
@@ -222,7 +238,8 @@ class SecurityViewModel @Inject constructor(
             // Older nodes don't report these; the screen then just doesn't show them.
             val recovery = optional { client.recoveryMethods.await() }
             val linked = optional { client.listLinkedIdentities().await() }
-            val log = optional { client.listSecurityEvents().await() }
+            // As many as the node keeps at least: what the user may want to look back on.
+            val log = optional { client.listSecurityEvents(LOG_LIMIT).await() }
             OverviewState.Ready(
                 SecurityOverview(
                     passphraseProtected = profile.isPassphraseProtected,
@@ -483,3 +500,6 @@ private fun Device.toPasskeyView() = PasskeyView(id = id.toString(), name = name
 
 /** The node's host name, to name it in a sentence; its URL when that has none. */
 internal fun NodeAddress.hostName(): String = runCatching { URI(url).host }.getOrNull() ?: url
+
+/** How many security log events are read: as many as a node keeps at least, whatever their age. */
+private const val LOG_LIMIT = 200

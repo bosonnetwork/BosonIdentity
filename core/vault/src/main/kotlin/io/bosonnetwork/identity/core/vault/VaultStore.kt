@@ -97,6 +97,7 @@ class VaultStore(private val dir: File) {
             .put("administers", info.administers)
             .putOpt("cardVersion", info.cardVersion)
             .putOpt("cardRevision", info.cardRevision)
+            .putOpt("logReviewedAt", info.logReviewedAt)
             .putOpt("userKey", entry.userKey?.let(::encodeSealed))
             .put("deviceKey", encodeSealed(entry.deviceKey))
     }
@@ -143,6 +144,7 @@ class VaultStore(private val dir: File) {
             administers = json.optBoolean("administers", false),
             cardVersion = if (json.has("cardVersion") && !json.isNull("cardVersion")) json.getInt("cardVersion") else null,
             cardRevision = if (json.has("cardRevision") && !json.isNull("cardRevision")) json.getLong("cardRevision") else null,
+            logReviewedAt = if (json.has("logReviewedAt") && !json.isNull("logReviewedAt")) json.getLong("logReviewedAt") else null,
         )
         return VaultEntry(
             info,

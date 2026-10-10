@@ -28,6 +28,7 @@ import android.content.Intent
 import android.net.Uri
 import android.text.format.DateUtils
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +41,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -51,6 +54,7 @@ import androidx.compose.material.icons.filled.PhonelinkSetup
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -58,6 +62,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -71,23 +76,23 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -95,13 +100,15 @@ import io.bosonnetwork.identity.core.designsystem.component.ActionRow
 import io.bosonnetwork.identity.core.designsystem.component.PageColumn
 import io.bosonnetwork.identity.core.designsystem.component.RecoveryCodesDialog
 import io.bosonnetwork.identity.core.designsystem.component.Section
-import io.bosonnetwork.identity.core.designsystem.component.StatusPill
-import io.bosonnetwork.identity.core.designsystem.component.look
 import io.bosonnetwork.identity.core.designsystem.component.SectionCard
 import io.bosonnetwork.identity.core.designsystem.component.Status
 import io.bosonnetwork.identity.core.designsystem.component.StatusLine
+import io.bosonnetwork.identity.core.designsystem.component.StatusPill
+import io.bosonnetwork.identity.core.designsystem.component.look
+import io.bosonnetwork.identity.core.designsystem.component.shortId
 import io.bosonnetwork.identity.core.designsystem.theme.brand
 import io.bosonnetwork.identity.core.model.IdentityInfo
+import kotlinx.coroutines.launch
 
 /**
  * The security of the identity in use: the account passphrase and the ways to recover it, the
@@ -109,7 +116,7 @@ import io.bosonnetwork.identity.core.model.IdentityInfo
  * phone's own key, and the app lock. [onBackup] opens the key's backup; [onJoinNode] joining a node.
  * [navigationIcon] goes at the start of the top bar; the app puts its identity switcher there.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SecurityScreen(
     onBackup: (userId: String) -> Unit,
@@ -178,6 +185,8 @@ fun SecurityScreen(
         ) {
             PageColumn {
                 val ready = (state.overview as? OverviewState.Ready)?.overview
+                val logRequester = remember { BringIntoViewRequester() }
+                val scope = rememberCoroutineScope()
                 Summary(
                     issues = state.issues,
                     known = ready != null || identity.homeNode == null,
@@ -186,6 +195,7 @@ fun SecurityScreen(
                             Issue.BACKUP -> onBackup(identity.userId)
                             Issue.NO_PASSPHRASE -> passphraseViewModel.start(PassphraseAction.SET)
                             Issue.NO_RECOVERY, Issue.NO_RECOVERY_CODES -> passphraseViewModel.start(PassphraseAction.NEW_CODES)
+                            Issue.NEW_LOG_EVENTS -> scope.launch { logRequester.bringIntoView() }
                         }
                     },
                 )
@@ -233,7 +243,15 @@ fun SecurityScreen(
                     }
                 }
                 PhoneKeySection(identity, onRenew = viewModel::startRenew)
-                (state.overview as? OverviewState.Ready)?.overview?.log?.let { SecurityLogSection(it) }
+                (state.overview as? OverviewState.Ready)?.overview?.log?.let { log ->
+                    SecurityLogSection(
+                        log,
+                        newEvents = newLogEvents(identity, log).size,
+                        reviewedAt = identity.logReviewedAt,
+                        onReviewed = viewModel::markLogReviewed,
+                        modifier = Modifier.bringIntoViewRequester(logRequester),
+                    )
+                }
             }
         }
     }
@@ -340,6 +358,7 @@ private fun Summary(issues: List<Issue>, known: Boolean, onIssue: (Issue) -> Uni
                 Issue.NO_RECOVERY -> R.string.sec_recovery_none to R.string.sec_recovery_none_detail
                 Issue.NO_PASSPHRASE -> R.string.sec_passphrase_off to R.string.sec_passphrase_off_detail
                 Issue.NO_RECOVERY_CODES -> R.string.sec_recovery_no_codes to R.string.sec_issue_codes_detail
+                Issue.NEW_LOG_EVENTS -> R.string.sec_issue_log to R.string.sec_issue_log_detail
             }
             StatusLine(issue.status, stringResource(title), stringResource(detail), onClick = { onIssue(issue) })
         }
@@ -536,25 +555,55 @@ private fun RecoveryBadge() {
     }
 }
 
+/**
+ * The security log, newest first. Events newer than what the user reviewed on this phone ([reviewedAt])
+ * are marked new, and counted in the header; "Mark as reviewed" ([onReviewed]) makes them old. The log
+ * itself can't be cleared: it is the account's audit trail, kept by the node.
+ */
 @Composable
-private fun SecurityLogSection(log: List<LogEntry>) {
+private fun SecurityLogSection(
+    log: List<LogEntry>,
+    newEvents: Int,
+    reviewedAt: Long?,
+    onReviewed: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var all by rememberSaveable { mutableStateOf(false) }
-    Section(stringResource(R.string.sec_log_title)) {
+    Section(
+        stringResource(R.string.sec_log_title),
+        modifier = modifier,
+        trailing = {
+            if (newEvents > 0) StatusPill(Status.ATTENTION, pluralStringResource(R.plurals.sec_pill_log_new, newEvents, newEvents))
+        },
+    ) {
         if (log.isEmpty()) {
             Note(stringResource(R.string.sec_log_empty), Modifier.padding(16.dp))
             return@Section
         }
-        val shown = if (all) log else log.take(LOG_SHOWN)
+        // The new ones always show, however many.
+        val shown = if (all) log else log.take(maxOf(LOG_SHOWN, newEvents))
         shown.forEach { entry ->
+            val new = reviewedAt != null && entry.at > reviewedAt
             ListItem(
                 colors = ListItemDefaults.colors(containerColor = MaterialTheme.brand.card),
-                headlineContent = { Text(entry.sentence()) },
+                headlineContent = { Text(entry.sentence(), fontWeight = if (new) FontWeight.SemiBold else null) },
                 supportingContent = { Text(entry.whenAndWhere()) },
+                trailingContent = if (new) {
+                    { Text(stringResource(R.string.sec_log_new), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
+                } else {
+                    null
+                },
             )
         }
-        if (log.size > LOG_SHOWN) {
-            TextButton(onClick = { all = !all }, modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)) {
-                Text(stringResource(if (all) R.string.sec_log_fewer else R.string.sec_log_all))
+        Row(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (log.size > shown.size || all) {
+                TextButton(onClick = { all = !all }) {
+                    Text(stringResource(if (all) R.string.sec_log_fewer else R.string.sec_log_all))
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            if (newEvents > 0) {
+                TextButton(onClick = onReviewed) { Text(stringResource(R.string.sec_log_mark_reviewed)) }
             }
         }
     }
@@ -582,6 +631,8 @@ internal fun LogEntry.sentence(): String {
         LogKind.DEVICE_REMOVED -> stringResource(if (passkey) R.string.sec_log_passkey_removed else R.string.sec_log_device_removed, name)
         LogKind.ACCOUNT_LINKED -> stringResource(R.string.sec_log_linked, subject ?: stringResource(R.string.sec_linked_unknown_provider))
         LogKind.ACCOUNT_UNLINKED -> stringResource(R.string.sec_log_unlinked, subject ?: stringResource(R.string.sec_linked_unknown_provider))
+        LogKind.ADMIN_ENROLLED -> if (subject == null || subject == "root") stringResource(R.string.sec_log_admin_enrolled_root)
+            else stringResource(R.string.sec_log_admin_enrolled_by, shortId(subject))
         LogKind.SIGNED_IN -> when (subject) {
             "portal" -> stringResource(R.string.sec_log_signed_in_portal)
             "admin" -> stringResource(R.string.sec_log_signed_in_admin)

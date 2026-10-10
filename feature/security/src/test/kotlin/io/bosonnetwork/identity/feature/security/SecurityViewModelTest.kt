@@ -96,7 +96,7 @@ class SecurityViewModelTest {
         every { client.listDevices() } returns done(listOf(device(id = oldDeviceId, name = "Pixel 9"), passkey))
         every { client.recoveryMethods } returns done(recoveryMethods(oauth = 1, passkeys = 1, codes = 3))
         every { client.listLinkedIdentities() } returns done(listOf(github))
-        every { client.listSecurityEvents() } returns done(
+        every { client.listSecurityEvents(200) } returns done(
             listOf(event("set", "session", at = 1_000), event("device-added", "app: Pixel 9", at = 3_000, address = "198.51.100.4")),
         )
     }
@@ -132,11 +132,32 @@ class SecurityViewModelTest {
         test.addIdentity()
         every { client.recoveryMethods } returns refused(404)
         every { client.listLinkedIdentities() } returns refused(404)
-        every { client.listSecurityEvents() } returns refused(404)
+        every { client.listSecurityEvents(200) } returns refused(404)
         val overview = viewModel().ready()
         assertNull(overview.recovery)
         assertNull(overview.linked)
         assertNull(overview.log)
+    }
+
+    @Test
+    fun `the log read for the first time counts as reviewed, what comes after is new`() = runTest {
+        val userId = test.addIdentity()
+        val vm = viewModel()
+        vm.ready()
+        assertEquals(3_000L, vault.identities.first { it.single().logReviewedAt != null }.single().logReviewedAt)
+        assertFalse(Issue.NEW_LOG_EVENTS in vm.state.value.issues)
+
+        // A device added elsewhere since.
+        every { client.listSecurityEvents(200) } returns done(
+            listOf(event("device-added", "app: Unknown phone", at = 5_000), event("device-added", "app: Pixel 9", at = 3_000)),
+        )
+        vm.refresh()
+        val state = vm.state.first { s -> (s.overview as? OverviewState.Ready)?.overview?.log?.size == 2 && Issue.NEW_LOG_EVENTS in s.issues }
+        assertEquals(1, newLogEvents(state.identity, (state.overview as OverviewState.Ready).overview.log).size)
+
+        vm.markLogReviewed()
+        vault.identities.first { it.single { i -> i.userId == userId }.logReviewedAt == 5_000L }
+        assertFalse(Issue.NEW_LOG_EVENTS in vm.state.first { Issue.NEW_LOG_EVENTS !in it.issues }.issues)
     }
 
     @Test
@@ -174,6 +195,9 @@ class SecurityViewModelTest {
         assertEquals(LogEntry(LogKind.ACCOUNT_LINKED, subject = "Google", at = 1_000), logEntry(event("linked", "google")))
         assertEquals("Codeberg", logEntry(event("unlinked", "codeberg")).subject)
         assertEquals(LogEntry(LogKind.SIGNED_IN, subject = "admin", at = 1_000), logEntry(event("signed-in", "admin")))
+        assertEquals(LogEntry(LogKind.ADMIN_ENROLLED, subject = "root", at = 1_000), logEntry(event("admin-enrolled", "by root")))
+        val admin = Id.random().toString()
+        assertEquals(admin, logEntry(event("admin-enrolled", "by administrator $admin")).subject)
         assertEquals(LogEntry(LogKind.OTHER, subject = "teleported", at = 1_000), logEntry(event("teleported")))
         assertNull(logEntry(event("set", address = " ")).address)
     }

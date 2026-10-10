@@ -38,6 +38,15 @@ enum class Issue(val status: Status) {
 
     /** Recovery works through linked accounts or passkeys only, without codes kept apart from them. */
     NO_RECOVERY_CODES(Status.ATTENTION),
+
+    /** Events in the security log the user hasn't reviewed: a device added or a sign-in they didn't make shows here. */
+    NEW_LOG_EVENTS(Status.ATTENTION),
+}
+
+/** The security log's events newer than the identity's review marker; none before the log was first read. */
+fun newLogEvents(identity: IdentityInfo?, log: List<LogEntry>?): List<LogEntry> {
+    val reviewed = identity?.logReviewedAt ?: return emptyList()
+    return log.orEmpty().filter { it.at > reviewed }
 }
 
 /**
@@ -61,6 +70,7 @@ fun protectionIssues(identity: IdentityInfo?, overview: SecurityOverview?): List
                 recovery.recoveryCodes == 0 -> issues += Issue.NO_RECOVERY_CODES
             }
         }
+        if (newLogEvents(identity, overview.log).isNotEmpty()) issues += Issue.NEW_LOG_EVENTS
     }
     return issues.sortedBy { it.status != Status.PROBLEM }
 }

@@ -65,4 +65,14 @@ class ProtectionTest {
         assertEquals(Status.ATTENTION, listOf(Issue.NO_RECOVERY_CODES).worst())
         assertEquals(emptyList<Issue>(), protectionIssues(backedUp, overview(true, null)))
     }
+
+    @Test
+    fun `events newer than the review are new, none before the log was first read`() {
+        val log = listOf(LogEntry(LogKind.DEVICE_ADDED, at = 9), LogEntry(LogKind.SIGNED_IN, at = 4))
+        val withLog = overview(true, RecoveryView(0, 0, 8)).copy(log = log)
+        assertEquals(listOf(Issue.NEW_LOG_EVENTS), protectionIssues(backedUp.copy(logReviewedAt = 5), withLog))
+        assertEquals(emptyList<Issue>(), protectionIssues(backedUp.copy(logReviewedAt = 9), withLog))
+        assertEquals(emptyList<Issue>(), protectionIssues(backedUp, withLog))
+        assertEquals(1, newLogEvents(backedUp.copy(logReviewedAt = 5), log).size)
+    }
 }

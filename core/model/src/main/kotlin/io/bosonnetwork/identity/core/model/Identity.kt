@@ -94,6 +94,8 @@ data class LocalProfile(
  *   card is withdrawn, so versions never go back
  * @property cardRevision the profile revision the published card was made from; null when the card is
  *   not published from this phone. A profile at a newer revision means the card is out of date.
+ * @property logReviewedAt the time of the newest security log event the user reviewed on this phone;
+ *   newer ones are new. Null until the log was first read, when the events then there count as reviewed.
  */
 data class IdentityInfo(
     val userId: String,
@@ -104,6 +106,7 @@ data class IdentityInfo(
     val administers: Boolean = false,
     val cardVersion: Int? = null,
     val cardRevision: Long? = null,
+    val logReviewedAt: Long? = null,
 ) {
     /** The name the identity goes by, or null. */
     val name: String?
