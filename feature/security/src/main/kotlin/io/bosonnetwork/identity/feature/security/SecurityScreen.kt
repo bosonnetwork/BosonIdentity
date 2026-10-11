@@ -75,7 +75,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -99,6 +98,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.bosonnetwork.identity.core.designsystem.component.ActionRow
 import io.bosonnetwork.identity.core.designsystem.component.PageColumn
 import io.bosonnetwork.identity.core.designsystem.component.RecoveryCodesDialog
+import io.bosonnetwork.identity.core.designsystem.component.RefreshBox
 import io.bosonnetwork.identity.core.designsystem.component.Section
 import io.bosonnetwork.identity.core.designsystem.component.SectionCard
 import io.bosonnetwork.identity.core.designsystem.component.Status
@@ -178,7 +178,7 @@ fun SecurityScreen(
         },
     ) { padding ->
         if (identity == null) return@Scaffold
-        PullToRefreshBox(
+        RefreshBox(
             isRefreshing = state.refreshing,
             onRefresh = viewModel::refresh,
             modifier = Modifier.fillMaxSize().padding(padding),

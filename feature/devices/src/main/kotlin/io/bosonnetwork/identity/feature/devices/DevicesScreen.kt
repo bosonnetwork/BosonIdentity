@@ -65,7 +65,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -88,6 +87,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.bosonnetwork.identity.core.designsystem.component.IdText
 import io.bosonnetwork.identity.core.designsystem.component.Identicon
+import io.bosonnetwork.identity.core.designsystem.component.RefreshBox
 import io.bosonnetwork.identity.core.designsystem.component.SectionCard
 import io.bosonnetwork.identity.core.designsystem.component.Status
 import io.bosonnetwork.identity.core.designsystem.component.StatusLine
@@ -147,7 +147,7 @@ fun DevicesScreen(
         },
     ) { padding ->
         if (identity == null) return@Scaffold
-        PullToRefreshBox(
+        RefreshBox(
             isRefreshing = state.refreshing,
             onRefresh = viewModel::refresh,
             modifier = Modifier.fillMaxSize().padding(padding),

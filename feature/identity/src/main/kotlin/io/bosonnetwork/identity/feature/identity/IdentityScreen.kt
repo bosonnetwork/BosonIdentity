@@ -83,7 +83,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -112,6 +111,7 @@ import io.bosonnetwork.identity.core.designsystem.component.IdText
 import io.bosonnetwork.identity.core.designsystem.component.Identicon
 import io.bosonnetwork.identity.core.designsystem.component.IdentityPicture
 import io.bosonnetwork.identity.core.designsystem.component.PageColumn
+import io.bosonnetwork.identity.core.designsystem.component.RefreshBox
 import io.bosonnetwork.identity.core.designsystem.component.Section
 import io.bosonnetwork.identity.core.designsystem.component.SectionCard
 import io.bosonnetwork.identity.core.designsystem.component.Status
@@ -173,7 +173,7 @@ fun IdentityScreen(
         },
     ) { padding ->
         if (identity == null) return@Scaffold
-        PullToRefreshBox(
+        RefreshBox(
             isRefreshing = state.refreshing,
             onRefresh = viewModel::refresh,
             modifier = Modifier.fillMaxSize().padding(padding),
