@@ -47,6 +47,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.security.MessageDigest
@@ -56,8 +58,8 @@ private const val ID_ENDS = 6
 
 /**
  * An id as the app shows it: the first and last six characters of its Base58 string around an
- * ellipsis ("7Hq3wZ\u2026NoPxK2p"). Base58 ids are shown only this way; the whole id is reached by
- * copying it or in its QR code.
+ * ellipsis ("7Hq3wZ\u2026NoPxK2p"). Base58 ids are shown this way everywhere but under their own QR
+ * code, which shows them whole ([IdText] with `full`); copying gives the whole id too.
  */
 fun shortId(id: String): String =
     if (id.length <= ID_ENDS * 2 + 1) id else "${id.take(ID_ENDS)}\u2026${id.takeLast(ID_ENDS)}"
@@ -70,16 +72,17 @@ fun groupedId(id: String): String = id.chunked(4).joinToString(" ")
 
 /**
  * What TalkBack reads for an id: its two ends spelled out character by character, so that it can be
- * compared with what another screen says.
+ * compared with what another screen says; with [full], all of it.
  */
-fun spokenId(id: String): String {
-    if (id.length <= ID_ENDS * 2 + 1) return id.toList().joinToString(" ")
+fun spokenId(id: String, full: Boolean = false): String {
+    if (full || id.length <= ID_ENDS * 2 + 1) return id.toList().joinToString(" ")
     return id.take(ID_ENDS).toList().joinToString(" ") + ", \u2026, " + id.takeLast(ID_ENDS).toList().joinToString(" ")
 }
 
 /**
  * An id as text: abbreviated ([shortId]) in monospace. With [onClick], the id is a button, typically
- * opening its QR code; [clickLabel] says what it does, for TalkBack.
+ * opening its QR code; [clickLabel] says what it does, for TalkBack. With [full], the whole id, centered,
+ * wrapped onto lines of balanced length when it doesn't fit on one: for the id's own QR code.
  */
 @Composable
 fun IdText(
@@ -89,6 +92,7 @@ fun IdText(
     color: Color = Color.Unspecified,
     onClick: (() -> Unit)? = null,
     clickLabel: String? = null,
+    full: Boolean = false,
 ) {
     val clickable = if (onClick != null) {
         Modifier.clip(RoundedCornerShape(6.dp)).clickable(role = Role.Button, onClickLabel = clickLabel, onClick = onClick)
@@ -96,11 +100,15 @@ fun IdText(
         Modifier
     }
     Text(
-        text = shortId(id),
-        style = style.copy(fontFamily = FontFamily.Monospace),
+        text = if (full) id else shortId(id),
+        style = if (full) {
+            style.copy(fontFamily = FontFamily.Monospace, textAlign = TextAlign.Center, lineBreak = LineBreak.Heading)
+        } else {
+            style.copy(fontFamily = FontFamily.Monospace)
+        },
         color = color,
-        maxLines = 1,
-        modifier = modifier.then(clickable).semantics { contentDescription = spokenId(id) },
+        maxLines = if (full) Int.MAX_VALUE else 1,
+        modifier = modifier.then(clickable).semantics { contentDescription = spokenId(id, full) },
     )
 }
 

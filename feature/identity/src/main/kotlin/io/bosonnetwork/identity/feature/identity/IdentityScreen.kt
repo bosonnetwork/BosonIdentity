@@ -661,7 +661,7 @@ private fun NoHomeNode(onJoin: () -> Unit) {
 // ---- QR codes ----------------------------------------------------------------------------------
 
 /**
- * A QR code to show another phone, in a sheet: [qrText] as the code, its title, the abbreviated [id]
+ * A QR code to show another phone, in a sheet: [qrText] as the code, its title, the whole [id]
  * under it, what it is for, and copying or sharing [copyText].
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -707,7 +707,7 @@ internal fun QrSheet(
             }
             id?.let {
                 Spacer(Modifier.height(16.dp))
-                IdText(it, style = MaterialTheme.typography.titleMedium)
+                IdText(it, style = MaterialTheme.typography.titleMedium, full = true)
             }
             Spacer(Modifier.height(12.dp))
             Text(
