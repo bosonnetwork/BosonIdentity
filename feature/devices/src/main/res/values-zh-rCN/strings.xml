@@ -71,6 +71,8 @@
     <string name="dev_approve_invalid_code">这不是配对码。请扫描新设备显示的二维码，或粘贴其文本。</string>
     <string name="dev_approve_loading">正在读取请求…</string>
     <string name="dev_approve_review_title">有设备想要加入</string>
+    <string name="dev_approve_asked_by">这部手机上的 %1$s 发起了此请求</string>
+    <string name="dev_approve_asked_by_hint">只有在你刚刚让该应用加入你的身份时才批准。</string>
     <string name="dev_approve_who">你的身份</string>
     <string name="dev_approve_where">在 %1$s</string>
     <string name="dev_approve_from">请求来自 %1$s</string>

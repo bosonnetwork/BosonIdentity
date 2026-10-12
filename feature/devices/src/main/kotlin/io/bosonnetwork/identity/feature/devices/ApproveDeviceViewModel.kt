@@ -82,6 +82,12 @@ enum class ApproveStep {
     ERROR,
 }
 
+/**
+ * The app on this phone that asked for the approval (through Boson Identity's app requests): its name
+ * and package, as Android reports the caller.
+ */
+data class AppRequester(val label: String, val packageName: String)
+
 /** A device asking to join the identity, as the review shows it. */
 data class PendingView(
     val deviceId: String,
@@ -105,6 +111,11 @@ data class ApproveUiState(
      * console's enrollment code.
      */
     val general: Boolean = false,
+    /**
+     * Another app on this phone asked to approve its pairing code: the code is read at once, and the
+     * screen answers that one request (no scanning another code).
+     */
+    val requester: AppRequester? = null,
     val step: ApproveStep = ApproveStep.SCAN,
     /** The pairing code as pasted. */
     val pasted: String = "",
@@ -150,7 +161,11 @@ class ApproveDeviceViewModel @Inject constructor(
 
     private val general: Boolean = savedState[ARG_GENERAL] ?: false
 
-    private val _state = MutableStateFlow(ApproveUiState(general = general))
+    private val requester: AppRequester? = savedState.get<String>(ARG_REQUESTER_PACKAGE)?.let { packageName ->
+        AppRequester(savedState.get<String>(ARG_REQUESTER_LABEL)?.ifBlank { null } ?: packageName, packageName)
+    }
+
+    private val _state = MutableStateFlow(ApproveUiState(general = general, requester = requester))
     val state: StateFlow<ApproveUiState> = _state.asStateFlow()
 
     /** This phone's clock for the countdown, in milliseconds; monotonic, so changing the time doesn't move it. */
@@ -168,6 +183,13 @@ class ApproveDeviceViewModel @Inject constructor(
             vault.load()
             // Kept current, so that a backup checked meanwhile allows approving.
             vault.identities.collect { list -> _state.update { it.copy(identity = list.firstOrNull { i -> i.userId == userId }) } }
+        }
+        // An app's request carries its code: read it as soon as the identity is known.
+        savedState.get<String>(ARG_CODE)?.let { text ->
+            viewModelScope.launch {
+                _state.mapNotNull { it.identity }.first()
+                onScanned(text)
+            }
         }
     }
 
@@ -196,6 +218,8 @@ class ApproveDeviceViewModel @Inject constructor(
 
     /** Starts over with another code. */
     fun scanAgain() {
+        // An app's request is for its one code.
+        if (requester != null) return
         job?.cancel()
         ticker?.cancel()
         code = null
@@ -215,8 +239,8 @@ class ApproveDeviceViewModel @Inject constructor(
     }
 
     private fun open(text: String) {
-        // A node console's enrollment code names its own node: an identity needs no home node for it.
-        EnrollmentCode.parse(text).orElse(null)?.let { code ->
+        // An app asks to approve a device, nothing else.
+        if (requester == null) EnrollmentCode.parse(text).orElse(null)?.let { code ->
             _state.update { it.copy(enrollCode = code.toString(), error = null) }
             return
         }
@@ -228,7 +252,7 @@ class ApproveDeviceViewModel @Inject constructor(
             return
         }
         // The same scanner reads a web page's "Sign in with Boson Identity" code.
-        SignInRequest.parseCode(text).orElse(null)?.let { requestId ->
+        if (requester == null) SignInRequest.parseCode(text).orElse(null)?.let { requestId ->
             _state.update { it.copy(signInRequestId = requestId, error = null) }
             return
         }
@@ -247,7 +271,7 @@ class ApproveDeviceViewModel @Inject constructor(
         job?.cancel()
         ticker?.cancel()
         _state.update {
-            ApproveUiState(identity = it.identity, step = ApproveStep.LOADING, pasted = it.pasted)
+            ApproveUiState(identity = it.identity, requester = requester, step = ApproveStep.LOADING, pasted = it.pasted)
         }
         job = viewModelScope.launch {
             try {
@@ -280,8 +304,13 @@ class ApproveDeviceViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: AppError.AuthenticationCancelled) {
-                lastScanned = null
-                _state.update { it.copy(step = ApproveStep.SCAN, error = e.userMessage(context)) }
+                // An app's request has no scanner to go back to: it can be tried again.
+                if (requester != null) {
+                    _state.update { it.copy(step = ApproveStep.ERROR, error = e.userMessage(context)) }
+                } else {
+                    lastScanned = null
+                    _state.update { it.copy(step = ApproveStep.SCAN, error = e.userMessage(context)) }
+                }
             } catch (e: Exception) {
                 _state.update { it.copy(step = ApproveStep.ERROR, error = e.userMessage(context)) }
             }
@@ -419,6 +448,15 @@ class ApproveDeviceViewModel @Inject constructor(
 
         /** Opens the screen as the app's general scanner; see [ApproveUiState.general]. */
         const val ARG_GENERAL = "general"
+
+        /** The pairing code an app on this phone asked to approve; see [ApproveUiState.requester]. */
+        const val ARG_CODE = "code"
+
+        /** The package of the app that asked. */
+        const val ARG_REQUESTER_PACKAGE = "requesterPackage"
+
+        /** The name of the app that asked, as the phone shows it. */
+        const val ARG_REQUESTER_LABEL = "requesterLabel"
     }
 }
 

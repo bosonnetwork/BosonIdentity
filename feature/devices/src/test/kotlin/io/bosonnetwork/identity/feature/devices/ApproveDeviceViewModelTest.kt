@@ -134,10 +134,17 @@ class ApproveDeviceViewModelTest {
         backupVerified: Boolean = true,
         general: Boolean = false,
         homeNode: Boolean = true,
+        // An app's request: its code, from the app named "Photon".
+        appCode: String? = null,
     ): ApproveDeviceViewModel {
         val userId = vault.add(Signature.KeyPair.random(), null, backupVerified, keepUserKey = true, prompt = AuthPrompt("Confirm")).userId
         if (homeNode) vault.update(userId) { it.copy(homeNode = node, deviceId = Id.random().toString()) }
-        val args = mapOf(ApproveDeviceViewModel.ARG_USER_ID to userId, ApproveDeviceViewModel.ARG_GENERAL to general)
+        val args = mutableMapOf<String, Any?>(ApproveDeviceViewModel.ARG_USER_ID to userId, ApproveDeviceViewModel.ARG_GENERAL to general)
+        if (appCode != null) {
+            args[ApproveDeviceViewModel.ARG_CODE] = appCode
+            args[ApproveDeviceViewModel.ARG_REQUESTER_PACKAGE] = "io.bosonnetwork.photon"
+            args[ApproveDeviceViewModel.ARG_REQUESTER_LABEL] = "Photon"
+        }
         val vm = ApproveDeviceViewModel(SavedStateHandle(args), vault, nodes, context)
         vm.clock = { testScheduler.currentTime }
         viewModels += vm
@@ -248,6 +255,33 @@ class ApproveDeviceViewModelTest {
         // Starting over keeps it the app's scanner.
         vm.scanAgain()
         assertTrue(vm.state.value.general)
+    }
+
+    @Test
+    fun `an app's code is read at once, and the review names the app`() = runTest {
+        val vm = viewModel(appCode = code)
+        val state = vm.state.first { it.step == ApproveStep.REVIEW }
+        assertEquals(AppRequester("Photon", "io.bosonnetwork.photon"), state.requester)
+        assertEquals("MacBook", state.pending?.name)
+    }
+
+    @Test
+    fun `an app's request answers its one code`() = runTest {
+        every { client.getDeviceRegistration(pairing) } returns CompletableFuture.completedFuture(Optional.empty())
+        val vm = viewModel(appCode = code)
+        vm.state.first { it.step == ApproveStep.EXPIRED }
+        vm.scanAgain()
+        assertEquals(ApproveStep.EXPIRED, vm.state.value.step)
+        assertEquals("Photon", vm.state.value.requester?.label)
+    }
+
+    @Test
+    fun `an app can only ask to approve a device`() = runTest {
+        val vm = viewModel(appCode = "boson:signin:1:req123")
+        val state = vm.state.first { it.error != null }
+        assertNull(state.signInRequestId)
+        assertEquals(ApproveStep.SCAN, state.step)
+        coVerify(exactly = 0) { nodes.deviceClient(any(), any()) }
     }
 
     @Test

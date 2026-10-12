@@ -12,4 +12,18 @@
     <string name="app_identity_active">正在使用</string>
     <string name="app_identity_no_node">尚无主节点</string>
     <string name="app_identity_add">添加身份</string>
+
+    <!-- Other apps' requests -->
+    <string name="app_request_share_title">分享你的主节点</string>
+    <string name="app_request_approve_title">批准新设备</string>
+    <string name="app_request_share_body">%1$s 请求获取你某个身份的主节点，以便加入同一节点。它会知道该身份的 Boson ID 和主节点，这些都是公开信息；它不会得到任何密钥。</string>
+    <string name="app_request_approve_body">%1$s 请求以新设备的身份加入你的某个身份。接下来你将审核它的请求。</string>
+    <string name="app_request_choose_share">使用哪个身份？</string>
+    <string name="app_request_choose_approve">让它加入哪个身份？</string>
+    <string name="app_request_no_identity">这部手机上还没有身份。请先在 Boson Identity 中创建或导入一个。</string>
+    <string name="app_request_no_home_node">你的身份都还没有主节点。请先在 Boson Identity 中为其选择一个。</string>
+    <string name="app_request_share_action">分享</string>
+    <string name="app_request_continue">继续</string>
+    <string name="app_request_cancel">取消</string>
+    <string name="app_request_close">关闭</string>
 </resources>

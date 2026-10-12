@@ -14,4 +14,18 @@
     <string name="app_identity_active">In use</string>
     <string name="app_identity_no_node">No home node yet</string>
     <string name="app_identity_add">Add an identity</string>
+
+    <!-- Other apps' requests -->
+    <string name="app_request_share_title">Share your home node</string>
+    <string name="app_request_approve_title">Approve a new device</string>
+    <string name="app_request_share_body">%1$s asks for the home node of one of your identities, to join the same node. It learns that identity\'s Boson ID and home node, which are public; it gets no key.</string>
+    <string name="app_request_approve_body">%1$s asks to join one of your identities as a new device. You review its request next.</string>
+    <string name="app_request_choose_share">Which identity?</string>
+    <string name="app_request_choose_approve">Which identity should it join?</string>
+    <string name="app_request_no_identity">There\'s no identity on this phone yet. Create or bring one in with Boson Identity first.</string>
+    <string name="app_request_no_home_node">None of your identities has a home node yet. Choose one for it in Boson Identity first.</string>
+    <string name="app_request_share_action">Share</string>
+    <string name="app_request_continue">Continue</string>
+    <string name="app_request_cancel">Cancel</string>
+    <string name="app_request_close">Close</string>
 </resources>

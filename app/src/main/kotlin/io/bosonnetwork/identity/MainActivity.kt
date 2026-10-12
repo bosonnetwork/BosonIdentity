@@ -26,10 +26,12 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -76,20 +78,7 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         setContent {
             var theme by remember { mutableStateOf(AppSettings.theme(this)) }
-            val dark = when (theme) {
-                ThemeMode.SYSTEM -> isSystemInDarkTheme()
-                ThemeMode.LIGHT -> false
-                ThemeMode.DARK -> true
-            }
-            // The system bars follow the app's theme, not the phone's: light icons on the dark theme.
-            DisposableEffect(dark) {
-                enableEdgeToEdge(
-                    statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark },
-                    navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark },
-                )
-                onDispose {}
-            }
-            BosonIdentityTheme(darkTheme = dark) {
+            ThemedContent(theme) {
                 AppNavigation(
                     vault = vault,
                     activeIdentity = activeIdentity,
@@ -106,6 +95,14 @@ class MainActivity : FragmentActivity() {
         }
         // Started by a return from an account provider (the app was not running).
         if (savedInstanceState == null) deliverReturn(intent)
+    }
+
+    // The screen lock is asked over the activity in front: this one again when the user comes back from
+    // another (an app's request) that took it.
+    override fun onResume() {
+        super.onResume()
+        authenticator.attach(this)
+        passkeyPrf.attach(this)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -126,4 +123,25 @@ class MainActivity : FragmentActivity() {
         super.onStop()
         lifecycleScope.launch { nodes.lock() }
     }
+}
+
+/**
+ * The app's [theme] over [content], with the system bars following it rather than the phone's: light
+ * icons on the dark theme. Every activity of the app shows its screens this way.
+ */
+@Composable
+internal fun ComponentActivity.ThemedContent(theme: ThemeMode, content: @Composable () -> Unit) {
+    val dark = when (theme) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
+    DisposableEffect(dark) {
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark },
+            navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark },
+        )
+        onDispose {}
+    }
+    BosonIdentityTheme(darkTheme = dark, content = content)
 }

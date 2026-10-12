@@ -155,7 +155,17 @@ fun ApproveDeviceScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 when (state.step) {
-                    ApproveStep.SCAN -> ScanStep(state, viewModel)
+                    // An app's code is read at once; only a problem with it stops here.
+                    ApproveStep.SCAN -> if (state.requester == null) {
+                        ScanStep(state, viewModel)
+                    } else if (state.error == null) {
+                        Spacer(Modifier.height(48.dp))
+                        CircularProgressIndicator()
+                    } else {
+                        Outcome(title = stringResource(R.string.dev_approve_error_title), body = state.error.orEmpty()) {
+                            Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.dev_close)) }
+                        }
+                    }
                     ApproveStep.LOADING, ApproveStep.WORKING -> {
                         Spacer(Modifier.height(48.dp))
                         CircularProgressIndicator()
@@ -164,7 +174,7 @@ fun ApproveDeviceScreen(
                             stringResource(if (state.step == ApproveStep.LOADING) R.string.dev_approve_loading else R.string.dev_approve_working),
                         )
                     }
-                    ApproveStep.REVIEW -> ReviewStep(state, viewModel, onBackup = { state.identity?.let { onBackup(it.userId) } })
+                    ApproveStep.REVIEW -> ReviewStep(state, viewModel, onBackup = { state.identity?.let { onBackup(it.userId) } }, onClose = onClose)
                     ApproveStep.PASSPHRASE -> PassphraseStep(state, viewModel)
                     ApproveStep.DONE -> Outcome(
                         title = stringResource(R.string.dev_approve_done, state.pending?.displayName() ?: stringResource(R.string.dev_approve_unnamed)),
@@ -183,17 +193,25 @@ fun ApproveDeviceScreen(
                         title = stringResource(R.string.dev_approve_gone),
                         body = stringResource(R.string.dev_approve_gone_body),
                     ) {
-                        Button(onClick = viewModel::scanAgain, modifier = Modifier.fillMaxWidth()) {
-                            Text(stringResource(R.string.dev_approve_scan_another))
+                        if (state.requester == null) {
+                            Button(onClick = viewModel::scanAgain, modifier = Modifier.fillMaxWidth()) {
+                                Text(stringResource(R.string.dev_approve_scan_another))
+                            }
+                            TextButton(onClick = onClose) { Text(stringResource(R.string.dev_close)) }
+                        } else {
+                            Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.dev_close)) }
                         }
-                        TextButton(onClick = onClose) { Text(stringResource(R.string.dev_close)) }
                     }
                     ApproveStep.ERROR -> Outcome(
                         title = stringResource(R.string.dev_approve_error_title),
                         body = state.error.orEmpty(),
                     ) {
                         Button(onClick = viewModel::retry, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.dev_approve_retry)) }
-                        TextButton(onClick = viewModel::scanAgain) { Text(stringResource(R.string.dev_approve_scan_another)) }
+                        if (state.requester == null) {
+                            TextButton(onClick = viewModel::scanAgain) { Text(stringResource(R.string.dev_approve_scan_another)) }
+                        } else {
+                            TextButton(onClick = onClose) { Text(stringResource(R.string.dev_close)) }
+                        }
                     }
                 }
                 if (state.step != ApproveStep.ERROR) {
@@ -248,12 +266,25 @@ private fun ScanStep(state: ApproveUiState, viewModel: ApproveDeviceViewModel) {
 }
 
 @Composable
-private fun ReviewStep(state: ApproveUiState, viewModel: ApproveDeviceViewModel, onBackup: () -> Unit) {
+private fun ReviewStep(state: ApproveUiState, viewModel: ApproveDeviceViewModel, onBackup: () -> Unit, onClose: () -> Unit) {
     val pending = state.pending ?: return
     val identity = state.identity
     val host = identity?.homeNode?.hostName().orEmpty()
     Text(stringResource(R.string.dev_approve_review_title), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
     Spacer(Modifier.height(16.dp))
+
+    // Who asked here: an app on this phone, by the name and package Android reports for it.
+    state.requester?.let { requester ->
+        SectionCard {
+            Column(Modifier.padding(16.dp)) {
+                Text(stringResource(R.string.dev_approve_asked_by, requester.label), style = MaterialTheme.typography.titleMedium)
+                Text(requester.packageName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(4.dp))
+                Text(stringResource(R.string.dev_approve_asked_by_hint), style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+    }
 
     // What: the device.
     SectionCard {
@@ -332,6 +363,9 @@ private fun ReviewStep(state: ApproveUiState, viewModel: ApproveDeviceViewModel,
     Spacer(Modifier.height(20.dp))
 
     when {
+        state.expired && state.requester != null -> Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.dev_close))
+        }
         state.expired -> Button(onClick = viewModel::scanAgain, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.dev_approve_scan_another))
         }

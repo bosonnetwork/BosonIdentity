@@ -71,6 +71,8 @@
     <string name="dev_approve_invalid_code">This isn\'t a pairing code. Scan the code the new device shows, or paste its text.</string>
     <string name="dev_approve_loading">Reading the request...</string>
     <string name="dev_approve_review_title">A device wants to join</string>
+    <string name="dev_approve_asked_by">%1$s on this phone asks for this</string>
+    <string name="dev_approve_asked_by_hint">Approve only if you just asked that app to join your identity.</string>
     <string name="dev_approve_who">Your identity</string>
     <string name="dev_approve_where">At %1$s</string>
     <string name="dev_approve_from">Requested from %1$s</string>

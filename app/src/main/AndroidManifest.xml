@@ -46,5 +46,20 @@
                 <data android:scheme="https" android:host="bosonnetwork.io" android:path="/identity/auth" />
             </intent-filter>
         </activity>
+        <!--
+          Other apps' requests (AppRequests, docs/app-requests.md): an identity's home node, and
+          approving the app as a new device. Any app may ask, by an explicit intent to this package
+          started for a result; the user sees which app asks and decides. Nothing secret leaves.
+        -->
+        <activity
+            android:name=".AppRequestActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="io.bosonnetwork.identity.action.GET_HOME_NODE" />
+                <action android:name="io.bosonnetwork.identity.action.APPROVE_DEVICE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>
