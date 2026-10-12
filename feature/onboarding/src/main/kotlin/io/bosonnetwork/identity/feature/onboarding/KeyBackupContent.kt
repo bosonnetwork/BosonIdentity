@@ -73,16 +73,16 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import io.bosonnetwork.crypto.KeyBackup
 import io.bosonnetwork.identity.core.designsystem.component.SecureScreen
 import io.bosonnetwork.identity.core.qr.rememberQrBitmap
-import io.bosonnetwork.identity.core.vault.KeyBackup
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

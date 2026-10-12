@@ -28,13 +28,13 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.bosonnetwork.Id
+import io.bosonnetwork.crypto.KeyBackup
 import io.bosonnetwork.crypto.Signature
-import io.bosonnetwork.identity.core.designsystem.component.userMessage
 import io.bosonnetwork.identity.core.backup.PasskeyBackup
+import io.bosonnetwork.identity.core.designsystem.component.userMessage
 import io.bosonnetwork.identity.core.model.AppError
 import io.bosonnetwork.identity.core.vault.AuthPrompt
 import io.bosonnetwork.identity.core.vault.IdentityVault
-import io.bosonnetwork.identity.core.vault.KeyBackup
 import io.bosonnetwork.identity.core.vault.wipe
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
