@@ -105,14 +105,15 @@ sealed interface CardStatus {
  * persistently and announces it again and again, keeping it in the DHT while the phone is off. The
  * card and the DHT value holding it are signed by the user key; the gateway only carries them, acting
  * for the identity through this app's device key. Boson's identity registry does the publishing over
- * the gateway (a [io.bosonnetwork.Node]), choosing the version as every Boson app does.
+ * the gateway (a [io.bosonnetwork.Node]; made without a resolution cache, as it only publishes),
+ * choosing the version as every Boson app does.
  */
 class ProfileCards(private val vault: IdentityVault, private val nodes: NodeConnections) {
 
     /** Whether the gateway keeps the identity's card. */
     suspend fun status(identity: IdentityInfo, prompt: AuthPrompt): CardStatus =
         nodes.gateway(identity, prompt) { gateway ->
-            val published = Registry.DHTRegistry(gateway).getPublished(Id.of(identity.userId)).await().orElse(null)
+            val published = Registry.DHTRegistry(gateway, 0).getPublished(Id.of(identity.userId)).await().orElse(null)
             if (published == null) CardStatus.NotPublished
             else CardStatus.Published(published.version, published.card.orElse(null)?.let(::read))
         }
@@ -140,7 +141,7 @@ class ProfileCards(private val vault: IdentityVault, private val nodes: NodeConn
                 .messagingHomePeer(content.messagingHomePeer?.let { Id.of(it) })
                 .build()
                 .card
-            val version = Registry.DHTRegistry(gateway).publish(owner, card, last).await()
+            val version = Registry.DHTRegistry(gateway, 0).publish(owner, card, last).await()
             vault.update(identity.userId) { it.copy(cardVersion = version, cardRevision = content.revision) }
             version
         }
@@ -150,7 +151,7 @@ class ProfileCards(private val vault: IdentityVault, private val nodes: NodeConn
      * expire on their own.
      */
     suspend fun unpublish(identity: IdentityInfo, prompt: AuthPrompt) {
-        nodes.gateway(identity, prompt) { gateway -> Registry.DHTRegistry(gateway).unpublish(Id.of(identity.userId)).await() }
+        nodes.gateway(identity, prompt) { gateway -> Registry.DHTRegistry(gateway, 0).unpublish(Id.of(identity.userId)).await() }
         // The version stays: a later card must still be newer than the one other nodes may remember.
         vault.update(identity.userId) { it.copy(cardRevision = null) }
     }
