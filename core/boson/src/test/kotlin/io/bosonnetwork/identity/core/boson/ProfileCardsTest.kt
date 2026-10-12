@@ -135,13 +135,6 @@ class ProfileCardsTest {
     }
 
     @Test
-    fun `the first version is 0, then each one counts up`() {
-        assertEquals(0, ProfileCards.nextVersion(null))
-        assertEquals(1, ProfileCards.nextVersion(0))
-        assertEquals(8, ProfileCards.nextVersion(7))
-    }
-
-    @Test
     fun `a card names the home node, and the avatar by the URI the node gives it`() {
         val avatar = "bnr://$nodeId/api/v1/client/avatar/$userId"
         val content = CardContent.of(userId, profile("Alice", "Hi", avatar), nodeId, null)

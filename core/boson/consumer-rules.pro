@@ -33,9 +33,9 @@
 -dontwarn ch.qos.logback.**
 -dontwarn org.sqlite.**
 
-# Caffeine is compile-referenced by core-api (VertxCaffeine) and identifier (CachedResolver /
-# CachedCryptoIdentity) but does NOT run on Android - the mobile node=null path uses the in-client
-# AsyncCache instead, so these references are never reached. (See project notes on the Caffeine swap.)
+# Caffeine is compile-referenced by core-api (VertxCaffeine, CachedCryptoIdentity) but does NOT run
+# on Android - the mobile node=null path uses the in-client AsyncCache instead, so these references
+# are never reached. (See project notes on the Caffeine swap.)
 -dontwarn com.github.benmanes.caffeine.cache.**
 
 # bucket4j backs core-api's shared RateLimiter (promoted to the common API in Boson e556beb), which

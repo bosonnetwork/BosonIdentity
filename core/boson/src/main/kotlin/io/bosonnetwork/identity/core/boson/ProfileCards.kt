@@ -24,10 +24,10 @@ package io.bosonnetwork.identity.core.boson
 
 import io.bosonnetwork.Id
 import io.bosonnetwork.UserProfile
-import io.bosonnetwork.Value
 import io.bosonnetwork.crypto.CryptoIdentity
 import io.bosonnetwork.crypto.Signature
 import io.bosonnetwork.identifier.Card
+import io.bosonnetwork.identifier.Registry
 import io.bosonnetwork.director.client.NodeStatus
 import io.bosonnetwork.director.client.Profile
 import io.bosonnetwork.identity.core.model.IdentityInfo
@@ -104,15 +104,17 @@ sealed interface CardStatus {
  * The phone runs no DHT node, so the card goes through the home node's web gateway, which stores it
  * persistently and announces it again and again, keeping it in the DHT while the phone is off. The
  * card and the DHT value holding it are signed by the user key; the gateway only carries them, acting
- * for the identity through this app's device key.
+ * for the identity through this app's device key. Boson's identity registry does the publishing over
+ * the gateway (a [io.bosonnetwork.Node]), choosing the version as every Boson app does.
  */
 class ProfileCards(private val vault: IdentityVault, private val nodes: NodeConnections) {
 
     /** Whether the gateway keeps the identity's card. */
     suspend fun status(identity: IdentityInfo, prompt: AuthPrompt): CardStatus =
         nodes.gateway(identity, prompt) { gateway ->
-            val stored = gateway.getValue(Id.of(identity.userId)).await().orElse(null)
-            if (stored == null) CardStatus.NotPublished else CardStatus.Published(stored.sequenceNumber, read(stored.data))
+            val published = Registry.DHTRegistry(gateway).getPublished(Id.of(identity.userId)).await().orElse(null)
+            if (published == null) CardStatus.NotPublished
+            else CardStatus.Published(published.version, published.card.orElse(null)?.let(::read))
         }
 
     /** Publishes [content], after the user confirmed with [prompt]; returns the version published. */
@@ -125,20 +127,10 @@ class ProfileCards(private val vault: IdentityVault, private val nodes: NodeConn
      */
     suspend fun publish(identity: IdentityInfo, content: CardContent, userKey: Signature.KeyPair, prompt: AuthPrompt): Int =
         nodes.gateway(identity, prompt) { gateway ->
-            val id = Id.of(identity.userId)
-            // The DHT keeps only a newer version than it has, which may have come from another phone, and a
-            // resolver may still remember one after it expired: the next version is past all of them, and
-            // past the last one this phone published.
-            val stored = gateway.getValue(id).await().orElse(null)?.sequenceNumber
-            val found = try {
-                gateway.findValue(id).await().orElse(null)?.sequenceNumber
-            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                null
-            }
+            // The registry publishes past every version known (the gateway's, the DHT's); this phone adds
+            // the last one it published, which a card that expired everywhere may still be remembered at.
             val kept = vault.identities.value.firstOrNull { it.userId == identity.userId }?.cardVersion
-            val version = nextVersion(listOfNotNull(stored, found, kept, identity.cardVersion).maxOrNull())
+            val last = listOfNotNull(kept, identity.cardVersion).maxOrNull() ?: -1
             val owner = CryptoIdentity(userKey)
             val card = UserProfile.builder(owner)
                 .name(content.name)
@@ -148,16 +140,7 @@ class ProfileCards(private val vault: IdentityVault, private val nodes: NodeConn
                 .messagingHomePeer(content.messagingHomePeer?.let { Id.of(it) })
                 .build()
                 .card
-            // What a DHT registry stores for a card: the card in a value signed by the same identity,
-            // versioned by its sequence number. Registry.DHTRegistry itself is not used: its resolver
-            // cache needs Caffeine, which boson-api leaves out of Android clients on purpose.
-            val value = Value.signedBuilder()
-                .identity(owner)
-                .sequenceNumber(version)
-                .data(card.toBytes())
-                .build()
-            // Stored persistently: the gateway announces it again before it expires.
-            gateway.storeValue(value, true).await()
+            val version = Registry.DHTRegistry(gateway).publish(owner, card, last).await()
             vault.update(identity.userId) { it.copy(cardVersion = version, cardRevision = content.revision) }
             version
         }
@@ -167,14 +150,14 @@ class ProfileCards(private val vault: IdentityVault, private val nodes: NodeConn
      * expire on their own.
      */
     suspend fun unpublish(identity: IdentityInfo, prompt: AuthPrompt) {
-        nodes.gateway(identity, prompt) { gateway -> gateway.removeValue(Id.of(identity.userId)).await() }
+        nodes.gateway(identity, prompt) { gateway -> Registry.DHTRegistry(gateway).unpublish(Id.of(identity.userId)).await() }
         // The version stays: a later card must still be newer than the one other nodes may remember.
         vault.update(identity.userId) { it.copy(cardRevision = null) }
     }
 
-    // What a stored card says; null when it doesn't parse.
-    private fun read(data: ByteArray?): CardContent? = if (data == null) null else try {
-        val profile = UserProfile.fromCard(Card.parse(data))
+    // What a published card says; null when it isn't a profile card.
+    private fun read(card: Card): CardContent? = try {
+        val profile = UserProfile.fromCard(card)
         CardContent(
             name = profile.name.orElse(null),
             bio = profile.bio.orElse(null),
@@ -195,7 +178,5 @@ class ProfileCards(private val vault: IdentityVault, private val nodes: NodeConn
         fun outdated(published: CardContent?, current: CardContent): Boolean =
             published != null && published.copy(revision = null) != current.copy(revision = null)
 
-        /** The version after [current], the published one (null when none is). */
-        fun nextVersion(current: Int?): Int = if (current == null) 0 else current + 1
     }
 }
