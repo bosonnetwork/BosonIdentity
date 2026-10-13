@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="ds_brand_name">Boson</string>
+    <string name="ds_app_name">Boson Identity</string>
     <!-- StatusLine: what the icon means, for TalkBack -->
     <string name="ds_status_ok">Done</string>
     <string name="ds_status_attention">Needs attention</string>

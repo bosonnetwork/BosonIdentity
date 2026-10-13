@@ -75,12 +75,12 @@ import androidx.compose.ui.unit.dp
 import io.bosonnetwork.identity.core.designsystem.R
 import io.bosonnetwork.identity.core.designsystem.theme.brand
 
-/** The Boson mark on its dark tile, as on the app icon. */
+/** The app icon on its dark tile, as on the launcher. */
 @Composable
 fun BrandTile(modifier: Modifier = Modifier, size: Dp = 72.dp) {
     Image(
-        painter = painterResource(R.drawable.ds_boson_tile),
-        contentDescription = stringResource(R.string.ds_brand_name),
+        painter = painterResource(R.drawable.ds_app_tile),
+        contentDescription = stringResource(R.string.ds_app_name),
         modifier = modifier.size(size),
     )
 }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="ds_brand_name">Boson</string>
+    <string name="ds_app_name">Boson Identity</string>
     <string name="ds_status_ok">已完成</string>
     <string name="ds_status_attention">需要处理</string>
     <string name="ds_status_problem">有问题</string>
