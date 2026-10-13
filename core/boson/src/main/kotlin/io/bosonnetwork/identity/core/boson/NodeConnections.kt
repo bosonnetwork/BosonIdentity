@@ -266,8 +266,8 @@ class NodeConnections(private val vault: IdentityVault) {
         /**
          * Gives Vert.x its version string before anything asks for it. Vert.x reads it from
          * META-INF/vertx/vertx-version.txt with `new Scanner(InputStream, Charset)`, which Android has
-         * only from 13 (API 33): on older phones the web client's first use (its User-Agent) threw
-         * NoSuchMethodError and closed the app. The version is cached in a static field that is read
+         * only from 14 (API 34): on Android 13 and older the web client's first use (its User-Agent)
+         * threw NoSuchMethodError and closed the app. The version is cached in a static field that is read
          * first, so filling it in with a read every Android can do skips that code. A version that
          * can't be had leaves Vert.x to try as before.
          */
