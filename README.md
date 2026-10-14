@@ -1,61 +1,160 @@
 # Boson Identity
 
-The Android app that holds a user's Boson identity: the user key, the devices it authorizes, the
-account's security, and, for node operators, the node's administration.
+Boson Identity is the Android app that holds your [Boson](https://bosonnetwork.io) identity. It keeps
+your user key on the phone, under the phone's own lock, and uses it to approve everything that acts in
+your name: new devices, web sign-ins, and your account's security. If you run a Boson super node, it is
+also where you administer it.
 
-The design is in `plans/2026-10-03-boson-identity-android-app.md` (BosonNetwork plans folder).
+On Boson, your identity is a key pair you hold, not an account a server holds for you. A super node
+(your *home node*) hosts your account and services, but it never sees your user key.
 
-## What it does
+- **Status:** early release (0.2.0). Runs on Android 13 (API 33) and later.
+- **Languages:** English, Simplified Chinese.
 
-- **Identity:** create or restore an identity (key file, QR code, text, or moved from an old phone),
-  back up the key and check the backup, keep several identities and switch between them.
-- **Protection:** the user key is a 32-byte seed sealed by an Android Keystore AES-256-GCM key that
-  needs the fingerprint or screen lock for every use; the app's own device key stays usable for 5
-  minutes after unlocking. An opt-in passkey backup keeps a copy in Block Store that a synced passkey
-  opens on a new phone.
-- **Home node:** join by QR code or address, through the node's proof of work or as an existing member;
-  see its status and the plan; publish the profile as a public Boson DID Card through the node's web
-  gateway, which keeps announcing it while the phone is off.
-- **Devices:** list, rename and remove devices; approve new ones by their pairing code, handing over the
-  identity key only to devices that ask for it; approve web sign-ins ("Sign in with Boson Identity").
-- **Security:** the account passphrase and its recovery codes, resetting a forgotten one, linked
-  accounts, the security log, renewing this phone's device key.
-- **Administration:** for a node's administrators, the Dashboard: admin mode (a 10-minute token issued
-  with the user key, ended when the page is left) and the node's users, plans, federation and blacklist.
-- **Settings:** theme and language (English, Simplified Chinese), this phone, about.
+## Contents
 
-The app has four tabs: Identity (the profile and the home node), Devices, Security (a summary of what
-needs attention, and each protection with its status) and Settings. Ids are shown abbreviated.
+- [Features](#features)
+- [How your key is protected](#how-your-key-is-protected)
+- [For app developers](#for-app-developers)
+- [Build from source](#build-from-source)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [License](#license)
 
-## Modules
+## Features
 
-| Module | Contents |
+The app has four tabs: **Identity**, **Devices**, **Security** and **Settings**.
+
+**Identity**
+- Create an identity, or restore one from a key backup (file, QR code or typed text). Move one from an
+  old phone with one scan and a code.
+- Keep several identities on one phone and switch between them.
+- Join a home node by its QR code or address, through the node's proof of work or as an existing member.
+- Edit your profile (name, bio, avatar). The profile lives on the phone first and syncs with the home
+  node.
+- Publish your profile as a public card that anyone can look up by your ID. The home node's web
+  gateway keeps announcing it while your phone is off.
+- One **Scan** button reads every code the app answers: a new device's pairing code, a web page's
+  sign-in code, and a node console's administrator enrollment code.
+
+**Devices**
+- List, rename and remove the devices of your account.
+- Approve a new device by its pairing code. The user key goes only to a device that asks for it, sealed
+  to its pairing code.
+- Approve a web page's "Sign in with Boson Identity": pick the number the page shows, and approve with
+  your key.
+
+**Security**
+- A summary of what needs attention, then each protection with its status.
+- The account passphrase, its recovery codes, and resetting a forgotten one.
+- Linked sign-in accounts (OAuth).
+- The security log, with new events marked until you review them.
+- An opt-in passkey backup of your key, and renewing this phone's device key.
+
+**Administration** (for node administrators)
+- Become a node's administrator by scanning the code its console shows.
+- The Dashboard: the node's overview, users, plans, federation and blacklist. It works in admin mode:
+  a 10-minute session issued with your user key, which ends when you leave the page.
+
+**Settings**
+- Theme and language, this phone (moving the identity to a new phone, removing it), and about.
+
+## How your key is protected
+
+- **Per use.** Your user key is sealed by an AES-256-GCM key in the Android Keystore (StrongBox when the
+  phone has one). Every use asks for your fingerprint or screen lock.
+- **This phone's device key** stays usable for 5 minutes after you unlock it, so routine requests to
+  your home node don't prompt each time.
+- **The key leaves the phone only when you say so:**
+  - as a backup you make;
+  - sealed to a new device you approve that asks for it;
+  - when you move the identity to a new phone.
+
+  Your home node never sees it.
+- **Passkey backup (opt-in).** A copy of the key in Google's Block Store, opened by a synced passkey
+  on a new phone. It can be turned on only after you have saved and checked your own backup, and it is
+  never used to sign in.
+
+## For app developers
+
+Other apps on the same phone can ask Boson Identity for an identity's home node, and ask it to approve
+them as a new device of an identity. The user sees which app asks and decides; no key or secret passes
+through these requests. See [Asking Boson Identity from another app](docs/app-requests.md) for the
+intents, extras and error codes.
+
+## Build from source
+
+### Prerequisites
+
+| Requirement | Version |
 |---|---|
-| `app` | Activity, navigation, dependency injection |
-| `core:model` | Errors and identity models |
-| `core:vault` | Keystore protection, the system authentication prompt, the vault file, key backup formats |
-| `core:boson` | Connections to Directors (guest, device and user clients) and the web gateway; profile cards |
-| `core:designsystem` | The Boson brand theme, identicons, ids, shared components |
-| `core:qr` | QR codes and scanning |
-| `core:backup` | The opt-in passkey backup: Credential Manager PRF and Block Store |
-| `feature:onboarding` | Create, restore, move from an old phone, back up, protect, join a node |
-| `feature:identity` | The profile, its public card, the home node and the way into administration |
-| `feature:devices` | Devices, device approval, web sign-in approval |
-| `feature:security` | Passphrase, recovery, linked accounts, security log, this phone's key, passkey backup |
-| `feature:settings` | Theme, language, this phone (moving, removing the identity), about |
-| `feature:admin` | The admin page: admin mode and the node's administration |
+| JDK | 17 |
+| Android SDK | Platform `android-36` |
+| Gradle | 8.13, through the bundled wrapper (nothing to install) |
+| Device or emulator | Android 13 (API 33) or later, **with a screen lock** |
 
-## Building
+The Android SDK location comes from `local.properties` (`sdk.dir=...`) or `ANDROID_HOME`. Android
+Studio writes `local.properties` for you when it first opens the project. The Boson libraries come from
+Maven Central with the other dependencies, so there is nothing else to install.
 
-Requires JDK 17 and the Android SDK (compile SDK 36). The app runs on Android 11 (API 30) and later.
+### Build the app
 
-```
-./gradlew assembleDebug testDebugUnitTest
+```bash
+git clone https://github.com/bosonnetwork/BosonIdentity.git
+cd BosonIdentity
+./gradlew assembleDebug        # debug APK in app/build/outputs/apk/debug/
+./gradlew installDebug         # build and install on a connected device or emulator
 ```
 
-The Boson libraries come from Maven Central, or from `mavenLocal()` for an unreleased snapshot
-(`mvn clean install` in the Boson repository).
+**On an emulator,** set a screen lock first, since keys can only be protected on a phone that has one:
 
-The debug build allows cleartext HTTP to `10.0.2.2` and `localhost`, so it can talk to a local test
-Director from the emulator. The emulator needs a screen lock (for example
-`adb shell locksettings set-pin 1111`), since keys can only be protected on a phone that has one.
+```bash
+adb shell locksettings set-pin 1111
+```
+
+The debug build allows cleartext HTTP to `10.0.2.2`, `localhost` and `127.0.0.1`, so the emulator can
+reach a test super node running on your computer. Release builds are HTTPS only.
+
+### Release builds
+
+```bash
+./gradlew assembleRelease
+```
+
+Release builds are minified and resource-shrunk with R8. Signing material is never committed; supply it
+as Gradle properties or environment variables:
+
+| Property / env var | Meaning |
+|---|---|
+| `IDENTITY_KEYSTORE_FILE` | Path to the keystore |
+| `IDENTITY_KEYSTORE_PASSWORD` | Keystore password |
+| `IDENTITY_KEY_ALIAS` | Signing key alias |
+| `IDENTITY_KEY_PASSWORD` | Signing key password |
+
+Without them, `assembleRelease` still produces an unsigned APK.
+
+### Notes
+
+- `build-logic` holds a small Gradle plugin that every module applies. Vert.x 5.1 cannot start on
+  Android without it: the plugin opens a private field that ART refuses to reach.
+- The Boson stack (Vert.x, Netty, Jackson) is dexed into the app, so Java 8+ API desugaring is on, and
+  overlapping `META-INF` files are excluded from packaging (see the root `build.gradle.kts`).
+- A full build takes a lot of memory: `gradle.properties` gives Gradle 6 GB.
+
+## Testing
+
+```bash
+./gradlew testDebugUnitTest    # JVM unit tests, all modules
+./gradlew lintDebug            # Android Lint
+```
+
+The unit tests run on the JVM (MockK, Turbine) and need no device or node.
+
+## Contributing
+
+Issues and pull requests are welcome. Please run `./gradlew testDebugUnitTest lintDebug` before you
+open a pull request, and follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## License
+
+[MIT](LICENSE)
