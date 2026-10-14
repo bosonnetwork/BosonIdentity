@@ -45,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -251,7 +252,7 @@ fun AppNavigation(
                 // Leaving the page (this arrow, or the system's Back) ends admin mode.
                 AdminScreen(onBack = { nav.popBackStack() })
             }
-            composable(Routes.HOME) {
+            composable(Routes.HOME) { home ->
                 val identities by vault.identities.collectAsStateWithLifecycle()
                 val active by activeIdentity.active.collectAsStateWithLifecycle(initialValue = null)
                 var switching by rememberSaveable { mutableStateOf(false) }
@@ -267,7 +268,7 @@ fun AppNavigation(
 
                 val settings = Settings(theme, onThemeChange, language, onLanguageChange)
                 HomeTabs(
-                    tabs = remember(nav, settings) { homeTabs(nav, settings) },
+                    tabs = remember(nav, home, settings) { homeTabs(nav, home, settings) },
                     identityButton = { IdentityButton(active, active?.userId?.let { avatars[it] }, onClick = { switching = true }) },
                     badges = badges,
                 )
@@ -301,8 +302,11 @@ private data class Settings(
     val onLanguageChange: (AppLanguage) -> Unit,
 )
 
-/** The tabs, in their order: who I am, what acts as me, how protected I am, and this app on this phone. */
-private fun homeTabs(nav: NavController, settings: Settings): List<HomeTab> = listOf(
+/**
+ * The tabs, in their order: who I am, what acts as me, how protected I am, and this app on this phone.
+ * [home] is the Home destination's own entry, where other screens leave their results for the tabs.
+ */
+private fun homeTabs(nav: NavController, home: NavBackStackEntry, settings: Settings): List<HomeTab> = listOf(
     HomeTab(Tabs.IDENTITY, R.string.app_nav_identity, Icons.Filled.Fingerprint) { identityButton ->
         IdentityScreen(
             onBackup = { nav.navigate(Routes.backup(it)) },
@@ -314,7 +318,6 @@ private fun homeTabs(nav: NavController, settings: Settings): List<HomeTab> = li
     },
     HomeTab(Tabs.DEVICES, R.string.app_nav_devices, Icons.Filled.Devices) { identityButton ->
         // A device approved on its own screen shows up when the user comes back.
-        val home = remember(nav) { nav.getBackStackEntry(Routes.HOME) }
         val changed by home.savedStateHandle.getStateFlow(Routes.DEVICES_CHANGED, false).collectAsStateWithLifecycle()
         DevicesScreen(
             onApprove = { nav.navigate(Routes.approve(it)) },
@@ -333,7 +336,6 @@ private fun homeTabs(nav: NavController, settings: Settings): List<HomeTab> = li
         )
     },
     HomeTab(Tabs.SETTINGS, R.string.app_nav_settings, Icons.Filled.Settings) { identityButton ->
-        val home = remember(nav) { nav.getBackStackEntry(Routes.HOME) }
         val removeAfterMove by home.savedStateHandle.getStateFlow(Routes.REMOVE_AFTER_MOVE, false).collectAsStateWithLifecycle()
         SettingsScreen(
             theme = settings.theme,

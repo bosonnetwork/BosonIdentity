@@ -12,9 +12,9 @@ android {
 
     defaultConfig {
         applicationId = "io.bosonnetwork.identity"
-        // Android 11: per-use Keystore authentication (setUserAuthenticationParameters) and a
-        // CryptoObject that accepts the screen lock as well as biometrics both start here.
-        minSdk = 30
+        // Android 13: the Boson stack needs it (Vert.x creates a java.lang.ref.Cleaner, API 33).
+        // Per-use Keystore authentication with the screen lock as well as biometrics needs 11.
+        minSdk = 33
         targetSdk = 36
         versionCode = 1
         versionName = "0.2.0"

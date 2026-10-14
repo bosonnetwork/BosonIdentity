@@ -1,5 +1,10 @@
 # Boson Identity
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Android%2013%2B-green.svg)](https://developer.android.com/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.1-purple.svg)](https://kotlinlang.org/)
+[![Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-blue.svg)](https://developer.android.com/jetpack/compose)
+
 Boson Identity is the Android app that holds your [Boson](https://bosonnetwork.io) identity. It keeps
 your user key on the phone, under the phone's own lock, and uses it to approve everything that acts in
 your name: new devices, web sign-ins, and your account's security. If you run a Boson super node, it is
@@ -8,7 +13,8 @@ also where you administer it.
 On Boson, your identity is a key pair you hold, not an account a server holds for you. A super node
 (your *home node*) hosts your account and services, but it never sees your user key.
 
-- **Status:** early release (0.2.0). Runs on Android 13 (API 33) and later.
+- **Status:** early release (0.2.0); see the [CHANGELOG](CHANGELOG.md). Runs on Android 13 (API 33)
+  and later.
 - **Languages:** English, Simplified Chinese.
 
 ## Contents
@@ -152,8 +158,21 @@ The unit tests run on the JVM (MockK, Turbine) and need no device or node.
 
 ## Contributing
 
-Issues and pull requests are welcome. Please run `./gradlew testDebugUnitTest lintDebug` before you
-open a pull request, and follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+Contributions are welcome - code, documentation, translations, and bug reports alike.
+
+1. Fork the repository and create a feature branch.
+2. Make your change and add tests where applicable.
+3. Ensure `./gradlew testDebugUnitTest lintDebug` passes.
+4. Open a pull request describing the change and how you verified it.
+
+**Reporting issues.** Open a GitHub issue with the app version (Settings shows it), your Android
+version and device, and clear reproduction steps.
+
+**Reporting vulnerabilities.** Please do *not* open a public issue for a security problem. Email
+[support@bosonnetwork.io](mailto:support@bosonnetwork.io) with the details and give us a chance to
+ship a fix first.
+
+Please read the [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
 
 ## License
 
