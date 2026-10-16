@@ -39,5 +39,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.runner)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }

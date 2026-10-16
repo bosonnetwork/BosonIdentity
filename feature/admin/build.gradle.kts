@@ -56,5 +56,7 @@ dependencies {
     testImplementation(libs.turbine)
     // Android's org.json is a stub on the JVM; the real one lets a real vault be used in tests.
     testImplementation(libs.json)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.runner)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }

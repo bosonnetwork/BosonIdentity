@@ -41,4 +41,7 @@ dependencies {
     implementation(libs.mlkit.barcode)
     implementation(libs.androidx.lifecycle.runtime.compose)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
+
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }

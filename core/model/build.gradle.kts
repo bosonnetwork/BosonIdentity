@@ -25,5 +25,7 @@ android {
 
 dependencies {
     testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.runner)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
