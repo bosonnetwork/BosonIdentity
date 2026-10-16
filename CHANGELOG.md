@@ -4,7 +4,7 @@ All notable changes to Boson Identity are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and Boson Identity is pre-1.0: until 1.0,
 minor versions may change its storage and the requests other apps make to it.
 
-## 0.2.0 - Unreleased
+## 0.2.1 (2026-10-16)
 
 First public release. Built on the Boson Network stack 3.2.0. Requires Android 13 (API 33) or later.
 

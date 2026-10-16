@@ -13,7 +13,7 @@ also where you administer it.
 On Boson, your identity is a key pair you hold, not an account a server holds for you. A super node
 (your *home node*) hosts your account and services, but it never sees your user key.
 
-- **Status:** early release (0.2.0); see the [CHANGELOG](CHANGELOG.md). Runs on Android 13 (API 33)
+- **Status:** early release (0.2.1); see the [CHANGELOG](CHANGELOG.md). Runs on Android 13 (API 33)
   and later.
 - **Languages:** English, Simplified Chinese.
 
