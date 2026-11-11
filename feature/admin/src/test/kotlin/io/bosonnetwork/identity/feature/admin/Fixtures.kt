@@ -41,11 +41,16 @@ import io.bosonnetwork.identity.core.boson.AdminSession
 import io.bosonnetwork.identity.core.boson.AdminState
 import io.bosonnetwork.identity.core.boson.call
 import io.bosonnetwork.identity.core.model.NodeAddress
+import io.bosonnetwork.json.Json
+import io.bosonnetwork.service.Admission
+import io.bosonnetwork.service.FederatedNodeDescriptor
+import io.bosonnetwork.service.FederationMode
 import io.bosonnetwork.web.PaginatedResult
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import java.math.BigDecimal
+import java.util.Locale
 import java.util.Optional
 import java.util.concurrent.CompletableFuture
 import kotlinx.coroutines.Dispatchers
@@ -170,25 +175,39 @@ fun feature(id: Int, planId: Int, serviceId: String): Feature = mockk {
     every { this@mockk.feature } returns mapOf("quota" to 100)
 }
 
-fun federatedNode(id: Id = Id.random(), name: String? = null, federated: Boolean = true): FederatedNode = mockk {
-    every { this@mockk.id } returns id
-    every { this@mockk.name } returns Optional.ofNullable(name)
-    every { apiEndpoint } returns Optional.of("https://other.example")
-    every { software } returns Optional.of("boson")
-    every { version } returns Optional.of("3.2")
-    every { isFederated } returns federated
-    every { reputation } returns 10
-    every { updatedAt } returns 1_000
-}
+// Real wire DTOs here also exercise the constructors and optional enum decoding the app uses.
+fun federatedNode(
+    id: Id = Id.random(),
+    state: FederatedNode.State? = FederatedNode.State.ACTIVE,
+    admission: Admission.Reason? = Admission.Reason.ACTIVE,
+    reach: Admission.Reason? = admission,
+    note: String? = null,
+    health: Map<String, Any>? = null,
+): FederatedNode = Json.parse(Json.toString(mapOf(
+    "nodeId" to id.toString(), "state" to state?.name?.lowercase(Locale.ROOT), "origin" to "admin",
+    "note" to note, "admission" to admission?.name, "reach" to reach?.name, "health" to health,
+    "createdAt" to 500, "updatedAt" to 1_000,
+)), FederatedNode::class.java)
 
-fun proposal(id: Long, nodeId: Id = Id.random(), proposedAt: Long = 1_000): FederationProposal = mockk {
-    every { this@mockk.id } returns id
-    every { this@mockk.nodeId } returns nodeId
-    every { name } returns Optional.empty()
-    every { role } returns FederationProposal.Role.OFFER
-    every { status } returns FederationProposal.Status.PROPOSED
-    every { this@mockk.proposedAt } returns proposedAt
-}
+fun proposal(
+    id: Long,
+    nodeId: Id = Id.random(),
+    createdAt: Long = 1_000,
+    role: FederationProposal.Role? = FederationProposal.Role.OFFER,
+    status: FederationProposal.Status? = FederationProposal.Status.PENDING,
+    note: String? = null,
+    answeredAt: Long = 0,
+): FederationProposal = Json.parse(Json.toString(mapOf(
+    "id" to id, "nodeId" to nodeId.toString(), "role" to role?.name?.lowercase(Locale.ROOT),
+    "status" to status?.name?.lowercase(Locale.ROOT), "note" to note,
+    "createdAt" to createdAt, "updatedAt" to createdAt, "answeredAt" to answeredAt,
+)), FederationProposal::class.java)
+
+fun descriptor(nodeId: Id): FederatedNodeDescriptor = FederatedNodeDescriptor.builder(nodeId)
+    .name("Other").software("Boson Director", "3.2.1").mode(FederationMode.MUTUAL)
+    .service(FederatedNodeDescriptor.Service("io.bosonnetwork.ionstore", "Ion Store", Id.random(),
+        "https://other.example/ion", true, emptyMap()))
+    .build()
 
 fun blacklisted(id: Long, nodeId: Id? = null, host: String? = null, createdAt: Long = 1_000, reason: String? = null): BlacklistedNode = mockk {
     every { this@mockk.id } returns id

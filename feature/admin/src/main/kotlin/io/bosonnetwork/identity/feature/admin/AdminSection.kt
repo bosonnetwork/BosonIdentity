@@ -77,7 +77,9 @@ abstract class AdminSectionViewModel<T>(
                     shown = null
                     _content.value = Loaded.Idle
                     onSessionEnded()
-                } else if (state != shown) {
+                } else if (state !== shown) {
+                    loading?.cancel()
+                    if (shown != null) onSessionEnded()
                     shown = state
                     _content.value = Loaded.Idle
                     refresh()
@@ -88,18 +90,22 @@ abstract class AdminSectionViewModel<T>(
 
     /** Asks the node again. What is shown stays until the answer comes. */
     fun refresh() {
-        if (shown == null) return
+        val current = shown ?: return
         loading?.cancel()
         if (_content.value !is Loaded.Ready) _content.value = Loaded.Loading
         loading = viewModelScope.launch {
-            _content.value = try {
-                Loaded.Ready(session.withClient { load(it) })
+            val loaded = try {
+                Loaded.Ready(session.withClient {
+                    if (session.state.value !== current) throw CancellationException()
+                    load(it)
+                })
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 // A token the node no longer takes ended the session: there is nothing to show.
                 if (session.state.value == null) Loaded.Idle else Loaded.Failed(e.userMessage(context))
             }
+            if (shown === current && session.state.value === current) _content.value = loaded
         }
     }
 

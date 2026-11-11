@@ -47,11 +47,11 @@ data class NodeOverview(
     val plans: Int,
     val activePlans: Int,
     /** Null when the node doesn't federate. */
-    val federatedNodes: Long?,
+    val relationships: Long?,
     val blacklisted: Long,
 )
 
-/** Overview: the node's status and how many users, plans, federated nodes and blacklist entries it has. */
+/** Overview: the node's status and how many users, plans, relationships and blacklist entries it has. */
 @HiltViewModel
 class OverviewViewModel @Inject constructor(
     session: AdminSession,
@@ -68,7 +68,7 @@ class OverviewViewModel @Inject constructor(
         val users = async { admin.listUsers(1, 1).await().totalItems() }
         val plans = async { admin.listPlans().await() }
         val blacklisted = async { admin.listBlacklistedNodes(1, 1).await().totalItems() }
-        val federated = async {
+        val relationships = async {
             try {
                 admin.listFederatedNodes(1, 1).await().totalItems()
             } catch (e: Exception) {
@@ -88,7 +88,7 @@ class OverviewViewModel @Inject constructor(
             users = users.await(),
             plans = allPlans.size,
             activePlans = allPlans.count { it.isActive },
-            federatedNodes = federated.await(),
+            relationships = relationships.await(),
             blacklisted = blacklisted.await(),
         )
     }

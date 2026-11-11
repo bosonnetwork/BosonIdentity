@@ -29,11 +29,12 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.bosonnetwork.Id
 import io.bosonnetwork.director.client.DirectorAdmin
 import io.bosonnetwork.director.client.FederatedNode
-import io.bosonnetwork.director.client.FederatedService
+import io.bosonnetwork.director.client.FederatedNodeHealth
 import io.bosonnetwork.director.client.FederationProposal
 import io.bosonnetwork.identity.core.boson.AdminSession
-import io.bosonnetwork.identity.core.designsystem.component.shortId
 import io.bosonnetwork.identity.core.model.AppError
+import io.bosonnetwork.service.Admission
+import io.bosonnetwork.service.FederatedNodeDescriptor
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Job
@@ -48,27 +49,31 @@ import kotlinx.coroutines.launch
 
 data class FederatedNodeView(
     val id: String,
-    val name: String?,
-    val endpoint: String?,
-    val software: String?,
-    val version: String?,
-    /** Whether federation with it is in force (it may be paused). */
-    val federated: Boolean,
-    val reputation: Int,
+    val state: FederatedNode.State?,
+    val origin: String?,
+    val note: String?,
+    val admission: Admission.Reason?,
+    val reach: Admission.Reason?,
+    val health: FederatedNodeHealth?,
+    val createdAt: Long,
     val updatedAt: Long,
 )
 
 data class ProposalView(
     val id: Long,
     val nodeId: String,
-    val name: String?,
     /** Made by this node ([FederationProposal.Role.OFFER]) or received ([FederationProposal.Role.ANSWER]). */
-    val role: FederationProposal.Role,
-    val status: FederationProposal.Status,
-    val proposedAt: Long,
-)
-
-data class ServiceView(val name: String, val endpoint: String?)
+    val role: FederationProposal.Role?,
+    val status: FederationProposal.Status?,
+    val note: String?,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val answeredAt: Long,
+) {
+    /** Pending incoming proposals must be answered; unknown states do not imply a safe removal. */
+    val canRemove: Boolean
+        get() = role != null && status != null && (status != FederationProposal.Status.PENDING || role == FederationProposal.Role.OFFER)
+}
 
 /** The federation, or [enabled] false when the node doesn't federate. */
 data class FederationContent(
@@ -83,7 +88,7 @@ data class Proposal(val nodeId: String = "") {
 }
 
 sealed interface FederationChange {
-    /** Removing a federated node: confirmed by typing the first characters of its id. */
+    /** Removing a relationship: confirmed by typing the first characters of the node id. */
     data class RemoveNode(val node: FederatedNodeView) : FederationChange
     data class RemoveProposal(val proposal: ProposalView) : FederationChange
 }
@@ -92,18 +97,15 @@ data class FederationUiState(
     /** Set while the propose dialog is open. */
     val propose: Proposal? = null,
     val change: FederationChange? = null,
-    /** The services of the node whose detail is open. */
-    val services: Pair<FederatedNodeView, Loaded<List<ServiceView>>>? = null,
+    /** The signed description requested for a node; null content means unavailable. */
+    val descriptor: Pair<String, Loaded<FederatedNodeDescriptor?>>? = null,
     /** What became of the last proposal, said once. */
     val proposed: String? = null,
     val busy: Boolean = false,
     val error: String? = null,
 )
 
-/**
- * Federation: the nodes this node federates with, their services, and the proposals made and
- * received; proposing federation to a node, removing a proposal or a node.
- */
+/** Relationships, their descriptors and the proposals this node makes and receives. */
 @HiltViewModel
 class FederationViewModel @Inject constructor(
     session: AdminSession,
@@ -113,7 +115,9 @@ class FederationViewModel @Inject constructor(
     private val _state = MutableStateFlow(FederationUiState())
     val state: StateFlow<FederationUiState> = _state.asStateFlow()
 
-    private var servicesJob: Job? = null
+    private var descriptorJob: Job? = null
+    private var descriptorRequest = 0L
+    private var actionJob: Job? = null
 
     init {
         watchSession()
@@ -122,42 +126,61 @@ class FederationViewModel @Inject constructor(
     override suspend fun load(admin: DirectorAdmin): FederationContent =
         try {
             coroutineScope {
-                val proposals = async { admin.listFederationProposals().await().items() }
+                val proposals = async { admin.listFederationProposals(null, null).await().items() }
                 val nodes = admin.listFederatedNodes().await().items()
                 FederationContent(
                     enabled = true,
-                    nodes = nodes.map { it.toView() }.sortedWith(compareByDescending<FederatedNodeView> { it.federated }.thenBy { it.name ?: it.id }),
-                    proposals = proposals.await().map { it.toView() }.sortedByDescending { it.proposedAt },
+                    nodes = nodes.map { it.toView() },
+                    proposals = proposals.await().map { it.toView() },
                 )
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             if (e.isNotEnabled()) FederationContent(enabled = false) else throw e
         }
 
     override fun onSessionEnded() {
-        servicesJob?.cancel()
+        descriptorRequest++
+        descriptorJob?.cancel()
+        actionJob?.cancel()
         _state.value = FederationUiState()
     }
 
-    fun startPropose() = _state.update { it.copy(propose = Proposal(), error = null, proposed = null) }
+    fun startPropose() {
+        if (session.state.value == null || (content.value as? Loaded.Ready)?.value?.enabled != true) return
+        _state.update { it.copy(propose = Proposal(), error = null, proposed = null) }
+    }
+
     fun onProposeIdChange(value: String) = _state.update { s -> s.propose?.let { s.copy(propose = it.copy(nodeId = value), error = null) } ?: s }
 
-    /** Proposes federation to the node typed. The node answers once the other one has. */
+    /** Proposes federation and reports the actual result of its first attempt. */
     fun propose() {
+        val open = session.state.value ?: return
         val s = _state.value
         val id = s.propose?.validId ?: return
         if (s.busy) return
         _state.update { it.copy(busy = true, error = null) }
-        viewModelScope.launch {
+        actionJob = viewModelScope.launch {
             try {
-                val node = session.withClient { it.proposeFederation(id).await() }.orElse(null)
-                val outcome = node?.let { context.getString(R.string.adm_fed_proposed_federated, it.name.orElse(null) ?: shortId(it.id.toString())) }
-                    ?: context.getString(R.string.adm_fed_proposed_sent)
-                _state.update { it.copy(busy = false, propose = null, proposed = outcome) }
+                val proposal = session.withClient {
+                    if (session.state.value !== open) throw CancellationException()
+                    it.proposeFederation(id, null).await()
+                }
+                if (session.state.value !== open) return@launch
+                val outcome = when (proposal.status.orElse(null)) {
+                    FederationProposal.Status.ACCEPTED -> if (proposal.role.orElse(null) == FederationProposal.Role.ANSWER)
+                        R.string.adm_fed_proposed_crossed else R.string.adm_fed_proposed_accepted
+                    FederationProposal.Status.DECLINED -> R.string.adm_fed_proposed_declined
+                    FederationProposal.Status.PENDING -> R.string.adm_fed_proposed_sent
+                    else -> R.string.adm_fed_proposed_other
+                }
+                _state.update { it.copy(busy = false, propose = null, proposed = context.getString(outcome)) }
                 refresh()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                if (session.state.value !== open) return@launch
                 val message = when (e) {
                     is AppError.Forbidden -> context.getString(R.string.adm_fed_propose_blacklisted)
                     is AppError.Conflict -> context.getString(R.string.adm_fed_propose_already)
@@ -171,46 +194,61 @@ class FederationViewModel @Inject constructor(
 
     fun proposedSeen() = _state.update { it.copy(proposed = null) }
 
-    /** Shows the services [node] offers to the federation. */
-    fun openServices(node: FederatedNodeView) {
-        _state.update { it.copy(services = node to Loaded.Loading) }
-        servicesJob?.cancel()
-        servicesJob = viewModelScope.launch {
+    /** Fetches what [nodeId] says it runs, verified by the Director, only when asked. */
+    fun openDescriptor(nodeId: String) {
+        val open = session.state.value ?: return
+        val request = ++descriptorRequest
+        descriptorJob?.cancel()
+        _state.update { it.copy(descriptor = nodeId to Loaded.Loading) }
+        descriptorJob = viewModelScope.launch {
             val loaded = try {
-                Loaded.Ready(session.withClient { it.listFederatedServices(Id.of(node.id)).await() }.map { it.toView() })
+                Loaded.Ready(session.withClient {
+                    if (session.state.value !== open) throw CancellationException()
+                    it.getFederatedNodeDescriptor(Id.of(nodeId)).await().orElse(null)
+                })
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Loaded.Failed(failure(e))
             }
-            _state.update { s -> if (s.services?.first == node) s.copy(services = node to loaded) else s }
+            if (session.state.value === open && request == descriptorRequest)
+                _state.update { it.copy(descriptor = nodeId to loaded) }
         }
     }
 
-    fun closeServices() {
-        servicesJob?.cancel()
-        _state.update { it.copy(services = null) }
+    fun closeDescriptor() {
+        descriptorRequest++
+        descriptorJob?.cancel()
+        _state.update { it.copy(descriptor = null) }
     }
 
-    fun ask(change: FederationChange) = _state.update { it.copy(change = change, error = null) }
+    fun ask(change: FederationChange) {
+        if (session.state.value == null) return
+        if (change is FederationChange.RemoveProposal && !change.proposal.canRemove) return
+        _state.update { it.copy(change = change, error = null) }
+    }
 
     fun cancel() = _state.update { if (it.busy) it else it.copy(propose = null, change = null, error = null) }
 
-    /** Makes the change asked for. Removing a node needs [typed] to match the first characters of its id. */
+    /** Makes the change asked for. Removing a relationship needs its node's confirmation code. */
     fun confirm(typed: String = "") {
+        val open = session.state.value ?: return
         val s = _state.value
         val change = s.change ?: return
         if (s.busy) return
         if (change is FederationChange.RemoveNode && !confirms(typed, confirmCode(change.node.id))) return
+        if (change is FederationChange.RemoveProposal && !change.proposal.canRemove) return
         _state.update { it.copy(busy = true, error = null) }
-        viewModelScope.launch {
+        actionJob = viewModelScope.launch {
             try {
                 session.withClient { admin ->
+                    if (session.state.value !== open) throw CancellationException()
                     when (change) {
                         is FederationChange.RemoveNode -> admin.removeFederatedNode(Id.of(change.node.id)).await()
                         is FederationChange.RemoveProposal -> admin.removeFederationProposal(change.proposal.id).await()
                     }
                 }
+                if (session.state.value !== open) return@launch
                 changeContent { content ->
                     when (change) {
                         is FederationChange.RemoveNode -> content.copy(nodes = content.nodes.filter { it.id != change.node.id })
@@ -218,9 +256,11 @@ class FederationViewModel @Inject constructor(
                     }
                 }
                 _state.update { it.copy(busy = false, change = null) }
+                refresh()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                if (session.state.value !== open) return@launch
                 _state.update { it.copy(busy = false, error = failure(e)) }
             }
         }
@@ -229,25 +269,23 @@ class FederationViewModel @Inject constructor(
 
 private fun FederatedNode.toView() = FederatedNodeView(
     id = id.toString(),
-    name = name.orElse(null)?.takeIf { it.isNotBlank() },
-    endpoint = apiEndpoint.orElse(null)?.takeIf { it.isNotBlank() },
-    software = software.orElse(null)?.takeIf { it.isNotBlank() },
-    version = version.orElse(null)?.takeIf { it.isNotBlank() },
-    federated = isFederated,
-    reputation = reputation,
+    state = state.orElse(null),
+    origin = origin.orElse(null),
+    note = note.orElse(null),
+    admission = admission.orElse(null),
+    reach = reach.orElse(null),
+    health = health.orElse(null),
+    createdAt = createdAt,
     updatedAt = updatedAt,
 )
 
 private fun FederationProposal.toView() = ProposalView(
     id = id,
     nodeId = nodeId.toString(),
-    name = name.orElse(null)?.takeIf { it.isNotBlank() },
-    role = role,
-    status = status,
-    proposedAt = proposedAt,
-)
-
-private fun FederatedService.toView() = ServiceView(
-    name = serviceName.orElse(null)?.takeIf { it.isNotBlank() } ?: serviceId.orElse(null) ?: peerId.toString(),
-    endpoint = endpoint.orElse(null)?.takeIf { it.isNotBlank() },
+    role = role.orElse(null),
+    status = status.orElse(null),
+    note = note.orElse(null),
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    answeredAt = answeredAt,
 )

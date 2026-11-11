@@ -73,8 +73,8 @@ internal fun OverviewTab(refreshes: Int, viewModel: OverviewViewModel = hiltView
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Count(
-                        stringResource(R.string.adm_overview_federated),
-                        overview.federatedNodes?.toString() ?: stringResource(R.string.adm_overview_federation_off),
+                        stringResource(R.string.adm_overview_relationships),
+                        overview.relationships?.toString() ?: stringResource(R.string.adm_overview_federation_off),
                         Modifier.weight(1f),
                     )
                     Count(stringResource(R.string.adm_overview_blacklisted), overview.blacklisted.toString(), Modifier.weight(1f))

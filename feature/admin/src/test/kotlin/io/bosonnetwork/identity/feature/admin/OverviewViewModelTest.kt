@@ -82,7 +82,7 @@ class OverviewViewModelTest {
         assertEquals(42L, overview.users)
         assertEquals(3, overview.plans)
         assertEquals(2, overview.activePlans)
-        assertEquals(3L, overview.federatedNodes)
+        assertEquals(3L, overview.relationships)
         assertEquals(7L, overview.blacklisted)
     }
 
@@ -92,7 +92,7 @@ class OverviewViewModelTest {
         val vm = viewModel()
         fake.open()
         val overview = (vm.content.first { it is Loaded.Ready } as Loaded.Ready).value
-        assertNull(overview.federatedNodes)
+        assertNull(overview.relationships)
     }
 
     @Test

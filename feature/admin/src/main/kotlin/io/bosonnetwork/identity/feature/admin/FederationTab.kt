@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -49,19 +50,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.bosonnetwork.director.client.FederatedNode
 import io.bosonnetwork.director.client.FederationProposal
+import io.bosonnetwork.service.Admission
+import io.bosonnetwork.service.FederatedNodeDescriptor
+import io.bosonnetwork.service.FederationMode
 import io.bosonnetwork.identity.core.designsystem.component.IdText
 import io.bosonnetwork.identity.core.designsystem.component.Identicon
 import io.bosonnetwork.identity.core.designsystem.component.SectionCard
 import io.bosonnetwork.identity.core.designsystem.component.shortId
 import io.bosonnetwork.identity.core.designsystem.theme.brand
 
-/** Federation: the federated nodes and the proposals, proposing and removing. */
+/** Federation: relationships and proposals, with explicit descriptor lookup. */
 @Composable
 internal fun FederationTab(refreshes: Int, viewModel: FederationViewModel = hiltViewModel()) {
     val content by viewModel.content.collectAsStateWithLifecycle()
@@ -89,22 +95,38 @@ internal fun FederationTab(refreshes: Int, viewModel: FederationViewModel = hilt
                         ListItem(
                             colors = ListItemDefaults.colors(containerColor = MaterialTheme.brand.card),
                             leadingContent = { Identicon(node.id, size = 40.dp) },
-                            headlineContent = { Text(node.name ?: shortId(node.id)) },
+                            headlineContent = { IdText(node.id) },
                             supportingContent = {
-                                Text(
-                                    listOfNotNull(
-                                        stringResource(if (node.federated) R.string.adm_fed_federated else R.string.adm_fed_paused),
-                                        node.endpoint,
-                                        stringResource(R.string.adm_fed_reputation, node.reputation),
-                                    ).joinToString(" - "),
-                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(stringResource(R.string.adm_fed_relationship, relationshipState(node.state)))
+                                    node.origin?.let { origin ->
+                                        Text(stringResource(when (origin) {
+                                            "admin" -> R.string.adm_fed_origin_admin
+                                            "protocol" -> R.string.adm_fed_origin_protocol
+                                            "auto" -> R.string.adm_fed_origin_auto
+                                            else -> R.string.adm_fed_unknown
+                                        }))
+                                    }
+                                    Text(stringResource(R.string.adm_fed_admission, admissionReason(node.admission)))
+                                    if (node.reach != null && node.reach != node.admission)
+                                        Text(stringResource(R.string.adm_fed_sending, admissionReason(node.reach)))
+                                    val health = node.health
+                                    Text(when {
+                                        health == null || health.lastSeenAt == 0L -> stringResource(R.string.adm_fed_unobserved)
+                                        health.isFailing -> stringResource(R.string.adm_fed_failures, health.consecutiveFailures)
+                                        health.lastSuccessAt > 0 -> stringResource(R.string.adm_fed_recent_success)
+                                        else -> stringResource(R.string.adm_fed_observed)
+                                    })
+                                    node.note?.let { Text(it) }
+                                    if (node.updatedAt > 0) Text(stringResource(R.string.adm_fed_updated, relative(node.updatedAt)))
+                                }
                             },
                             trailingContent = {
                                 IconButton(onClick = { viewModel.ask(FederationChange.RemoveNode(node)) }) {
                                     Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.adm_fed_remove_node))
                                 }
                             },
-                            modifier = Modifier.clickable(role = Role.Button) { viewModel.openServices(node) },
+                            modifier = Modifier.clickable(role = Role.Button) { viewModel.openDescriptor(node.id) },
                         )
                     }
                 }
@@ -115,23 +137,25 @@ internal fun FederationTab(refreshes: Int, viewModel: FederationViewModel = hilt
                     federation.proposals.forEach { proposal ->
                         ListItem(
                             colors = ListItemDefaults.colors(containerColor = MaterialTheme.brand.card),
-                            headlineContent = { Text(proposal.name ?: shortId(proposal.nodeId)) },
+                            headlineContent = { IdText(proposal.nodeId) },
                             supportingContent = {
-                                Text(
-                                    listOfNotNull(
-                                        stringResource(
-                                            if (proposal.role == FederationProposal.Role.OFFER) R.string.adm_fed_made else R.string.adm_fed_received,
-                                        ),
-                                        proposalStatus(proposal.status),
-                                        proposal.proposedAt.takeIf { it > 0 }?.let { relative(it) },
-                                    ).joinToString(" - "),
-                                )
-                            },
-                            trailingContent = {
-                                IconButton(onClick = { viewModel.ask(FederationChange.RemoveProposal(proposal)) }) {
-                                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.adm_fed_remove_proposal))
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(proposalDirection(proposal.role) + " - " + proposalStatus(proposal.status))
+                                    proposal.note?.let { Text(it) }
+                                    if (proposal.createdAt > 0) Text(stringResource(R.string.adm_fed_created, relative(proposal.createdAt)))
+                                    if (proposal.answeredAt > 0) Text(stringResource(R.string.adm_fed_answered, relative(proposal.answeredAt)))
                                 }
                             },
+                            trailingContent = if (proposal.canRemove) {
+                                {
+                                    IconButton(onClick = { viewModel.ask(FederationChange.RemoveProposal(proposal)) }) {
+                                        Icon(Icons.Filled.Delete, contentDescription = stringResource(
+                                            if (proposal.status == FederationProposal.Status.PENDING)
+                                                R.string.adm_fed_withdraw_proposal else R.string.adm_fed_remove_proposal,
+                                        ))
+                                    }
+                                }
+                            } else null,
                         )
                     }
                 }
@@ -140,7 +164,9 @@ internal fun FederationTab(refreshes: Int, viewModel: FederationViewModel = hilt
     }
 
     state.propose?.let { ProposeDialog(it, state, viewModel) }
-    state.services?.let { (node, services) -> ServicesDialog(node, services, onClose = viewModel::closeServices) }
+    state.descriptor?.let { (nodeId, descriptor) ->
+        DescriptorDialog(nodeId, descriptor, onRetry = { viewModel.openDescriptor(nodeId) }, onClose = viewModel::closeDescriptor)
+    }
     state.proposed?.let { outcome ->
         AlertDialog(
             onDismissRequest = viewModel::proposedSeen,
@@ -153,7 +179,7 @@ internal fun FederationTab(refreshes: Int, viewModel: FederationViewModel = hilt
     when (val change = state.change) {
         is FederationChange.RemoveNode -> ConfirmByTypingDialog(
             title = stringResource(R.string.adm_fed_remove_node_title),
-            body = stringResource(R.string.adm_fed_remove_node_body, change.node.name ?: shortId(change.node.id)),
+            body = stringResource(R.string.adm_fed_remove_node_body, shortId(change.node.id)),
             code = confirmCode(change.node.id),
             action = stringResource(R.string.adm_fed_remove_node),
             busy = state.busy,
@@ -162,9 +188,12 @@ internal fun FederationTab(refreshes: Int, viewModel: FederationViewModel = hilt
             onCancel = viewModel::cancel,
         )
         is FederationChange.RemoveProposal -> ConfirmDialog(
-            title = stringResource(R.string.adm_fed_remove_proposal_title),
-            body = stringResource(R.string.adm_fed_remove_proposal_body, change.proposal.name ?: shortId(change.proposal.nodeId)),
-            action = stringResource(R.string.adm_fed_remove_proposal),
+            title = stringResource(if (change.proposal.status == FederationProposal.Status.PENDING)
+                R.string.adm_fed_withdraw_proposal_title else R.string.adm_fed_remove_proposal_title),
+            body = stringResource(if (change.proposal.status == FederationProposal.Status.PENDING)
+                R.string.adm_fed_withdraw_proposal_body else R.string.adm_fed_remove_proposal_body, shortId(change.proposal.nodeId)),
+            action = stringResource(if (change.proposal.status == FederationProposal.Status.PENDING)
+                R.string.adm_fed_withdraw_proposal else R.string.adm_fed_remove_proposal),
             busy = state.busy,
             error = state.error,
             onConfirm = { viewModel.confirm() },
@@ -214,22 +243,45 @@ private fun ProposeDialog(proposal: Proposal, state: FederationUiState, viewMode
 }
 
 @Composable
-private fun ServicesDialog(node: FederatedNodeView, services: Loaded<List<ServiceView>>, onClose: () -> Unit) {
+private fun DescriptorDialog(
+    nodeId: String,
+    descriptor: Loaded<FederatedNodeDescriptor?>,
+    onRetry: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onClose,
         containerColor = MaterialTheme.brand.card,
-        title = { Text(node.name ?: shortId(node.id)) },
+        title = { Text(stringResource(R.string.adm_fed_descriptor)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                IdText(node.id, style = MaterialTheme.typography.bodySmall)
-                listOfNotNull(node.software, node.version).joinToString(" ").takeIf { it.isNotEmpty() }?.let { Text(it) }
-                Text(stringResource(R.string.adm_fed_services), style = MaterialTheme.typography.titleSmall)
-                LoadedContent(services, onRetry = {}) { list ->
-                    if (list.isEmpty()) Text(stringResource(R.string.adm_fed_no_services))
-                    list.forEach { service ->
-                        Column {
-                            Text(service.name, style = MaterialTheme.typography.bodyLarge)
-                            service.endpoint?.let { MonoText(it) }
+                SelectionContainer { MonoText(nodeId) }
+                LoadedContent(descriptor, onRetry) { value ->
+                    if (value == null) {
+                        Text(stringResource(R.string.adm_fed_descriptor_unavailable))
+                        TextButton(onClick = onRetry) { Text(stringResource(R.string.adm_refresh)) }
+                    } else {
+                        value.name.orElse(null)?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
+                        listOfNotNull(value.software.orElse(null), value.version.orElse(null))
+                            .joinToString(" ").takeIf { it.isNotEmpty() }?.let { Text(it) }
+                        value.website.orElse(null)?.let { Text(stringResource(R.string.adm_fed_website, it)) }
+                        value.contact.orElse(null)?.let { Text(stringResource(R.string.adm_fed_contact, it)) }
+                        Text(stringResource(R.string.adm_fed_mode, federationMode(value.mode.orElse(null))))
+                        if (value.protocols.isNotEmpty()) Text(stringResource(R.string.adm_fed_protocols, value.protocols.joinToString(", ")))
+                        if (value.issuedAt.toEpochMilli() > 0) Text(stringResource(R.string.adm_fed_signed, context.date(value.issuedAt.toEpochMilli())))
+                        if (value.expiresAt.toEpochMilli() > 0) Text(stringResource(R.string.adm_fed_expires, context.date(value.expiresAt.toEpochMilli())))
+                        Text(stringResource(R.string.adm_fed_services), style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.adm_fed_service_hint), style = MaterialTheme.typography.bodySmall)
+                        if (value.services.isEmpty()) Text(stringResource(R.string.adm_fed_no_services))
+                        value.services.forEach { service ->
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(service.name.orElse(service.type), style = MaterialTheme.typography.bodyLarge)
+                                if (service.name.isPresent) MonoText(service.type)
+                                SelectionContainer { MonoText(service.peerId.toString()) }
+                                MonoText(service.endpoint)
+                                Text(stringResource(if (service.isFederation) R.string.adm_fed_service_federates else R.string.adm_fed_service_local))
+                            }
                         }
                     }
                 }
@@ -240,12 +292,62 @@ private fun ServicesDialog(node: FederatedNodeView, services: Loaded<List<Servic
 }
 
 @Composable
-private fun proposalStatus(status: FederationProposal.Status): String = stringResource(
+private fun relationshipState(state: FederatedNode.State?): String = stringResource(
+    when (state) {
+        FederatedNode.State.ACTIVE -> R.string.adm_fed_active
+        FederatedNode.State.SUSPENDED -> R.string.adm_fed_suspended
+        FederatedNode.State.PENDING_OUT -> R.string.adm_fed_pending_out
+        FederatedNode.State.PENDING_IN -> R.string.adm_fed_pending_in
+        FederatedNode.State.DECLINED -> R.string.adm_fed_status_declined
+        null -> R.string.adm_fed_unknown
+    },
+)
+
+@Composable
+private fun admissionReason(reason: Admission.Reason?): String = stringResource(
+    when (reason) {
+        Admission.Reason.OPEN -> R.string.adm_fed_reason_open
+        Admission.Reason.ACTIVE -> R.string.adm_fed_active
+        Admission.Reason.PENDING -> R.string.adm_fed_status_pending
+        Admission.Reason.NO_RELATIONSHIP -> R.string.adm_fed_reason_no_relationship
+        Admission.Reason.DECLINED -> R.string.adm_fed_status_declined
+        Admission.Reason.NOT_FEDERATING -> R.string.adm_fed_reason_not_federating
+        Admission.Reason.SUSPENDED -> R.string.adm_fed_suspended
+        Admission.Reason.BLOCKED -> R.string.adm_fed_reason_blocked
+        Admission.Reason.DISABLED -> R.string.adm_fed_reason_disabled
+        Admission.Reason.UNKNOWN_PEER -> R.string.adm_fed_reason_unknown_peer
+        Admission.Reason.UNVERIFIED_PEER -> R.string.adm_fed_reason_unverified_peer
+        null -> R.string.adm_fed_unknown
+    },
+)
+
+@Composable
+private fun federationMode(mode: FederationMode?): String = stringResource(
+    when (mode) {
+        FederationMode.OPEN -> R.string.adm_fed_mode_open
+        FederationMode.MUTUAL -> R.string.adm_fed_mode_mutual
+        FederationMode.ALLOWLIST -> R.string.adm_fed_mode_allowlist
+        null -> R.string.adm_fed_mode_unknown
+    },
+)
+
+@Composable
+private fun proposalDirection(role: FederationProposal.Role?): String = stringResource(
+    when (role) {
+        FederationProposal.Role.OFFER -> R.string.adm_fed_made
+        FederationProposal.Role.ANSWER -> R.string.adm_fed_received
+        null -> R.string.adm_fed_unknown
+    },
+)
+
+@Composable
+private fun proposalStatus(status: FederationProposal.Status?): String = stringResource(
     when (status) {
-        FederationProposal.Status.CREATED -> R.string.adm_fed_status_created
-        FederationProposal.Status.PROPOSED -> R.string.adm_fed_status_proposed
+        FederationProposal.Status.PENDING -> R.string.adm_fed_status_pending
         FederationProposal.Status.ACCEPTED -> R.string.adm_fed_status_accepted
         FederationProposal.Status.DECLINED -> R.string.adm_fed_status_declined
-        FederationProposal.Status.FAILED -> R.string.adm_fed_status_failed
+        FederationProposal.Status.WITHDRAWN -> R.string.adm_fed_status_withdrawn
+        FederationProposal.Status.EXPIRED -> R.string.adm_fed_status_expired
+        null -> R.string.adm_fed_unknown
     },
 )
