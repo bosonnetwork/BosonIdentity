@@ -23,11 +23,9 @@
 package io.bosonnetwork.identity.feature.admin
 
 import io.bosonnetwork.Id
-import io.bosonnetwork.director.client.FederatedNode
 import io.bosonnetwork.director.client.FederationProposal
 import io.bosonnetwork.identity.core.boson.AdminState
 import io.bosonnetwork.json.Json
-import io.bosonnetwork.service.Admission
 import io.bosonnetwork.service.FederatedNodeDescriptor
 import io.bosonnetwork.service.FederationMode
 import io.mockk.every
@@ -50,7 +48,6 @@ class FederationViewModelTest {
     private val fake = FakeAdmin()
     private val admin = fake.admin
     private val otherId = Id.random()
-    private val other = federatedNode(otherId)
 
     @Before
     fun setUp() {
@@ -61,7 +58,6 @@ class FederationViewModelTest {
         every { fake.context.getString(R.string.adm_fed_proposed_crossed) } returns "crossed"
         every { fake.context.getString(R.string.adm_fed_proposed_declined) } returns "declined"
         every { fake.context.getString(R.string.adm_fed_proposed_other) } returns "recorded"
-        every { admin.listFederatedNodes() } returns done(page(listOf(other)))
         every { admin.listFederationProposals(null, null) } returns done(page(listOf(proposal(2, createdAt = 2_000), proposal(1))))
     }
 
@@ -71,6 +67,7 @@ class FederationViewModelTest {
     private suspend fun ready(): FederationViewModel {
         val vm = fake.track(FederationViewModel(fake.session, fake.context))
         fake.open()
+        vm.selectView(FederationView.PROPOSALS)
         vm.content.first { it is Loaded.Ready }
         return vm
     }
@@ -78,42 +75,23 @@ class FederationViewModelTest {
     private fun FederationViewModel.federation(): FederationContent = (content.value as Loaded.Ready).value
 
     @Test
-    fun `relationships and proposals keep the server order`() = runTest {
-        val vm = ready()
+    fun `proposal history loads only when selected and keeps the server order`() = runTest {
+        val vm = fake.track(FederationViewModel(fake.session, fake.context))
+        fake.open()
+        assertEquals(FederationView.NODES, vm.state.value.view)
+        verify(exactly = 0) { admin.listFederationProposals(null, null) }
+        vm.selectView(FederationView.PROPOSALS)
+        vm.content.first { it is Loaded.Ready }
         assertTrue(vm.federation().enabled)
-        assertEquals(listOf(otherId.toString()), vm.federation().nodes.map { it.id })
         assertEquals(listOf(2L, 1L), vm.federation().proposals.map { it.id })
         verify(exactly = 0) { admin.getFederatedNodeDescriptor(any()) }
     }
 
     @Test
-    fun `relationship, admission, sending and observed health remain separate`() = runTest {
-        every { admin.listFederatedNodes() } returns done(page(listOf(federatedNode(otherId,
-            state = FederatedNode.State.ACTIVE, admission = Admission.Reason.BLOCKED, reach = Admission.Reason.PENDING,
-            note = "operator note", health = mapOf("nodeId" to otherId.toString(), "lastSeenAt" to 900,
-                "consecutiveFailures" to 2, "lastFailure" to "TIMEOUT")))))
-        val node = ready().federation().nodes.single()
-        assertEquals(FederatedNode.State.ACTIVE, node.state)
-        assertEquals(Admission.Reason.BLOCKED, node.admission)
-        assertEquals(Admission.Reason.PENDING, node.reach)
-        assertEquals("admin", node.origin)
-        assertEquals("operator note", node.note)
-        assertEquals(500L, node.createdAt)
-        assertEquals(1_000L, node.updatedAt)
-        assertTrue(node.health!!.isFailing)
-        assertEquals(2, node.health.consecutiveFailures)
-    }
-
-    @Test
     fun `unknown optional fields do not invent a state or allow proposal removal`() = runTest {
-        val node = Json.parse("""{"nodeId":"$otherId","state":"future","admission":"FUTURE","reach":"FUTURE"}""", FederatedNode::class.java)
         val proposal = Json.parse("""{"id":3,"nodeId":"$otherId","role":"future","status":"future"}""", FederationProposal::class.java)
-        every { admin.listFederatedNodes() } returns done(page(listOf(node)))
         every { admin.listFederationProposals(null, null) } returns done(page(listOf(proposal)))
         val vm = ready()
-        assertNull(vm.federation().nodes.single().state)
-        assertNull(vm.federation().nodes.single().admission)
-        assertNull(vm.federation().nodes.single().health)
         assertFalse(vm.federation().proposals.single().canRemove)
         vm.ask(FederationChange.RemoveProposal(vm.federation().proposals.single()))
         vm.confirm()
@@ -122,13 +100,13 @@ class FederationViewModelTest {
 
     @Test
     fun `disabled federation is distinct from a failed request`() = runTest {
-        every { admin.listFederatedNodes() } returns refused(501)
+        every { admin.listFederationProposals(null, null) } returns refused(501)
         val vm = ready()
         assertFalse(vm.federation().enabled)
         vm.startPropose()
         assertNull(vm.state.value.propose)
 
-        every { admin.listFederatedNodes() } returns refused(500)
+        every { admin.listFederationProposals(null, null) } returns refused(500)
         vm.refresh()
         vm.content.first { it is Loaded.Failed }
     }
@@ -187,16 +165,15 @@ class FederationViewModelTest {
     @Test
     fun `removing a relationship requires its confirmation code and refreshes affected lists`() = runTest {
         every { admin.removeFederatedNode(otherId) } answers {
-            every { admin.listFederatedNodes() } returns done(page(emptyList()))
             ok()
         }
         val vm = ready()
-        vm.ask(FederationChange.RemoveNode(vm.federation().nodes.single()))
+        vm.ask(FederationChange.RemoveNode(nodeView(otherId)))
         vm.confirm("x")
         verify(exactly = 0) { admin.removeFederatedNode(any()) }
         vm.confirm(otherId.toString().take(4))
         vm.state.first { it.change == null }
-        assertTrue(vm.federation().nodes.isEmpty())
+        assertEquals(1, vm.state.value.nodeChanges)
         verify(exactly = 2) { admin.listFederationProposals(null, null) }
     }
 
@@ -287,7 +264,7 @@ class FederationViewModelTest {
         val pending = CompletableFuture<FederationProposal>()
         every { admin.proposeFederation(otherId, null) } returns pending
         val vm = ready()
-        val node = vm.federation().nodes.single()
+        val node = nodeView(otherId)
         vm.startPropose()
         vm.onProposeIdChange(otherId.toString())
         vm.propose()
@@ -308,18 +285,21 @@ class FederationViewModelTest {
         vm.startPropose()
         fake.state.value = AdminState(fake.adminId, fake.node, Long.MAX_VALUE - 1)
         assertNull(vm.state.value.propose)
-        assertTrue(vm.content.value is Loaded.Ready)
-        verify(exactly = 2) { admin.listFederatedNodes() }
+        assertTrue(vm.content.value is Loaded.Idle)
+        assertEquals(FederationView.NODES, vm.state.value.view)
+        vm.selectView(FederationView.PROPOSALS)
+        vm.content.first { it is Loaded.Ready }
+        verify(exactly = 2) { admin.listFederationProposals(null, null) }
     }
 
     @Test
     fun `a list response after session end does not restore administrative data`() = runTest {
         val vm = ready()
-        val pending = CompletableFuture<io.bosonnetwork.web.PaginatedResult<FederatedNode>>()
-        every { admin.listFederatedNodes() } returns pending
+        val pending = CompletableFuture<io.bosonnetwork.web.PaginatedResult<FederationProposal>>()
+        every { admin.listFederationProposals(null, null) } returns pending
         vm.refresh()
         fake.state.value = null
-        pending.complete(page(listOf(other)))
+        pending.complete(page(listOf(proposal(1))))
         assertTrue(vm.content.value is Loaded.Idle)
     }
 }

@@ -189,6 +189,9 @@ fun federatedNode(
     "createdAt" to 500, "updatedAt" to 1_000,
 )), FederatedNode::class.java)
 
+fun nodeView(id: Id = Id.random(), state: FederatedNode.State? = FederatedNode.State.ACTIVE, note: String? = null): FederatedNodeView =
+    FederatedNodeView(id.toString(), state, "admin", note, Admission.Reason.ACTIVE, Admission.Reason.ACTIVE, null, 500, 1_000)
+
 fun proposal(
     id: Long,
     nodeId: Id = Id.random(),

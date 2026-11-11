@@ -66,32 +66,43 @@ abstract class AdminSectionViewModel<T>(
     val content: StateFlow<Loaded<T>> = _content.asStateFlow()
 
     private var loading: Job? = null
+    private var request = 0L
     private var shown: AdminState? = null
 
-    /** Loads whenever a session opens, and clears everything when it ends. */
-    protected fun watchSession() {
+    /** Watches the session; sections loaded on selection may defer their first request. */
+    protected fun watchSession(loadOnStart: Boolean = true) {
         viewModelScope.launch {
             session.state.collect { state ->
                 if (state == null) {
-                    loading?.cancel()
+                    invalidateLoad()
                     shown = null
                     _content.value = Loaded.Idle
                     onSessionEnded()
                 } else if (state !== shown) {
-                    loading?.cancel()
+                    invalidateLoad()
                     if (shown != null) onSessionEnded()
                     shown = state
                     _content.value = Loaded.Idle
-                    refresh()
+                    if (loadOnStart) refresh()
                 }
             }
         }
     }
 
+    /** Invalidates the current read immediately, including while a new search is being debounced. */
+    protected fun invalidateLoad() {
+        request++
+        loading?.cancel()
+    }
+
+    /** The session this section belongs to, if it is still current. */
+    protected fun currentSession(): AdminState? = shown?.takeIf { session.state.value === it }
+
     /** Asks the node again. What is shown stays until the answer comes. */
     fun refresh() {
-        val current = shown ?: return
-        loading?.cancel()
+        val current = currentSession() ?: return
+        invalidateLoad()
+        val generation = request
         if (_content.value !is Loaded.Ready) _content.value = Loaded.Loading
         loading = viewModelScope.launch {
             val loaded = try {
@@ -105,7 +116,7 @@ abstract class AdminSectionViewModel<T>(
                 // A token the node no longer takes ended the session: there is nothing to show.
                 if (session.state.value == null) Loaded.Idle else Loaded.Failed(e.userMessage(context))
             }
-            if (shown === current && session.state.value === current) _content.value = loaded
+            if (generation == request && shown === current && session.state.value === current) _content.value = loaded
         }
     }
 
