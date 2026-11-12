@@ -23,6 +23,7 @@
 package io.bosonnetwork.identity.feature.admin
 
 import io.bosonnetwork.Id
+import io.bosonnetwork.director.client.FederationProposal
 import io.bosonnetwork.director.client.FederatedNode
 import io.bosonnetwork.identity.core.boson.AdminState
 import io.bosonnetwork.service.Admission
@@ -48,7 +49,10 @@ class FederationDecisionTest {
     @Before
     fun setUp() {
         fake.setUp()
-        every { admin.listFederationProposals(null, null) } returns done(page(emptyList()))
+        every { admin.listFederationProposals(null, FederationProposal.Role.ANSWER,
+            FederationProposal.Status.PENDING, 1, 1) } returns
+            done(page(emptyList<FederationProposal>(), pageSize = 1))
+        every { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) } returns done(page(emptyList()))
     }
 
     @After
@@ -76,7 +80,7 @@ class FederationDecisionTest {
         assertNull(vm.state.value.decision)
         assertEquals(1, vm.state.value.nodeChanges)
         verify(exactly = 1) { admin.admitFederatedNode(target, "partner") }
-        verify(exactly = 0) { admin.listFederationProposals(null, null) }
+        verify(exactly = 0) { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) }
     }
 
     @Test
@@ -172,10 +176,10 @@ class FederationDecisionTest {
         vm.startDecision(FederationDecision.ADMIT)
         vm.onDecisionIdChange(target.toString())
         vm.saveDecision()
-        verify(exactly = 1) { admin.listFederationProposals(null, null) }
+        verify(exactly = 1) { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) }
         vm.selectView(FederationView.PROPOSALS)
         vm.content.first { it is Loaded.Ready }
-        verify(exactly = 2) { admin.listFederationProposals(null, null) }
+        verify(exactly = 2) { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) }
     }
 
     @Test
@@ -237,7 +241,7 @@ class FederationDecisionTest {
 
     @Test
     fun `disabled cached proposal history does not override a newly enabled Nodes view`() = runTest {
-        every { admin.listFederationProposals(null, null) } returns refused(501)
+        every { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) } returns refused(501)
         val vm = ready()
         vm.selectView(FederationView.PROPOSALS)
         vm.content.first { it is Loaded.Ready }

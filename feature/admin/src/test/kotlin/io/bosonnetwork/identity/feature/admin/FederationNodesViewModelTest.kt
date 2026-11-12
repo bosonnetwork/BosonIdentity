@@ -89,7 +89,7 @@ class FederationNodesViewModelTest {
         assertEquals(500L, node.createdAt)
         assertEquals(1_000L, node.updatedAt)
         assertTrue(node.health!!.isFailing)
-        verify(exactly = 0) { admin.listFederationProposals(null, null) }
+        verify(exactly = 0) { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) }
         verify(exactly = 0) { admin.getFederatedNode(any()) }
         verify(exactly = 0) { admin.getFederatedNodeDescriptor(any()) }
     }
@@ -206,7 +206,7 @@ class FederationNodesViewModelTest {
     fun `switching views during debounce retains the query and completes its own read`() = runTest {
         val target = rows.last()
         every { admin.listFederatedNodes(target.id, 1, FEDERATION_PAGE) } returns done(page(listOf(target), pageSize = FEDERATION_PAGE))
-        every { admin.listFederationProposals(null, null) } returns done(page(emptyList()))
+        every { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) } returns done(page(emptyList()))
         val nodes = ready()
         val actions = fake.track(FederationViewModel(fake.session, fake.context))
         nodes.onQueryChange(target.id.toString())
@@ -218,7 +218,7 @@ class FederationNodesViewModelTest {
         assertEquals(target.id.toString(), nodes.state.value.query)
         assertEquals(listOf(target.id.toString()), nodes.pages().nodes.map { it.id })
         verify(exactly = 1) { admin.listFederatedNodes(target.id, 1, FEDERATION_PAGE) }
-        verify(exactly = 1) { admin.listFederationProposals(null, null) }
+        verify(exactly = 1) { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) }
     }
 
     @Test

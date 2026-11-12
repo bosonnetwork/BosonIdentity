@@ -24,9 +24,7 @@ package io.bosonnetwork.identity.feature.admin
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -34,16 +32,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddLink
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.MarkEmailUnread
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -57,7 +58,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -65,47 +65,75 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.bosonnetwork.identity.core.designsystem.theme.brand
 
-/** A compact selector beside the current view's search, with room for larger accessibility text. */
+/** A fixed-size selector beside search; validation stays below their shared center line. */
 @Composable
 internal fun FederationToolbar(
     view: FederationView,
     onSelect: (FederationView) -> Unit,
+    review: Loaded<Long> = Loaded.Idle,
+    onReview: () -> Unit = {},
+    onReviewRetry: () -> Unit = {},
+    error: String? = null,
     search: (@Composable (Modifier) -> Unit)? = null,
 ) {
-    BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         if (search == null) {
-            FederationSelector(view, onSelect)
-        } else if (maxWidth < 300.dp || LocalDensity.current.fontScale > 1.3f) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FederationSelector(view, onSelect)
-                search(Modifier.fillMaxWidth())
-            }
+            FederationSelector(view, onSelect, review, onReview, onReviewRetry)
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                FederationSelector(view, onSelect)
+                FederationSelector(view, onSelect, review, onReview, onReviewRetry)
                 search(Modifier.weight(1f))
             }
+        }
+        error?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 4.dp))
         }
     }
 }
 
 @Composable
-private fun FederationSelector(view: FederationView, onSelect: (FederationView) -> Unit) {
+private fun FederationSelector(view: FederationView, onSelect: (FederationView) -> Unit,
+    review: Loaded<Long>, onReview: () -> Unit, onReviewRetry: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
-    val description = stringResource(R.string.adm_fed_view, federationView(view))
+    val count = (review as? Loaded.Ready)?.value
+    val reviewDescription = when (review) {
+        is Loaded.Ready -> stringResource(R.string.adm_fed_review_count, review.value)
+        is Loaded.Failed -> stringResource(R.string.adm_fed_review_failed)
+        else -> ""
+    }
+    val description = listOf(stringResource(R.string.adm_fed_view, federationView(view)), reviewDescription)
+        .filter { it.isNotEmpty() }.joinToString(", ")
     Box {
-        FilledTonalButton(
+        FilledTonalIconButton(
             onClick = { menu = true },
-            colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                contentColor = MaterialTheme.colorScheme.onTertiaryContainer),
-            contentPadding = PaddingValues(horizontal = 12.dp),
-            modifier = Modifier.semantics { contentDescription = description },
+            modifier = Modifier.size(48.dp).semantics { contentDescription = description },
         ) {
-            Icon(viewIcon(view), contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(federationView(view), modifier = Modifier.padding(horizontal = 6.dp))
-            Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
+            BadgedBox(badge = {
+                if (count != null && count > 0) Badge(containerColor = MaterialTheme.colorScheme.tertiary) {
+                    Text(if (count > 99) "99+" else count.toString())
+                } else if (review is Loaded.Failed) Badge { Text("!") }
+            }) {
+                Icon(viewIcon(view), contentDescription = null, modifier = Modifier.size(24.dp))
+            }
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = MaterialTheme.brand.card) {
+            when (review) {
+                is Loaded.Ready -> DropdownMenuItem(
+                    text = { Text(stringResource(R.string.adm_fed_review_count, review.value)) },
+                    leadingIcon = { Icon(Icons.Filled.MarkEmailUnread, contentDescription = null) },
+                    onClick = { menu = false; onReview() },
+                )
+                is Loaded.Failed -> DropdownMenuItem(
+                    text = { Text(stringResource(R.string.adm_fed_review_failed)) },
+                    leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
+                    onClick = { menu = false; onReviewRetry() },
+                )
+                Loaded.Loading -> DropdownMenuItem(text = { Text(stringResource(R.string.adm_fed_review_loading)) },
+                    enabled = false, onClick = {})
+                Loaded.Idle -> Unit
+            }
+            if (review !is Loaded.Idle) HorizontalDivider()
             FederationView.entries.forEach { entry ->
                 DropdownMenuItem(
                     text = { Text(federationView(entry)) },
@@ -141,8 +169,6 @@ internal fun FederationActions(
     Box(modifier) {
         FloatingActionButton(
             onClick = { menu = true },
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
         ) { Icon(Icons.Filled.MoreHoriz, contentDescription = stringResource(R.string.adm_fed_actions)) }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = MaterialTheme.brand.card) {
             DropdownMenuItem(

@@ -52,13 +52,16 @@ class FederationViewModelTest {
     @Before
     fun setUp() {
         fake.setUp()
+        every { admin.listFederationProposals(null, FederationProposal.Role.ANSWER,
+            FederationProposal.Status.PENDING, 1, 1) } returns
+            done(page(emptyList<FederationProposal>(), pageSize = 1))
         every { fake.context.getString(R.string.adm_fed_propose_blacklisted) } returns "blacklisted"
         every { fake.context.getString(R.string.adm_fed_proposed_sent) } returns "pending"
         every { fake.context.getString(R.string.adm_fed_proposed_accepted) } returns "accepted"
         every { fake.context.getString(R.string.adm_fed_proposed_crossed) } returns "crossed"
         every { fake.context.getString(R.string.adm_fed_proposed_declined) } returns "declined"
         every { fake.context.getString(R.string.adm_fed_proposed_other) } returns "recorded"
-        every { admin.listFederationProposals(null, null) } returns done(page(listOf(proposal(2, createdAt = 2_000), proposal(1))))
+        every { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) } returns done(page(listOf(proposal(2, createdAt = 2_000), proposal(1))))
     }
 
     @After
@@ -79,7 +82,7 @@ class FederationViewModelTest {
         val vm = fake.track(FederationViewModel(fake.session, fake.context))
         fake.open()
         assertEquals(FederationView.NODES, vm.state.value.view)
-        verify(exactly = 0) { admin.listFederationProposals(null, null) }
+        verify(exactly = 0) { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) }
         vm.selectView(FederationView.PROPOSALS)
         vm.content.first { it is Loaded.Ready }
         assertTrue(vm.federation().enabled)
@@ -90,7 +93,7 @@ class FederationViewModelTest {
     @Test
     fun `unknown optional fields do not invent a state or allow proposal removal`() = runTest {
         val proposal = Json.parse("""{"id":3,"nodeId":"$otherId","role":"future","status":"future"}""", FederationProposal::class.java)
-        every { admin.listFederationProposals(null, null) } returns done(page(listOf(proposal)))
+        every { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) } returns done(page(listOf(proposal)))
         val vm = ready()
         assertFalse(vm.federation().proposals.single().canRemove)
         vm.ask(FederationChange.RemoveProposal(vm.federation().proposals.single()))
@@ -100,13 +103,13 @@ class FederationViewModelTest {
 
     @Test
     fun `disabled federation is distinct from a failed request`() = runTest {
-        every { admin.listFederationProposals(null, null) } returns refused(501)
+        every { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) } returns refused(501)
         val vm = ready()
         assertFalse(vm.federation().enabled)
         vm.startPropose()
         assertNull(vm.state.value.propose)
 
-        every { admin.listFederationProposals(null, null) } returns refused(500)
+        every { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) } returns refused(500)
         vm.refresh()
         vm.content.first { it is Loaded.Failed }
     }
@@ -130,7 +133,7 @@ class FederationViewModelTest {
         assertEquals("pending", vm.state.first { it.proposed != null }.proposed)
         assertNull(vm.state.value.propose)
         verify(exactly = 1) { admin.proposeFederation(target, null) }
-        verify(exactly = 2) { admin.listFederationProposals(null, null) }
+        verify(exactly = 2) { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) }
     }
 
     @Test
@@ -174,7 +177,7 @@ class FederationViewModelTest {
         vm.confirm(otherId.toString().take(4))
         vm.state.first { it.change == null }
         assertEquals(1, vm.state.value.nodeChanges)
-        verify(exactly = 2) { admin.listFederationProposals(null, null) }
+        verify(exactly = 2) { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) }
     }
 
     @Test
@@ -182,9 +185,9 @@ class FederationViewModelTest {
         val incoming = proposal(3, role = FederationProposal.Role.ANSWER)
         val finished = proposal(4, role = FederationProposal.Role.ANSWER, status = FederationProposal.Status.EXPIRED,
             note = "finished", answeredAt = 2_000)
-        every { admin.listFederationProposals(null, null) } returns done(page(listOf(incoming, finished)))
+        every { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) } returns done(page(listOf(incoming, finished)))
         every { admin.removeFederationProposal(4) } answers {
-            every { admin.listFederationProposals(null, null) } returns done(page(listOf(incoming)))
+            every { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) } returns done(page(listOf(incoming)))
             ok()
         }
         val vm = ready()
@@ -204,7 +207,7 @@ class FederationViewModelTest {
     @Test
     fun `a pending outgoing proposal can be withdrawn`() = runTest {
         every { admin.removeFederationProposal(2) } answers {
-            every { admin.listFederationProposals(null, null) } returns done(page(listOf(proposal(1))))
+            every { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) } returns done(page(listOf(proposal(1))))
             ok()
         }
         val vm = ready()
@@ -289,14 +292,14 @@ class FederationViewModelTest {
         assertEquals(FederationView.NODES, vm.state.value.view)
         vm.selectView(FederationView.PROPOSALS)
         vm.content.first { it is Loaded.Ready }
-        verify(exactly = 2) { admin.listFederationProposals(null, null) }
+        verify(exactly = 2) { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) }
     }
 
     @Test
     fun `a list response after session end does not restore administrative data`() = runTest {
         val vm = ready()
         val pending = CompletableFuture<io.bosonnetwork.web.PaginatedResult<FederationProposal>>()
-        every { admin.listFederationProposals(null, null) } returns pending
+        every { admin.listFederationProposals(null, null, null, 1, FEDERATION_PAGE) } returns pending
         vm.refresh()
         fake.state.value = null
         pending.complete(page(listOf(proposal(1))))

@@ -56,6 +56,7 @@ import io.bosonnetwork.identity.core.designsystem.theme.brand
 internal fun FederationTab(refreshes: Int, viewModel: FederationViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val saved = rememberSaveableStateHolder()
+    RefreshOn(refreshes, viewModel::refreshReviewCount)
     saved.SaveableStateProvider(state.view.name) {
         when (state.view) {
             FederationView.NODES -> FederationNodesPane(refreshes, state.nodeChanges, viewModel)
@@ -77,6 +78,12 @@ internal fun FederationTab(refreshes: Int, viewModel: FederationViewModel = hilt
             confirmButton = { TextButton(onClick = viewModel::proposedSeen) { Text(stringResource(R.string.adm_done)) } },
         )
     }
+    state.notice?.let { notice ->
+        AlertDialog(onDismissRequest = viewModel::noticeSeen, containerColor = MaterialTheme.brand.card,
+            title = { Text(stringResource(R.string.adm_fed_proposal_changed_title)) },
+            text = { Text(notice) },
+            confirmButton = { TextButton(onClick = viewModel::noticeSeen) { Text(stringResource(R.string.adm_done)) } })
+    }
     when (val change = state.change) {
         is FederationChange.RemoveNode -> ConfirmByTypingDialog(
             title = stringResource(R.string.adm_fed_remove_node_title),
@@ -87,6 +94,13 @@ internal fun FederationTab(refreshes: Int, viewModel: FederationViewModel = hilt
             error = state.error,
             onConfirm = viewModel::confirm,
             onCancel = viewModel::cancel,
+        )
+        is FederationChange.AnswerProposal -> ConfirmDialog(
+            title = stringResource(if (change.accept) R.string.adm_fed_accept_title else R.string.adm_fed_decline_title),
+            body = stringResource(if (change.accept) R.string.adm_fed_accept_body else R.string.adm_fed_decline_body, shortId(change.proposal.nodeId)),
+            action = stringResource(if (change.accept) R.string.adm_fed_accept else R.string.adm_fed_decline),
+            busy = state.busy, error = state.error,
+            onConfirm = { viewModel.confirm() }, onCancel = viewModel::cancel, destructive = !change.accept,
         )
         is FederationChange.RemoveProposal -> ConfirmDialog(
             title = stringResource(if (change.proposal.status == FederationProposal.Status.PENDING)
@@ -125,6 +139,13 @@ private fun ProposeDialog(proposal: Proposal, state: FederationUiState, viewMode
                     keyboardOptions = KeyboardOptions(autoCorrectEnabled = false),
                     modifier = Modifier.fillMaxWidth(),
                 )
+                OutlinedTextField(
+                    value = proposal.note, onValueChange = viewModel::onProposeNoteChange,
+                    label = { Text(stringResource(R.string.adm_fed_note)) },
+                    supportingText = { Text(stringResource(R.string.adm_fed_note_length, proposal.note.length)) },
+                    isError = proposal.note.length > 256, enabled = !state.busy,
+                    minLines = 2, maxLines = 4, modifier = Modifier.fillMaxWidth(),
+                )
                 ErrorText(state.error)
             }
         },
@@ -134,7 +155,7 @@ private fun ProposeDialog(proposal: Proposal, state: FederationUiState, viewMode
             } else {
                 TextButton(
                     onClick = viewModel::propose,
-                    enabled = proposal.validId != null,
+                    enabled = proposal.valid,
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.tertiary),
                 ) { Text(stringResource(R.string.adm_fed_propose_action)) }
             }

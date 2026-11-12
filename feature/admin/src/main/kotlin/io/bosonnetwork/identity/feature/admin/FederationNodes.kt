@@ -82,6 +82,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -103,6 +105,7 @@ internal fun FederationNodesPane(
 ) {
     val content by viewModel.content.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val review by actions.review.collectAsStateWithLifecycle()
     val pages = (content as? Loaded.Ready)?.value
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     RefreshOn(refreshes, viewModel::refreshNodes)
@@ -112,16 +115,19 @@ internal fun FederationNodesPane(
     }
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = 640.dp).fillMaxSize()) {
-            FederationToolbar(FederationView.NODES, actions::selectView) { modifier ->
+            FederationToolbar(FederationView.NODES, actions::selectView, review,
+                actions::reviewPending, actions::refreshReviewCount,
+                error = if (state.invalid) stringResource(R.string.adm_fed_invalid_id) else null) { modifier ->
+                val searchDescription = stringResource(R.string.adm_fed_search_nodes)
                 OutlinedTextField(
                     value = state.query, onValueChange = viewModel::onQueryChange,
-                    label = { Text(stringResource(R.string.adm_fed_node_id)) },
+                    placeholder = { Text(stringResource(R.string.adm_fed_node_id)) },
                     trailingIcon = if (state.query.isNotEmpty()) {
                         { IconButton(onClick = viewModel::clearSearch) { Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.adm_fed_clear_search)) } }
                     } else null,
                     singleLine = true, isError = state.invalid,
-                    supportingText = if (state.invalid) { { Text(stringResource(R.string.adm_fed_invalid_id)) } } else null,
-                    keyboardOptions = KeyboardOptions(autoCorrectEnabled = false), modifier = modifier,
+                    keyboardOptions = KeyboardOptions(autoCorrectEnabled = false),
+                    modifier = modifier.semantics { contentDescription = searchDescription },
                 )
             }
             if (pages?.enabled == false) {

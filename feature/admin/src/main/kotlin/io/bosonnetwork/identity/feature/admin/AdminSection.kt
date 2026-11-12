@@ -83,6 +83,7 @@ abstract class AdminSectionViewModel<T>(
                     if (shown != null) onSessionEnded()
                     shown = state
                     _content.value = Loaded.Idle
+                    onSessionStarted()
                     if (loadOnStart) refresh()
                 }
             }
@@ -122,6 +123,9 @@ abstract class AdminSectionViewModel<T>(
 
     /** Reads the section from the node. */
     protected abstract suspend fun load(admin: DirectorAdmin): T
+
+    /** Starts section-owned reads that are independent of the selected list. */
+    protected open fun onSessionStarted() {}
 
     /** Drops the section's own state (dialogs, selections) when admin mode ends. */
     protected open fun onSessionEnded() {}
