@@ -155,6 +155,16 @@
     <string name="adm_fed_nodes_count">Relationships: %1$d of %2$d</string>
     <string name="adm_fed_no_matching_nodes">No matching relationships. Try another ID or clear the search.</string>
     <string name="adm_fed_load_more">Load more</string>
+    <string name="adm_fed_actions">Federation actions</string>
+    <string name="adm_fed_node_details">Node details</string>
+    <string name="adm_fed_proposal_details">Proposal details</string>
+    <string name="adm_fed_proposal_actions">Proposal actions</string>
+    <string name="adm_fed_copy_id">Copy node ID</string>
+    <string name="adm_fed_detail_note">Note</string>
+    <string name="adm_fed_detail_health">Observed health</string>
+    <string name="adm_fed_last_seen">Last activity: %1$s</string>
+    <string name="adm_fed_last_success">Last success: %1$s</string>
+    <string name="adm_fed_last_failure">Last failure: %1$s</string>
     <string name="adm_fed_node_actions">Node actions</string>
     <string name="adm_fed_admit_node">Admit node</string>
     <string name="adm_fed_suspend_node">Suspend node</string>

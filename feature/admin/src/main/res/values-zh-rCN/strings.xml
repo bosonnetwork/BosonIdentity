@@ -154,6 +154,16 @@
     <string name="adm_fed_nodes_count">节点关系：已显示 %1$d，共 %2$d</string>
     <string name="adm_fed_no_matching_nodes">没有匹配的节点关系。请尝试其他 ID 或清除搜索。</string>
     <string name="adm_fed_load_more">加载更多</string>
+    <string name="adm_fed_actions">联邦操作</string>
+    <string name="adm_fed_node_details">节点详情</string>
+    <string name="adm_fed_proposal_details">提案详情</string>
+    <string name="adm_fed_proposal_actions">提案操作</string>
+    <string name="adm_fed_copy_id">复制节点 ID</string>
+    <string name="adm_fed_detail_note">备注</string>
+    <string name="adm_fed_detail_health">观测状况</string>
+    <string name="adm_fed_last_seen">最近活动：%1$s</string>
+    <string name="adm_fed_last_success">最近成功：%1$s</string>
+    <string name="adm_fed_last_failure">最近失败：%1$s</string>
     <string name="adm_fed_node_actions">节点操作</string>
     <string name="adm_fed_admit_node">允许节点</string>
     <string name="adm_fed_suspend_node">暂停节点</string>

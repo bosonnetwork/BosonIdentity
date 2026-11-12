@@ -24,8 +24,9 @@ package io.bosonnetwork.identity.feature.admin
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,13 +42,14 @@ import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -68,7 +70,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -89,7 +94,7 @@ enum class AdminTab(@StringRes val label: Int) {
 /**
  * Admin: administering the home node, in the brand's violet so it is never mistaken for the user's
  * own screens. Without an admin session it offers to open one (one prompt, never on its own); with
- * one, a violet bar says how long it has left, beside "End now", above the sections. It is a page of
+ * one, a violet shield/countdown in the title bar offers "End now". It is a page of
  * its own, opened from the home node's Dashboard: opening it asks for admin mode, and leaving it
  * ([onBack], or the system's Back) ends admin mode.
  */
@@ -113,9 +118,10 @@ fun AdminScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(stringResource(R.string.adm_title))
+                        Text(stringResource(R.string.adm_title), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         node?.let {
-                            Text(it.host(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+                            Text(it.host(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 },
@@ -126,6 +132,7 @@ fun AdminScreen(
                 },
                 actions = {
                     if (session != null) {
+                        AdminModeControl(session.expiresAt, onEnd = viewModel::end, onExpired = viewModel::expired)
                         IconButton(onClick = { refreshes++ }) {
                             Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.adm_refresh))
                         }
@@ -140,7 +147,6 @@ fun AdminScreen(
                 Unlock(node, state, onUnlock = viewModel::start)
                 return@Column
             }
-            AdminModeBar(session.expiresAt, onEnd = viewModel::end, onExpired = viewModel::expired)
             ScrollableTabRow(
                 selectedTabIndex = tab.ordinal,
                 containerColor = MaterialTheme.colorScheme.background,
@@ -233,12 +239,13 @@ private fun Unlock(node: NodeAddress?, state: AdminUiState, onUnlock: () -> Unit
 }
 
 /**
- * "Admin mode, 9:42 left", and "End now". When the time is up, [onExpired] runs: the session also has
+ * A compact shield/countdown with an End now menu. When time is up, [onExpired] runs: the session has
  * its own timer, but that one may run late after the phone slept, and this one reads the clock.
  */
 @Composable
-private fun AdminModeBar(expiresAt: Long, onEnd: () -> Unit, onExpired: () -> Unit) {
+internal fun AdminModeControl(expiresAt: Long, onEnd: () -> Unit, onExpired: () -> Unit) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var menu by remember { mutableStateOf(false) }
     val expired by rememberUpdatedState(onExpired)
     LaunchedEffect(expiresAt) {
         while (true) {
@@ -251,20 +258,24 @@ private fun AdminModeBar(expiresAt: Long, onEnd: () -> Unit, onExpired: () -> Un
             delay(((expiresAt - now) % 1_000).let { if (it == 0L) 1_000L else it } + 1)
         }
     }
-    Surface(color = MaterialTheme.colorScheme.tertiaryContainer, contentColor = MaterialTheme.colorScheme.onTertiaryContainer) {
-        Row(
-            Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    val left = timeLeft(expiresAt - now)
+    val description = stringResource(R.string.adm_mode_left, left)
+    Box {
+        TextButton(
+            onClick = { menu = true },
+            colors = ButtonDefaults.textButtonColors(contentColor = if (expiresAt - now <= 60_000)
+                MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary),
+            contentPadding = PaddingValues(horizontal = 8.dp),
+            modifier = Modifier.semantics { contentDescription = description },
         ) {
-            Icon(Icons.Filled.AdminPanelSettings, contentDescription = null, modifier = Modifier.size(20.dp))
-            Text(
-                stringResource(R.string.adm_mode_left, timeLeft(expiresAt - now)),
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.padding(start = 8.dp).weight(1f),
+            Icon(Icons.Filled.AdminPanelSettings, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(left, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 4.dp))
+        }
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.adm_end_now)) },
+                onClick = { menu = false; onEnd() },
             )
-            TextButton(onClick = onEnd, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.tertiary)) {
-                Text(stringResource(R.string.adm_end_now))
-            }
         }
     }
 }

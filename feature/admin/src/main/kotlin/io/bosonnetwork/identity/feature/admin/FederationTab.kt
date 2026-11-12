@@ -22,45 +22,23 @@
 
 package io.bosonnetwork.identity.feature.admin
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -70,8 +48,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.bosonnetwork.director.client.FederationProposal
 import io.bosonnetwork.service.FederatedNodeDescriptor
 import io.bosonnetwork.service.FederationMode
-import io.bosonnetwork.identity.core.designsystem.component.IdText
-import io.bosonnetwork.identity.core.designsystem.component.SectionCard
 import io.bosonnetwork.identity.core.designsystem.component.shortId
 import io.bosonnetwork.identity.core.designsystem.theme.brand
 
@@ -80,28 +56,10 @@ import io.bosonnetwork.identity.core.designsystem.theme.brand
 internal fun FederationTab(refreshes: Int, viewModel: FederationViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val saved = rememberSaveableStateHolder()
-    var menu by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-            OutlinedButton(onClick = { menu = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.adm_fed_view, federationView(state.view)))
-                Spacer(Modifier.weight(1f))
-                Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
-            }
-            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = MaterialTheme.brand.card) {
-                FederationView.entries.forEach { view ->
-                    DropdownMenuItem(
-                        text = { Text(federationView(view)) },
-                        onClick = { menu = false; viewModel.selectView(view) },
-                    )
-                }
-            }
-        }
-        saved.SaveableStateProvider(state.view.name) {
-            when (state.view) {
-                FederationView.NODES -> FederationNodesPane(refreshes, state.nodeChanges, viewModel)
-                FederationView.PROPOSALS -> FederationProposalsPane(refreshes, viewModel)
-            }
+    saved.SaveableStateProvider(state.view.name) {
+        when (state.view) {
+            FederationView.NODES -> FederationNodesPane(refreshes, state.nodeChanges, viewModel)
+            FederationView.PROPOSALS -> FederationProposalsPane(refreshes, viewModel)
         }
     }
 
@@ -146,60 +104,6 @@ internal fun FederationTab(refreshes: Int, viewModel: FederationViewModel = hilt
         null -> Unit
     }
 }
-
-@Composable
-private fun FederationProposalsPane(refreshes: Int, viewModel: FederationViewModel) {
-    val content by viewModel.content.collectAsStateWithLifecycle()
-    RefreshOn(refreshes, viewModel::refreshProposals)
-    LoadedContent(content, onRetry = viewModel::refreshProposals) { federation ->
-        if (!federation.enabled) {
-            SectionCard(Modifier.padding(16.dp)) { Text(stringResource(R.string.adm_fed_off), modifier = Modifier.padding(16.dp)) }
-            return@LoadedContent
-        }
-        LazyColumn(Modifier.widthIn(max = 640.dp).fillMaxWidth(), contentPadding = PaddingValues(16.dp)) {
-            item {
-                Button(onClick = viewModel::startPropose, colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.tertiary, contentColor = MaterialTheme.colorScheme.onTertiary,
-                )) { Text(stringResource(R.string.adm_fed_propose)) }
-            }
-            if (federation.proposals.isEmpty()) item {
-                Text(stringResource(R.string.adm_fed_no_proposals), modifier = Modifier.padding(vertical = 16.dp))
-            }
-            items(federation.proposals, key = { it.id }) { proposal ->
-                ListItem(
-                    colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
-                    headlineContent = { IdText(proposal.nodeId) },
-                    supportingContent = {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(proposalDirection(proposal.role) + " - " + proposalStatus(proposal.status))
-                            proposal.note?.let { Text(it) }
-                            if (proposal.createdAt > 0) Text(stringResource(R.string.adm_fed_created, relative(proposal.createdAt)))
-                            if (proposal.answeredAt > 0) Text(stringResource(R.string.adm_fed_answered, relative(proposal.answeredAt)))
-                        }
-                    },
-                    trailingContent = if (proposal.canRemove) {
-                        {
-                            IconButton(onClick = { viewModel.ask(FederationChange.RemoveProposal(proposal)) }) {
-                                Icon(Icons.Filled.Delete, contentDescription = stringResource(
-                                    if (proposal.status == FederationProposal.Status.PENDING)
-                                        R.string.adm_fed_withdraw_proposal else R.string.adm_fed_remove_proposal,
-                                ))
-                            }
-                        }
-                    } else null,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun federationView(view: FederationView): String = stringResource(
-    when (view) {
-        FederationView.NODES -> R.string.adm_fed_view_nodes
-        FederationView.PROPOSALS -> R.string.adm_fed_proposals
-    },
-)
 
 @Composable
 private fun ProposeDialog(proposal: Proposal, state: FederationUiState, viewModel: FederationViewModel) {
@@ -295,26 +199,5 @@ private fun federationMode(mode: FederationMode?): String = stringResource(
         FederationMode.MUTUAL -> R.string.adm_fed_mode_mutual
         FederationMode.ALLOWLIST -> R.string.adm_fed_mode_allowlist
         null -> R.string.adm_fed_mode_unknown
-    },
-)
-
-@Composable
-private fun proposalDirection(role: FederationProposal.Role?): String = stringResource(
-    when (role) {
-        FederationProposal.Role.OFFER -> R.string.adm_fed_made
-        FederationProposal.Role.ANSWER -> R.string.adm_fed_received
-        null -> R.string.adm_fed_unknown
-    },
-)
-
-@Composable
-private fun proposalStatus(status: FederationProposal.Status?): String = stringResource(
-    when (status) {
-        FederationProposal.Status.PENDING -> R.string.adm_fed_status_pending
-        FederationProposal.Status.ACCEPTED -> R.string.adm_fed_status_accepted
-        FederationProposal.Status.DECLINED -> R.string.adm_fed_status_declined
-        FederationProposal.Status.WITHDRAWN -> R.string.adm_fed_status_withdrawn
-        FederationProposal.Status.EXPIRED -> R.string.adm_fed_status_expired
-        null -> R.string.adm_fed_unknown
     },
 )
