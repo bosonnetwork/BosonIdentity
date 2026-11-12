@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddLink
 import androidx.compose.material.icons.filled.Block
@@ -55,9 +56,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,6 +75,19 @@ import androidx.compose.ui.unit.dp
 import io.bosonnetwork.identity.core.designsystem.theme.brand
 import io.bosonnetwork.director.client.FederatedNodeHealth
 import io.bosonnetwork.service.Admission
+
+/** Keeps restored scroll positions; only a changed search or filter returns to the top. */
+@Composable
+internal fun ResetScrollOnChange(list: LazyListState, vararg filters: String) {
+    val current = filters.toList()
+    var shown by rememberSaveable { mutableStateOf(current) }
+    LaunchedEffect(current) {
+        if (shown != current) {
+            list.scrollToItem(0)
+            shown = current
+        }
+    }
+}
 
 /** A fixed-size selector beside search; validation stays below their shared center line. */
 @Composable

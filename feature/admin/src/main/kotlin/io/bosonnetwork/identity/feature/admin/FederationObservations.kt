@@ -138,7 +138,7 @@ private fun <T : Any> ObservationPane(view: FederationView, refreshes: Int, chan
     val title = stringResource(if (hosts) R.string.adm_fed_hosts else R.string.adm_fed_activity)
     RefreshOn(refreshes, viewModel::refreshList)
     RefreshOn(changes, viewModel::refreshList)
-    LaunchedEffect(state.appliedQuery) { list.scrollToItem(0) }
+    ResetScrollOnChange(list, state.appliedQuery)
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = 640.dp).fillMaxSize()) {
             FederationToolbar(view, actions::selectView, review, actions::reviewPending, actions::refreshReviewCount,

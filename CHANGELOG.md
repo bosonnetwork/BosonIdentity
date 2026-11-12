@@ -4,6 +4,23 @@ All notable changes to Boson Identity are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and Boson Identity is pre-1.0: until 1.0,
 minor versions may change its storage and the requests other apps make to it.
 
+## Unreleased
+
+### Administration
+
+- Update federation administration to the current relationship, admission, proposal and signed
+  node-descriptor APIs.
+- Add paged searches for Nodes, Proposals, Activity and Hosts, with independent filters and an
+  unfiltered pending-review count.
+- Admit, suspend and remove relationships; propose federation, accept or decline incoming proposals,
+  withdraw outgoing proposals and remove finished history, with confirmations and optional notes.
+- Inspect observed exchanges, demand and distinct-node host counts, including failed checks and
+  unresolved hosts. These local observations reset when the node restarts.
+- Retain federation list scroll positions when switching views or rotating; changing a search or
+  proposal filter returns to the top.
+- Use a compact Admin header and federation toolbar, status badges, detail sheets and floating
+  actions, with English and Simplified Chinese labels and the existing light/dark theme.
+
 ## 0.2.1 (2026-10-16)
 
 First public release. Built on the Boson Network stack 3.2.0. Requires Android 13 (API 33) or later.

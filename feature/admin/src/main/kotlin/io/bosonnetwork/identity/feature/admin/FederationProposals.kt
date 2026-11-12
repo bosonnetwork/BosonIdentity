@@ -101,7 +101,7 @@ internal fun FederationProposalsPane(refreshes: Int, viewModel: FederationViewMo
     var selectedId by rememberSaveable { mutableStateOf<Long?>(null) }
     val federation = (content as? Loaded.Ready)?.value
     RefreshOn(refreshes, viewModel::refreshProposals)
-    LaunchedEffect(state.appliedQuery, state.role, state.status) { list.scrollToItem(0) }
+    ResetScrollOnChange(list, state.appliedQuery, state.role?.name.orEmpty(), state.status?.name.orEmpty())
     LaunchedEffect(federation) {
         if (federation != null && federation.proposals.none { it.id == selectedId }) selectedId = null
     }
