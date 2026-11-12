@@ -44,14 +44,10 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Handshake
-import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.RemoveCircleOutline
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -79,7 +75,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -192,7 +187,7 @@ private fun NodeRow(node: FederatedNodeView, actions: FederationViewModel, onCli
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IdText(node.id, modifier = Modifier.weight(1f, fill = false), style = MaterialTheme.typography.bodyLarge)
-                NodeHealthIndicator(node)
+                FederationHealthIndicator(node.health)
             }
             NodeBadges(node)
             if (node.updatedAt > 0) Text(stringResource(R.string.adm_fed_updated, relative(node.updatedAt)),
@@ -241,37 +236,6 @@ private fun admissionColor(reason: Admission.Reason?): Color = when (reason) {
     else -> MaterialTheme.brand.warning
 }
 
-/** Shape and accessibility text distinguish unknown, recorded success and current failures. */
-@Composable
-internal fun NodeHealthIndicator(node: FederatedNodeView) {
-    val health = node.health
-    val icon = when {
-        health == null || health.lastSeenAt == 0L -> Icons.Filled.RemoveCircleOutline
-        health.isFailing -> Icons.Filled.ErrorOutline
-        health.lastSuccessAt > 0 -> Icons.Filled.CheckCircle
-        else -> Icons.Filled.MoreHoriz
-    }
-    val color = when {
-        health == null || health.lastSeenAt == 0L -> MaterialTheme.colorScheme.onSurfaceVariant
-        health.isFailing -> MaterialTheme.colorScheme.error
-        health.lastSuccessAt > 0 -> MaterialTheme.brand.success
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    val size = with(LocalDensity.current) { MaterialTheme.typography.bodyLarge.fontSize.toDp() }
-    Icon(icon, contentDescription = healthDescription(node), tint = color, modifier = Modifier.size(size))
-}
-
-@Composable
-private fun healthDescription(node: FederatedNodeView): String {
-    val health = node.health
-    return when {
-        health == null || health.lastSeenAt == 0L -> stringResource(R.string.adm_fed_unobserved)
-        health.isFailing -> stringResource(R.string.adm_fed_failures, health.consecutiveFailures)
-        health.lastSuccessAt > 0 -> stringResource(R.string.adm_fed_recent_success)
-        else -> stringResource(R.string.adm_fed_observed)
-    }
-}
-
 /** This sheet reads the loaded relationship only. Remote descriptor retrieval is an explicit act. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -300,7 +264,7 @@ internal fun NodeDetailSheet(node: FederatedNodeView, onDismiss: () -> Unit, onD
             node.note?.takeIf { it.isNotBlank() }?.let { FederationDetailField(stringResource(R.string.adm_fed_detail_note), it) }
             if (node.createdAt > 0) Text(stringResource(R.string.adm_fed_created, context.date(node.createdAt)))
             if (node.updatedAt > 0) Text(stringResource(R.string.adm_fed_updated, context.date(node.updatedAt)))
-            FederationDetailField(stringResource(R.string.adm_fed_detail_health), healthDescription(node))
+            FederationDetailField(stringResource(R.string.adm_fed_detail_health), healthDescription(node.health))
             node.health?.let { health ->
                 if (health.lastSeenAt > 0) Text(stringResource(R.string.adm_fed_last_seen, relative(health.lastSeenAt)))
                 if (health.lastSuccessAt > 0) Text(stringResource(R.string.adm_fed_last_success, relative(health.lastSuccessAt)))
@@ -372,22 +336,3 @@ private fun relationshipState(state: FederatedNode.State?): String = stringResou
         null -> R.string.adm_fed_unknown
     },
 )
-
-@Composable
-private fun admissionReason(reason: Admission.Reason?): String = stringResource(
-    when (reason) {
-        Admission.Reason.OPEN -> R.string.adm_fed_reason_open
-        Admission.Reason.ACTIVE -> R.string.adm_fed_active
-        Admission.Reason.PENDING -> R.string.adm_fed_status_pending
-        Admission.Reason.NO_RELATIONSHIP -> R.string.adm_fed_reason_no_relationship
-        Admission.Reason.DECLINED -> R.string.adm_fed_status_declined
-        Admission.Reason.NOT_FEDERATING -> R.string.adm_fed_reason_not_federating
-        Admission.Reason.SUSPENDED -> R.string.adm_fed_suspended
-        Admission.Reason.BLOCKED -> R.string.adm_fed_reason_blocked
-        Admission.Reason.DISABLED -> R.string.adm_fed_reason_disabled
-        Admission.Reason.UNKNOWN_PEER -> R.string.adm_fed_reason_unknown_peer
-        Admission.Reason.UNVERIFIED_PEER -> R.string.adm_fed_reason_unverified_peer
-        null -> R.string.adm_fed_unknown
-    },
-)
-

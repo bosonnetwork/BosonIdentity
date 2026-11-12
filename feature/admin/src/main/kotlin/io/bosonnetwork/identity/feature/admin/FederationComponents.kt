@@ -35,9 +35,14 @@ import androidx.compose.material.icons.filled.AddLink
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.Hub
+import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.RemoveCircleOutline
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.HorizontalDivider
@@ -59,11 +64,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.bosonnetwork.identity.core.designsystem.theme.brand
+import io.bosonnetwork.director.client.FederatedNodeHealth
+import io.bosonnetwork.service.Admission
 
 /** A fixed-size selector beside search; validation stays below their shared center line. */
 @Composable
@@ -149,11 +157,15 @@ private fun FederationSelector(view: FederationView, onSelect: (FederationView) 
 private fun federationView(view: FederationView): String = stringResource(when (view) {
     FederationView.NODES -> R.string.adm_fed_view_nodes
     FederationView.PROPOSALS -> R.string.adm_fed_proposals
+    FederationView.ACTIVITY -> R.string.adm_fed_activity
+    FederationView.HOSTS -> R.string.adm_fed_hosts
 })
 
 private fun viewIcon(view: FederationView): ImageVector = when (view) {
     FederationView.NODES -> Icons.Filled.Hub
     FederationView.PROPOSALS -> Icons.Filled.Handshake
+    FederationView.ACTIVITY -> Icons.Filled.MonitorHeart
+    FederationView.HOSTS -> Icons.Filled.Dns
 }
 
 /** Global operations live above the floating button; row menus remain specific to one record. */
@@ -213,3 +225,50 @@ internal fun FederationDetailField(label: String, value: String) {
         Text(value, style = MaterialTheme.typography.bodyMedium)
     }
 }
+
+/** Shape and accessibility text distinguish unknown, recorded success and current failures. */
+@Composable
+internal fun FederationHealthIndicator(health: FederatedNodeHealth?) {
+    val icon = when {
+        health == null || health.lastSeenAt == 0L -> Icons.Filled.RemoveCircleOutline
+        health.isFailing -> Icons.Filled.ErrorOutline
+        health.lastSuccessAt > 0 -> Icons.Filled.CheckCircle
+        else -> Icons.Filled.MoreHoriz
+    }
+    val color = when {
+        health == null || health.lastSeenAt == 0L -> MaterialTheme.colorScheme.onSurfaceVariant
+        health.isFailing -> MaterialTheme.colorScheme.error
+        health.lastSuccessAt > 0 -> MaterialTheme.brand.success
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val size = with(LocalDensity.current) { MaterialTheme.typography.bodyLarge.fontSize.toDp() }
+    Icon(icon, contentDescription = healthDescription(health), tint = color, modifier = Modifier.size(size))
+}
+
+@Composable
+internal fun healthDescription(health: FederatedNodeHealth?): String {
+    return when {
+        health == null || health.lastSeenAt == 0L -> stringResource(R.string.adm_fed_unobserved)
+        health.isFailing -> stringResource(R.string.adm_fed_failures, health.consecutiveFailures)
+        health.lastSuccessAt > 0 -> stringResource(R.string.adm_fed_recent_success)
+        else -> stringResource(R.string.adm_fed_observed)
+    }
+}
+
+@Composable
+internal fun admissionReason(reason: Admission.Reason?): String = stringResource(
+    when (reason) {
+        Admission.Reason.OPEN -> R.string.adm_fed_reason_open
+        Admission.Reason.ACTIVE -> R.string.adm_fed_active
+        Admission.Reason.PENDING -> R.string.adm_fed_status_pending
+        Admission.Reason.NO_RELATIONSHIP -> R.string.adm_fed_reason_no_relationship
+        Admission.Reason.DECLINED -> R.string.adm_fed_status_declined
+        Admission.Reason.NOT_FEDERATING -> R.string.adm_fed_reason_not_federating
+        Admission.Reason.SUSPENDED -> R.string.adm_fed_suspended
+        Admission.Reason.BLOCKED -> R.string.adm_fed_reason_blocked
+        Admission.Reason.DISABLED -> R.string.adm_fed_reason_disabled
+        Admission.Reason.UNKNOWN_PEER -> R.string.adm_fed_reason_unknown_peer
+        Admission.Reason.UNVERIFIED_PEER -> R.string.adm_fed_reason_unverified_peer
+        null -> R.string.adm_fed_unknown
+    },
+)

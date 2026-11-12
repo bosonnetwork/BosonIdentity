@@ -29,6 +29,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.bosonnetwork.Id
 import io.bosonnetwork.director.client.DirectorAdmin
 import io.bosonnetwork.director.client.FederationProposal
+import io.bosonnetwork.director.client.FederatedNodeHealth
 import io.bosonnetwork.identity.core.boson.AdminSession
 import io.bosonnetwork.identity.core.model.AppError
 import io.bosonnetwork.service.FederatedNodeDescriptor
@@ -86,7 +87,7 @@ data class ProposalListState(
     val moreError: String? = null,
 )
 
-enum class FederationView { NODES, PROPOSALS }
+enum class FederationView { NODES, PROPOSALS, ACTIVITY, HOSTS }
 
 enum class FederationDecision { ADMIT, SUSPEND }
 
@@ -118,7 +119,7 @@ sealed interface FederationChange {
 
 data class FederationUiState(
     val view: FederationView = FederationView.NODES,
-    /** Invalidates Nodes after an operation; its current search is refreshed when shown. */
+    /** Invalidates relationships and observations after an operation, using each view's current query. */
     val nodeChanges: Int = 0,
     val decision: NodeDecision? = null,
     /** Set while the propose dialog is open. */
@@ -384,10 +385,18 @@ class FederationViewModel @Inject constructor(
         }
     }
 
-    fun startPropose() {
+    fun startPropose() = openProposal("")
+
+    /** The server decides whether a proposal could help this observed node's demand. */
+    fun startActivityProposal(health: FederatedNodeHealth) {
+        if (!health.isProposable) return
+        openProposal(health.nodeId.toString())
+    }
+
+    private fun openProposal(nodeId: String) {
         if (currentSession() == null || _state.value.busy) return
         if (_state.value.view == FederationView.PROPOSALS && (content.value as? Loaded.Ready)?.value?.enabled == false) return
-        _state.update { it.copy(propose = Proposal(), error = null, proposed = null) }
+        _state.update { it.copy(propose = Proposal(nodeId), error = null, proposed = null) }
     }
 
     fun onProposeIdChange(value: String) = _state.update { s ->

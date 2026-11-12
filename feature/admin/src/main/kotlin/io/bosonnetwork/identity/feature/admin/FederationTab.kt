@@ -61,6 +61,8 @@ internal fun FederationTab(refreshes: Int, viewModel: FederationViewModel = hilt
         when (state.view) {
             FederationView.NODES -> FederationNodesPane(refreshes, state.nodeChanges, viewModel)
             FederationView.PROPOSALS -> FederationProposalsPane(refreshes, viewModel)
+            FederationView.ACTIVITY -> FederationActivityPane(refreshes, state.nodeChanges, viewModel)
+            FederationView.HOSTS -> FederationHostsPane(refreshes, state.nodeChanges, viewModel)
         }
     }
 
