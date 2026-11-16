@@ -18,6 +18,9 @@ captures/
 .cxx/
 .navigation/
 
+# Antigravity IDE output
+/build-logic/bin/
+
 # Output build artifacts
 *.apk
 *.aab
